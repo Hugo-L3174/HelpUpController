@@ -16,43 +16,339 @@ StatesFiles:
 - "@MC_STATES_RUNTIME_INSTALL_PREFIX@/data"
 # If true, state factory will be more verbose
 VerboseStateFactory: false
+
+# Initial position of HRP4
+init_pos: 
+  translation: [0.0, -0.5, 0.75]
+  rotation: [0.0, 0.0, 1.5]
+
+
 # Additional robots to load
 robots:
+  chair:
+    module: env/chair
+    # init_pos:
+    #   translation: [1.45, 1.5, 0]
+  human:
+    module: human
+    init_pos:
+      translation: [0.0, 0.0, 0.72]
   ground:
     module: env/ground
+
 # General constraints, always on
 constraints:
 - type: contact
 - type: dynamics
   damper: [0.1, 0.01, 0.5]
-- type: compoundJoint
+
+
 # Collision constraint
 collisions:
 - type: collision
   useMinimal: true
+- type: collision
+  r1: human
+  r2: human
+  useMinimal: true
+# - type: collision
+#   r1: hrp4
+#   r2: human
+#   collisions:
+#     - body1: torso
+#       body2: TorsoLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: torso
+#       body2: RArmLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: r_wrist
+#       body2: RArmLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: l_wrist
+#       body2: RArmLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: r_wrist
+#       body2: TorsoLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: l_wrist
+#       body2: TorsoLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: L_ELBOW_P_LINK
+#       body2: RArmLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     # right thumb
+#     - body1: R_HAND_J0_LINK
+#       body2: TorsoLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     # left thumb
+#     - body1: L_HAND_J0_LINK
+#       body2: TorsoLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: R_F23_LINK
+#       body2: HeadLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: R_F33_LINK
+#       body2: HeadLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: R_F43_LINK
+#       body2: HeadLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: R_F53_LINK
+#       body2: HeadLink
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+- type: collision
+  r1: hrp4
+  r2: chair
+  collisions:
+    - body1: L_KNEE_P_LINK
+      body2: leg_fl
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: R_KNEE_P_LINK
+      body2: leg_fr
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: L_KNEE_P_LINK
+      body2: leg_rl
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: R_KNEE_P_LINK
+      body2: leg_rr
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+
 # Initial set of contacts
 contacts:
-- r1: jvrc1
+- r1: hrp4
   r2: ground
   r1Surface: LeftFoot
   r2Surface: AllGround
-- r1: jvrc1
+- r1: hrp4
   r2: ground
   r1Surface: RightFoot
   r2Surface: AllGround
+- r1: human
+  r2: ground
+  r1Surface: LeftSole
+  r2Surface: AllGround
+- r1: human
+  r2: ground
+  r1Surface: RightSole
+  r2Surface: AllGround
+- r1: human
+  r2: chair
+  r1Surface: RLegBack
+  r2Surface: Top
+- r1: human
+  r2: chair
+  r1Surface: LLegBack
+  r2Surface: Top
 
 # Some options for a specific robot
-jvrc1:
+hrp4:
   posture:
     stiffness: 1
     weight: 10
-  ff:
-    stiffness: 2
+
+human:
+  posture:
+    stiffness: 10
     weight: 100
-# Implement some additional text states
-states: {}
+    target:
+      LArm_0: [-1.3]
+      LElbow: [0.2]
+      LForearm: [-0.9]
+      RArm_0: [1.3]
+      RElbow: [0.2]
+      RForearm: [0.9]
+      LLeg_1: [-1.57]
+      LShin_0: [1.768]
+      LAnkle_0: [-0.22]
+      RLeg_1: [-1.57]
+      RShin_0: [1.768]
+      RAnkle_0: [-0.22]
+      LHand: [0.3]
+      RHand: [0.3]
+  posture_2:
+    stiffness: 10
+    weight: 100
+    target:
+      LArm_0: [-1.3]
+      RArm_0: [1.3]
+
+# FSM states
+states:
+  Wait:
+    base: Pause
+    duration: 10.0
+
+  MakeContact:
+    base: MetaTasks
+    tasks:
+      RightHandTrajectory:
+        type: surfaceTransform
+        surface: RightHand
+        weight: 1000
+        stiffness: 5
+        targetSurface:
+          robot: human
+          surface: RightShoulder
+        completion:
+          AND:
+            - eval: 0.03
+            - speed: 1e-4 
+      LeftHandTrajectory:
+        type: surfaceTransform
+        surface: LeftHand
+        weight: 1000
+        stiffness: 5
+        targetSurface:
+          robot: human
+          surface: Back
+        completion:
+          AND:
+            - eval: 0.03
+            - speed: 1e-4 
+    AddContactsAfter:
+      - r1: hrp4
+        r2: human
+        r1Surface: RightHand
+        r2Surface: RightShoulder
+      - r1: hrp4
+        r2: human
+        r1Surface: LeftHand
+        r2Surface: Back 
+      
+
+  RobotStanding:
+    base: MetaTasks
+    tasks:
+      CoM:
+        type: com
+        above: [LeftFoot, RightFoot]
+        weight: 2000
+        stiffness: 5
+      # KeepChest:
+      #   type: orientation
+      #   body: torso
+      #   weight: 100
+      #   stiffness: 1
+
+  HRP4Support:
+    base: Parallel
+    states: [RobotStanding, MakeContact]
+
+  HumanGoFront:
+    base: MetaTasks
+    RemoveContactsAfter:
+      - r1: human
+        r2: chair
+        r1Surface: RLegBack
+        r2Surface: Top
+      - r1: human
+        r2: chair
+        r1Surface: LLegBack
+        r2Surface: Top
+    tasks:
+      HumanPosture:
+        type: posture
+        robot: human
+        # completion:
+        #   eval: 0.01
+        stiffness: 10
+        weight: 100
+        target:
+          Torso_1: [0.7]
+          
+          
+
+  GettingUp:
+    base: Parallel
+    states: [RobotStanding, HumanGoFront]
+
+
+  #TransiHuman:
+    
+  
+
 # Transitions map
 transitions:
-- [HelpUpController_Initial, OK, HelpUpController_Initial, Strict]
+- [Pause, OK, HRP4Support, Strict]
+- [HRP4Support, OK, GettingUp, Strict]
+
 # Initial state
-init: HelpUpController_Initial
+init: Pause
+
+
+
+
+# # Additional robots to load
+# robots:
+#   ground:
+#     module: env/ground
+# # General constraints, always on
+# constraints:
+# - type: contact
+# - type: dynamics
+#   damper: [0.1, 0.01, 0.5]
+# - type: compoundJoint
+# # Collision constraint
+# collisions:
+# - type: collision
+#   useMinimal: true
+# # Initial set of contacts
+# contacts:
+# - r1: jvrc1
+#   r2: ground
+#   r1Surface: LeftFoot
+#   r2Surface: AllGround
+# - r1: jvrc1
+#   r2: ground
+#   r1Surface: RightFoot
+#   r2Surface: AllGround
+
+# # Some options for a specific robot
+# jvrc1:
+#   posture:
+#     stiffness: 1
+#     weight: 10
+#   ff:
+#     stiffness: 2
+#     weight: 100
+# # Implement some additional text states
+# states: {}
+# # Transitions map
+# transitions:
+# - [HelpUpController_Initial, OK, HelpUpController_Initial, Strict]
+# # Initial state
+# init: HelpUpController_Initial

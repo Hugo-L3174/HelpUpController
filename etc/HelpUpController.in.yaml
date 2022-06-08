@@ -19,7 +19,7 @@ VerboseStateFactory: false
 
 # Initial position of HRP4
 init_pos: 
-  translation: [0.0, -0.5, 0.75]
+  translation: [0.2, -0.55, 0.75]
   rotation: [0.0, 0.0, 1.5]
 
 
@@ -27,12 +27,12 @@ init_pos:
 robots:
   chair:
     module: env/chair
-    # init_pos:
-    #   translation: [1.45, 1.5, 0]
+    init_pos:
+      translation: [0.0, 0.0, -0.05]
   human:
     module: human
     init_pos:
-      translation: [0.0, 0.0, 0.72]
+      translation: [0.1, 0.0, 0.65]
   ground:
     module: env/ground
 
@@ -51,77 +51,57 @@ collisions:
   r1: human
   r2: human
   useMinimal: true
-# - type: collision
-#   r1: hrp4
-#   r2: human
-#   collisions:
-#     - body1: torso
-#       body2: TorsoLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: torso
-#       body2: RArmLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: r_wrist
-#       body2: RArmLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: l_wrist
-#       body2: RArmLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: r_wrist
-#       body2: TorsoLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: l_wrist
-#       body2: TorsoLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: L_ELBOW_P_LINK
-#       body2: RArmLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     # right thumb
-#     - body1: R_HAND_J0_LINK
-#       body2: TorsoLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     # left thumb
-#     - body1: L_HAND_J0_LINK
-#       body2: TorsoLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: R_F23_LINK
-#       body2: HeadLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: R_F33_LINK
-#       body2: HeadLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: R_F43_LINK
-#       body2: HeadLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
-#     - body1: R_F53_LINK
-#       body2: HeadLink
-#       iDist: 0.05
-#       sDist: 0.01
-#       damping: 0
+- type: collision
+  r1: hrp4
+  r2: human
+  collisions:
+    - body1: r_wrist
+      body2: TorsoLink
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: l_wrist
+      body2: TorsoLink
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: L_ELBOW_P_LINK
+      body2: RArmLink
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    # right thumb
+    - body1: R_HAND_J0_LINK
+      body2: TorsoLink
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    # left thumb
+    - body1: L_HAND_J0_LINK
+      body2: TorsoLink
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: R_F23_LINK
+      body2: HeadLink
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: R_F33_LINK
+      body2: HeadLink
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: R_F43_LINK
+      body2: HeadLink
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: R_F53_LINK
+      body2: HeadLink
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
 - type: collision
   r1: hrp4
   r2: chair
@@ -143,6 +123,26 @@ collisions:
       damping: 0
     - body1: R_KNEE_P_LINK
       body2: leg_rr
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: L_F23_LINK
+      body2: right_handle
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: L_F33_LINK
+      body2: right_handle
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: L_F43_LINK
+      body2: right_handle
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: L_F53_LINK
+      body2: right_handle
       iDist: 0.05
       sDist: 0.01
       damping: 0
@@ -225,7 +225,7 @@ states:
           surface: RightShoulder
         completion:
           AND:
-            - eval: 0.03
+            - eval: 0.04
             - speed: 1e-4 
       LeftHandTrajectory:
         type: surfaceTransform
@@ -237,7 +237,7 @@ states:
           surface: Back
         completion:
           AND:
-            - eval: 0.03
+            - eval: 0.04
             - speed: 1e-4 
     AddContactsAfter:
       - r1: hrp4
@@ -248,6 +248,15 @@ states:
         r2: human
         r1Surface: LeftHand
         r2Surface: Back 
+    RemoveContactsAfter:
+      - r1: human
+        r2: chair
+        r1Surface: RLegBack
+        r2Surface: Top
+      - r1: human
+        r2: chair
+        r1Surface: LLegBack
+        r2Surface: Top
       
 
   RobotStanding:
@@ -270,21 +279,21 @@ states:
 
   HumanGoFront:
     base: MetaTasks
-    RemoveContactsAfter:
-      - r1: human
-        r2: chair
-        r1Surface: RLegBack
-        r2Surface: Top
-      - r1: human
-        r2: chair
-        r1Surface: LLegBack
-        r2Surface: Top
+    # RemoveContactsAfter:
+    #   - r1: human
+    #     r2: chair
+    #     r1Surface: RLegBack
+    #     r2Surface: Top
+    #   - r1: human
+    #     r2: chair
+    #     r1Surface: LLegBack
+    #     r2Surface: Top
     tasks:
       HumanPosture:
         type: posture
         robot: human
-        # completion:
-        #   eval: 0.01
+        completion:
+          eval: 0.01
         stiffness: 10
         weight: 100
         target:
@@ -303,12 +312,64 @@ states:
 
 # Transitions map
 transitions:
+# - [Pause, OK, HumanGoFront, Strict]
 - [Pause, OK, HRP4Support, Strict]
-- [HRP4Support, OK, GettingUp, Strict]
+- [HRP4Support, OK, HumanGoFront, Auto]
 
 # Initial state
 init: Pause
 
+
+ObserverPipelines:
+- name: HRP4Pipeline                    # - Create a new pipeline
+  gui: true                              #   diplay the pipeline in the GUI (default = false)
+  log: true                              #   log observers (default)
+  observers:                             #   declare which observers to use
+  - type: Encoder                        # - Use an EncoderObserver
+    config:    
+      robot: hrp4
+      updateRobot: hrp4                    
+      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
+      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
+      computeFV: true                    # We now have the estimation of each joint position and velocity and the corresponding body positions and velocities, but we are still missing the floating base
+  # - type: BodySensor                     # - Use a BodySensor observer
+  #   update: true                        #   Do not update the real robot state
+  #   gui: true                           #   Do not display in the gui
+  #   config:                              #
+  #     bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
+  #                                        #   The observer computes the position and velocity of the floating base
+  #                                        #   by transforming the sensor measurements to the floating base frame
+  - type: Attitude
+    config: 
+      bodySensor: Accelerometer 
+  - type: KinematicInertial              # - Estimates the floating base state using the KinematicInertial observer
+    update: true                         #   update the real robot instance from its results
+    gui: true                            #   Displays the estimated velocity as an arrow (default)
+    config:
+      robot: hrp4
+      updateRobot: hrp4
+      bodySensor: Accelerometer          # This observer only uses roll and pitch rotation information from this sensor along with a kinematic anchor point and the robot kinematics between the anchor frame and the floating base frame. The anchor frame is expected to be provided through a datastore callback (see below for details)
+- name: HumanPipeline
+  gui: true
+  log: true
+  observers:
+  - type: Encoder                        # - Use an EncoderObserver
+    config: 
+      robot: human
+      updateRobot: human                             
+      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
+      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
+      computeFV: true 
+  - type: Attitude
+    config: 
+      bodySensor: Accelerometer 
+  - type: KinematicInertial              # - Estimates the floating base state using the KinematicInertial observer
+    update: true                         #   update the real robot instance from its results
+    gui: true                            #   Displays the estimated velocity as an arrow (default)
+    config:
+      robot: human
+      updateRobot: human
+      bodySensor: Accelerometer 
 
 
 

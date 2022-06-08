@@ -5,6 +5,23 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
 {
   // Load entire controller configuration file
   config_.load(config);
+
+  // datastore().make_call("KinematicAnchorFrame::" + robot().name(), [this](const mc_rbdyn::Robot & robot) {
+  // return sva::interpolate(robot.surfacePose("LeftFoot"), robot.surfacePose("RightFoot"), 0.5);
+  // });
+  // /* Observers
+  //  */
+  double leftFootRatio = 0.5;
+  datastore().make_call("KinematicAnchorFrame::" + robot().name(),
+			[this, &leftFootRatio]( const mc_rbdyn::Robot & robot)
+			{
+			  // return sva::interpolate(robot.surfacePose("LeftFoot"),
+			  // 			  robot.surfacePose("RightFoot"),
+			  // 			  leftFootRatio);
+			  return robot.surfacePose("RightFoot");
+			});
+
+
   mc_rtc::log::success("HelpUpController init done ");
 }
 

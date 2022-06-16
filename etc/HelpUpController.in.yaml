@@ -19,7 +19,7 @@ VerboseStateFactory: false
 
 # Initial position of HRP4
 init_pos: 
-  translation: [0.2, -0.55, 0.75]
+  translation: [0.35, -0.55, 0.75]
   rotation: [0.0, 0.0, 1.5]
 
 
@@ -32,7 +32,7 @@ robots:
   human:
     module: human
     init_pos:
-      translation: [0.1, 0.0, 0.65]
+      translation: [0.15, 0.0, 0.65]
   ground:
     module: env/ground
 
@@ -206,6 +206,12 @@ human:
       LArm_0: [-1.3]
       RArm_0: [1.3]
 
+# Force limit on contacts (if not here, considered support contact and max force is m*g)
+# todo : differenciate human and robot
+surfacesMaxForces:
+  LeftFoot: 500
+  RightFoot: 500
+
 # FSM states
 states:
   Wait:
@@ -225,8 +231,8 @@ states:
           surface: RightShoulder
         completion:
           AND:
-            - eval: 0.04
-            - speed: 1e-4 
+            - eval: 0.08
+            - speed: 0.01 #1e-4 
       LeftHandTrajectory:
         type: surfaceTransform
         surface: LeftHand
@@ -237,8 +243,8 @@ states:
           surface: Back
         completion:
           AND:
-            - eval: 0.04
-            - speed: 1e-4 
+            - eval: 0.08
+            - speed: 0.01 #1e-4 
     AddContactsAfter:
       - r1: hrp4
         r2: human
@@ -262,32 +268,14 @@ states:
   RobotStanding:
     base: MetaTasks
     tasks:
-      CoM:
+      RobotCoM:
         type: com
         above: [LeftFoot, RightFoot]
         weight: 2000
         stiffness: 5
-      # KeepChest:
-      #   type: orientation
-      #   body: torso
-      #   weight: 100
-      #   stiffness: 1
-
-  HRP4Support:
-    base: Parallel
-    states: [RobotStanding, MakeContact]
 
   HumanGoFront:
     base: MetaTasks
-    # RemoveContactsAfter:
-    #   - r1: human
-    #     r2: chair
-    #     r1Surface: RLegBack
-    #     r2Surface: Top
-    #   - r1: human
-    #     r2: chair
-    #     r1Surface: LLegBack
-    #     r2Surface: Top
     tasks:
       HumanPosture:
         type: posture
@@ -295,26 +283,88 @@ states:
         completion:
           eval: 0.01
         stiffness: 10
-        weight: 100
+        weight: 300
         target:
-          Torso_1: [0.7]
-          
-          
+          Torso_1: [0.75]
+          LLeg_1: [-1.70]
+          LShin_0: [1.91]
+          LAnkle_0: [-0.7]
+          RLeg_1: [-1.70]
+          RShin_0: [1.91]
+          RAnkle_0: [-0.7]
+          LArm_2: [-0.75]
+          RArm_2: [0.75]
 
-  GettingUp:
+  HumanGoUp:
+    base: MetaTasks
+    tasks:
+      HumanPosture:
+        type: posture
+        robot: human
+        completion:
+          eval: 0.01
+        stiffness: 10
+        weight: 300
+        target:
+          Torso_1: [0.80]
+          LLeg_1: [-1.70]
+          LShin_0: [1.50]
+          LAnkle_0: [-0.7]
+          RLeg_1: [-1.70]
+          RShin_0: [1.50]
+          RAnkle_0: [-0.7]
+          LArm_2: [-0.75]
+          RArm_2: [0.75]
+
+  HumanGoFrontCoM:
+    base: MetaTasks
+    tasks:
+      HumanCoM:
+        type: com
+        robot: human
+        move_com: [0.15, 0, 0]
+        weight: 2000
+        stiffness: 5
+        completion:
+            AND:
+            - eval: 0.01
+            - speed: 0.01
+
+  HumanGoUpCoM:
+    base: MetaTasks
+    tasks:
+      HumanCoM:
+        type: com
+        robot: human
+        # above: [LeftSole, RightSole]
+        move_com: [0, 0, 0.1]
+        completion:
+          OR:
+            - timeout: 30
+            - AND:
+              - eval: 0.01
+              - speed: 0.005
+
+
+
+  HRP4Support:
+    base: Parallel
+    states: [RobotStanding, MakeContact]        
+
+  GoingFront:
     base: Parallel
     states: [RobotStanding, HumanGoFront]
-
-
-  #TransiHuman:
-    
   
+  GoingUp:
+    base: Parallel
+    states: [RobotStanding, HumanGoUp]
+
 
 # Transitions map
 transitions:
-# - [Pause, OK, HumanGoFront, Strict]
 - [Pause, OK, HRP4Support, Strict]
-- [HRP4Support, OK, HumanGoFront, Auto]
+- [HRP4Support, OK, GoingFront, Auto]
+- [GoingFront, OK, GoingUp, Auto]
 
 # Initial state
 init: Pause

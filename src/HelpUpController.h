@@ -3,6 +3,7 @@
 #include <mc_control/mc_controller.h>
 #include <mc_control/fsm/Controller.h>
 #include <mc_solver/CoMIncPlaneConstr.h>
+#include <mc_tasks/AdmittanceTask.h>
 
 #include <mc_tasks/CoMTask.h>
 
@@ -17,6 +18,20 @@
 
 #include "api.h"
 
+enum whatRobot
+{
+  hrp4,
+  human,
+  combined
+};
+
+enum HelpUpControllerContactType {
+  RH, // right hand
+  LH, // left hand
+  RF, // right foot
+  LF  // left foot
+};
+
 struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Controller
 {
     HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config);
@@ -24,6 +39,10 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     bool run() override;
 
     void reset(const mc_control::ControllerResetData & reset_data) override;
+
+    /*! Use to delay the start of the equilibrium criterion
+     */
+    bool addTasksToSolver();
 
     /*! \brief function called in the constructor to set up the log entries
      */ 
@@ -35,57 +54,57 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     /*! \brief Set the planes for the CoMIncPlaneConstr
      */
-    void planes(std::vector<mc_rbdyn::Plane> constrPlanes);
+    void planes(std::vector<mc_rbdyn::Plane> constrPlanes, whatRobot rob);
     
     /*! \brief Set the planes for the CoMIncPlaneConstr
      */
-    void planes(std::vector<Eigen::Vector4d> constrPlanes);
+    void planes(std::vector<Eigen::Vector4d> constrPlanes, whatRobot rob);
 
-    /*! \brief Gives the planes currently used bu CoMIncPlaneConstr
-     */
-    const std::vector<mc_rbdyn::Plane> planes() const;
+    // /*! \brief Gives the planes currently used bu CoMIncPlaneConstr
+    //  */
+    // const std::vector<mc_rbdyn::Plane> planes() const;
 
     /*! \brief Set the CoM target for CoM task
      */
-    // void desiredCoM(Eigen::Vector3d desiredCoM);
+    void desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob);
 
     /*! \brief Gives acces to target CoM of the CoM task
      */
-    Eigen::Vector3d currentCoM() const;
+    Eigen::Vector3d currentCoM(std::string robotName) const;
 
-    // inline double comTaskWeight() const
-    // {
-    //   return comTask_->weight();
-    // }
+    inline double comTaskWeight(std::shared_ptr<mc_tasks::CoMTask> CoMTask) const
+    {
+      return CoMTask->weight();
+    }
 
-    // void comTaskWeight(double weight);
+    void comTaskWeight(double weight, std::shared_ptr<mc_tasks::CoMTask> CoMTask);
 
-    // inline double comTaskStiffness() const
-    // {
-    //   return comTask_->stiffness();
-    // }
+    inline double comTaskStiffness(std::shared_ptr<mc_tasks::CoMTask> CoMTask) const
+    {
+      return CoMTask->stiffness();
+    }
 
-    // void comTaskStiffness(double stiffness);
+    void comTaskStiffness(double stiffness, std::shared_ptr<mc_tasks::CoMTask> CoMTask);
 
-    // inline double comTaskDamping() const
-    // {
-    //   return comTask_->damping();
-    // }
+    inline double comTaskDamping(std::shared_ptr<mc_tasks::CoMTask> CoMTask) const
+    {
+      return CoMTask->damping();
+    }
 
-    // void comTaskDamping(double damping);
+    void comTaskDamping(double damping, std::shared_ptr<mc_tasks::CoMTask> CoMTask);
 
-    // void targetCoM(const Eigen::Vector3d & com, const Eigen::Vector3d & comp = Eigen::Vector3d::Zero(), const Eigen::Vector3d & compp = Eigen::Vector3d::Zero());
+    void targetCoM(const Eigen::Vector3d & com, const Eigen::Vector3d & comp = Eigen::Vector3d::Zero(), const Eigen::Vector3d & compp = Eigen::Vector3d::Zero());
 
-    void increasePolytopeIndex();
-    int getPolytopeIndex();
+    void increasePolytopeIndex(int polyIndex);
+    int getPolytopeIndex(int polyIndex);
 
     /*! \brief Update the contactSet with the current contacts of the rbdyn robot object
      */
-    void updateContactSet(unsigned int robotIndex);
+    void updateContactSet(unsigned int robotIndex, whatRobot rob);
 
     /*! \brief Update the contactSet with the given contacts
      */
-    void updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex);
+    void updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex, whatRobot rob);
 
     /*! \brief Update the normal contact force upper and lower bound in the contactSetObject
      * \param contactFMax map of the names of the contacts to update with the corresponding upper bounds
@@ -95,48 +114,26 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     void updateContactForces();
 
+    void updateCombinedCoM();
+
 
     /*! \brief Compute the equilibrium region stored in futurePolytope using contactSet as input
      */ 
-    void computeStabilityRegion(bool save=false, int polIndex=0, std::string suffix="");
+    void computeStabilityRegion(std::shared_ptr<ContactSet> contactset, whatRobot rob, bool save=false, int polIndex=0, std::string suffix="");
 
-    /*! \brief Dangerous function that move future to current without asking questions
-     */
-    void setFutureToCurrent();
+    // /*! \brief Dangerous function that move future to current without asking questions
+    //  */
+    // void setFutureToCurrent(std::shared_ptr<ComputationPoint> current, std::shared_ptr<ComputationPoint> future);
 
-    /*! \brief Set the Next Polytope as a the future one 
-     * Prepare the objective for the transition
-     */
-    void setFutureToNext();
+    // /*! \brief Set the Next Polytope as a the future one 
+    //  * Prepare the objective for the transition
+    //  */
+    // void setFutureToNext(std::shared_ptr<ComputationPoint> future, std::shared_ptr<ComputationPoint> next);
 
     /*! \brief Set the current polytope as the next one
      * This method should be called once the transition to next is finished
      */
-    void setNextToCurrent();
-
-    /*! \brief Start the transition from current to next
-     */
-    inline void startTransition()
-    {
-      transitionning_ = true;
-    }
-
-    /*! \brief Used to check if the transition from current to next has finished
-     */
-    inline bool transitionFinished()
-    {
-      return !transitionning_;
-    }
-    
-    inline void setReady()
-    {
-      readyForComp_ = true;
-    }
-    
-    inline bool computationFinished() const
-    {
-      return (!computing_ and computed_);
-    }
+    void setNextToCurrent(whatRobot rob);
 
     /*! \brief Utility function to check if a vertex is inside a set of planes
      * \param Vertex vertex to test
@@ -145,17 +142,46 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
      */
     bool isVertexInPlanes(Eigen::Vector3d Vertex, std::vector<Eigen::Vector4d> planes, double eps=0.01);
 
+    std::map<std::string, double> getConfigFMax() const;
+    std::map<std::string, double> getConfigFMin() const;
+
+    inline bool transitionFinished()
+    {
+      return !transitionning_;
+    }
+
+    void addRightHandAdmittanceTask();
+    void addLeftHandAdmittanceTask();
+
+    // security issue
+    std::shared_ptr<mc_tasks::CoMTask> getComTaskHum()
+    {
+      return comTaskHum_;
+    }
+
 
 private:
     mc_rtc::Configuration config_;
 
-    // std::shared_ptr<mc_tasks::CoMTask> comTask_;
-    // Eigen::Vector3d comDesired_;
+    std::shared_ptr<mc_tasks::CoMTask> comTask_;
+    std::shared_ptr<mc_tasks::CoMTask> comTaskHum_;
+    Eigen::Vector3d comDesired_;
+    Eigen::Vector3d comDesiredHum_;
 
     std::shared_ptr<mc_solver::CoMIncPlaneConstr> comIncPlaneConstraintPtr_;
+    std::shared_ptr<mc_solver::CoMIncPlaneConstr> comIncPlaneConstraintHumPtr_;
+
     std::vector<mc_rbdyn::Plane> planes_;
+    std::vector<mc_rbdyn::Plane> planesHum_;
+
+
+    /* Non normalized vector representing the plane (todo: normalize or implement a gui func to represent the polytopes)
+    */
+    // std::vector<Eigen::Vector3d> edgesPoly_; 
 
     int polytopeIndex_;
+
+    int polytopeHumIndex_;
     
     /*! Bound the acceleration of the CoM
      * Home made constraint (Thanks Mohamed!)
@@ -171,6 +197,10 @@ private:
      */
     std::shared_ptr<ContactSet> contactSet_ = std::make_shared<ContactSet> (true); // false is to use the robust case
 
+    /*! Contact set futurePolytope_ will be computed from
+     */
+    std::shared_ptr<ContactSet> contactSetHum_ = std::make_shared<ContactSet> (true); // probably not necessary? contactSet updated everytime
+
     /*! computed currently used planes
      */
     std::shared_ptr<ComputationPoint> currentCompPoint_;
@@ -182,10 +212,28 @@ private:
      */
     std::shared_ptr<ComputationPoint> futureCompPoint_;
 
+    /*! computed currently used planes
+     */
+    std::shared_ptr<ComputationPoint> currentHumCompPoint_;
+    /*! computed planes that will be used next
+     */ 
+    std::shared_ptr<ComputationPoint> nextHumCompPoint_;
+    // std::shared_ptr<StabilityPolytope> nextPolytope_;
+    /*! planes to be computed or currently computed
+     */
+    std::shared_ptr<ComputationPoint> futureHumCompPoint_;
+
+
+    Eigen::Vector3d combinedCoM_;
+
     /*! Thread stuff
      */
     std::thread stabThread_;
+    std::thread stabThreadHum_;
+
     std::atomic<bool> polytopeReady_;
+
+    std::atomic<bool> polytopeHumReady_;
 
 
     bool readyForComp_;
@@ -193,6 +241,12 @@ private:
     bool computed_;
 
     bool transitionning_;
+
+    bool readyForCompHum_;
+    bool computingHum_;
+    bool computedHum_;
+
+    bool transitionningHum_;
 
     // storing desired max and min forces if they differ from the value given in the config file
     std::map<std::string, double> contactFMax_;
@@ -205,6 +259,11 @@ private:
     std::shared_ptr<mc_tasks::EndEffectorTask> leftHandTask_;
 
     // DynamicsConstraint for human model
-    mc_solver::DynamicsConstraint humanDynamicsConstraint_;
+    // mc_solver::DynamicsConstraint humanDynamicsConstraint_;
+
+    std::shared_ptr<mc_tasks::force::AdmittanceTask> rightHandAdmittancePtr_, leftHandAdmittancePtr_;
+    bool hasRightHandAdmittanceTask_, hasLeftHandAdmittanceTask_;
+    Eigen::Vector3d LHForceAdmittanceCoef_, LHWrenchAdmittanceCoef_;
+    Eigen::Vector3d RHForceAdmittanceCoef_, RHWrenchAdmittanceCoef_;
 
 };

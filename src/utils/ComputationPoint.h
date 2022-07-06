@@ -40,7 +40,14 @@ class ComputationPoint
    *
    */
   void save(std::string fileName);
-  
+
+  /* \brief Gives the vector of the triangles. Triangles are as 3 Vector3d for the vertices and 1 Vector3d for the normal
+   */
+  void updateTriangles();
+
+  // edges (temporarybefore triangles)
+  // void updateEdges();
+
   // ----- Setters -----
 
   // conservative polytope or pointprojector with the conservative polytope already inside.
@@ -54,6 +61,18 @@ class ComputationPoint
   {
     return computed_;
   }
+
+  /* \brief returns the triangles vector for gui polytope
+  */
+  std::vector<std::vector<Eigen::Vector3d>> getTriangles() const
+  {
+    return triangles_;
+  }
+
+  // std::vector<Eigen::Vector3d> getEdges() const
+  // {
+  //   return edgesPoly_;
+  // }
   
   // constrainedPlanes
   std::vector<Eigen::Vector4d> constraintPlanes() const;
@@ -90,8 +109,17 @@ class ComputationPoint
   std::shared_ptr<ContactSet> contactSet_;
 
   /* Polytope computed corresponding to the contact set
+   *std::shared_ptr<StabilityPolytope> polytope_; switching to robust only
    */
-  std::shared_ptr<StabilityPolytope> polytope_;
+  std::shared_ptr<RobustStabilityPolytope> polytope_;
+
+  /* Triangles vector
+   */
+  std::vector<std::vector<Eigen::Vector3d>> triangles_;
+
+  //   /* Edges vector
+  //  */
+  // std::vector<Eigen::Vector3d> edgesPoly_;
 
   /* CoMQP object used to compute the optimal position of the CoM 
    */

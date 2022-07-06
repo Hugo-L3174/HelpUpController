@@ -105,7 +105,7 @@ void PointProjector::project()
 
   projectedPoint_ << p1.m_x, p1.m_y, p1.m_z;
   //std::cout << "The projected point on the polytope is: " << projectedPoint_.transpose() << std::endl;
-  //std::cout << "The scond point is " << p2.m_x << " " <<  p2.m_y << " " <<  p2.m_z << std::endl;
+  //std::cout << "The second point is " << p2.m_x << " " <<  p2.m_y << " " <<  p2.m_z << std::endl;
   
 }
 
@@ -137,12 +137,12 @@ void PointProjector::displaySqueleton()
       eds[2] = std::make_pair(tri.b, tri.c);
       
       for (auto e: eds)
-	{
-	  if (std::find_if(edges.begin(), edges.end(), [e, pairEq](std::pair<int, int> edge){return pairEq(edge, e);})==edges.end())
-	    {
-	      edges.push_back(e);
-	    }
-	}     
+	      {
+	        if (std::find_if(edges.begin(), edges.end(), [e, pairEq](std::pair<int, int> edge){return pairEq(edge, e);})==edges.end())
+	          {
+	            edges.push_back(e);
+	          }
+	      }     
       
     }
 

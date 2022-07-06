@@ -19,8 +19,8 @@ VerboseStateFactory: false
 
 # Initial position of HRP4
 init_pos: 
-  translation: [0.35, -0.55, 0.75]
-  rotation: [0.0, 0.0, 1.5]
+  translation: [0.17, -0.60, 0.75]
+  rotation: [0.0, 0.0, 1.6]
 
 
 # Additional robots to load
@@ -28,18 +28,19 @@ robots:
   chair:
     module: env/chair
     init_pos:
-      translation: [0.0, 0.0, -0.05]
+      translation: [0.0, 0.0, -0.04]
   human:
     module: human
     init_pos:
-      translation: [0.15, 0.0, 0.65]
+      translation: [0.12, 0.0, 0.69]
   ground:
     module: env/ground
 
 # General constraints, always on
 constraints:
 - type: contact
-- type: dynamics
+- type:  dynamics #  
+  # infTorque: true
   damper: [0.1, 0.01, 0.5]
 
 
@@ -57,50 +58,18 @@ collisions:
   collisions:
     - body1: r_wrist
       body2: TorsoLink
-      iDist: 0.05
-      sDist: 0.01
+      iDist: 0.03
+      sDist: 0.001
       damping: 0
     - body1: l_wrist
       body2: TorsoLink
-      iDist: 0.05
-      sDist: 0.01
+      iDist: 0.03
+      sDist: 0.001
       damping: 0
-    - body1: L_ELBOW_P_LINK
+    - body1: r_wrist
       body2: RArmLink
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    # right thumb
-    - body1: R_HAND_J0_LINK
-      body2: TorsoLink
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    # left thumb
-    - body1: L_HAND_J0_LINK
-      body2: TorsoLink
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: R_F23_LINK
-      body2: HeadLink
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: R_F33_LINK
-      body2: HeadLink
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: R_F43_LINK
-      body2: HeadLink
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: R_F53_LINK
-      body2: HeadLink
-      iDist: 0.05
-      sDist: 0.01
+      iDist: 0.03
+      sDist: 0.001
       damping: 0
 - type: collision
   r1: hrp4
@@ -146,6 +115,21 @@ collisions:
       iDist: 0.05
       sDist: 0.01
       damping: 0
+- type: collision
+  r1: human
+  r2: chair
+  collisions:
+    - body1: TorsoLink
+      body2: back_support
+      iDist: 0.05
+      sDist: 0.01
+      damping: 0
+    - body1: HipsLink
+      body2: chair
+      iDist: 0.005
+      sDist: 0.001
+      damping: 0
+
 
 # Initial set of contacts
 contacts:
@@ -161,17 +145,19 @@ contacts:
   r2: ground
   r1Surface: LeftSole
   r2Surface: AllGround
+  dof: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
 - r1: human
   r2: ground
   r1Surface: RightSole
   r2Surface: AllGround
+  dof: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
 - r1: human
   r2: chair
-  r1Surface: RLegBack
+  r1Surface: RCheek
   r2Surface: Top
 - r1: human
   r2: chair
-  r1Surface: LLegBack
+  r1Surface: LCheek
   r2Surface: Top
 
 # Some options for a specific robot
@@ -182,35 +168,44 @@ hrp4:
 
 human:
   posture:
-    stiffness: 10
-    weight: 100
-    target:
-      LArm_0: [-1.3]
-      LElbow: [0.2]
-      LForearm: [-0.9]
-      RArm_0: [1.3]
-      RElbow: [0.2]
-      RForearm: [0.9]
-      LLeg_1: [-1.57]
-      LShin_0: [1.768]
-      LAnkle_0: [-0.22]
-      RLeg_1: [-1.57]
-      RShin_0: [1.768]
-      RAnkle_0: [-0.22]
-      LHand: [0.3]
-      RHand: [0.3]
-  posture_2:
-    stiffness: 10
-    weight: 100
-    target:
-      LArm_0: [-1.3]
-      RArm_0: [1.3]
+    stiffness: 1
+    weight: 10
+
+# human:
+#   posture:
+#     stiffness: 10
+#     weight: 100
+#     target:
+#       LArm_0: [-1.3]
+#       LElbow: [0.2]
+#       LForearm: [-0.9]
+#       RArm_0: [1.3]
+#       RElbow: [0.2]
+#       RForearm: [0.9]
+#       LLeg_1: [-1.57]
+#       LShin_0: [1.768]
+#       LAnkle_0: [-0.22]
+#       RLeg_1: [-1.57]
+#       RShin_0: [1.768]
+#       RAnkle_0: [-0.22]
+#       LHand: [0.3]
+#       RHand: [0.3]
 
 # Force limit on contacts (if not here, considered support contact and max force is m*g)
 # todo : differenciate human and robot
 surfacesMaxForces:
   LeftFoot: 500
   RightFoot: 500
+  LeftHand: 15
+  RightHand: 15
+  RLegBack: 500
+  LLegBack: 500
+  LeftSole: 500
+  RightSole: 500
+  RightShoulder: 15
+  Back: 15
+  LCheek: 500
+  RCheek: 500
 
 # FSM states
 states:
@@ -224,27 +219,30 @@ states:
       RightHandTrajectory:
         type: surfaceTransform
         surface: RightHand
-        weight: 1000
-        stiffness: 5
+        weight: 2000
+        stiffness: 2
         targetSurface:
           robot: human
           surface: RightShoulder
+          # offset:
+          #   translation: [0.5, 0.0, 0.0]
+          #   rotation: [0.0, 0.0, 0.0]
         completion:
           AND:
-            - eval: 0.08
-            - speed: 0.01 #1e-4 
+            - eval: 0.05
+            - speed: 0.001 #1e-4 
       LeftHandTrajectory:
         type: surfaceTransform
         surface: LeftHand
-        weight: 1000
-        stiffness: 5
+        weight: 2000
+        stiffness: 2
         targetSurface:
           robot: human
           surface: Back
         completion:
           AND:
-            - eval: 0.08
-            - speed: 0.01 #1e-4 
+            - eval: 0.05
+            - speed: 0.001 #1e-4 
     AddContactsAfter:
       - r1: hrp4
         r2: human
@@ -254,117 +252,227 @@ states:
         r2: human
         r1Surface: LeftHand
         r2Surface: Back 
-    RemoveContactsAfter:
-      - r1: human
-        r2: chair
-        r1Surface: RLegBack
-        r2Surface: Top
-      - r1: human
-        r2: chair
-        r1Surface: LLegBack
-        r2Surface: Top
+    # RemoveContactsAfter:
+    #   - r1: human
+    #     r2: chair
+    #     r1Surface: RLegBack
+    #     r2Surface: Top
+    #   - r1: human
+    #     r2: chair
+    #     r1Surface: LLegBack
+    #     r2Surface: Top
       
 
-  RobotStanding:
+  RobotHolding:
     base: MetaTasks
     tasks:
-      RobotCoM:
-        type: com
-        above: [LeftFoot, RightFoot]
+      AdmittanceRHand:
+        type: admittance
+        surface: RightHand
         weight: 2000
-        stiffness: 5
+        targetSurface:
+          robot: human
+          surface: RightShoulder
+        # Tracks the forces along the normal axis of the gripper surface with an admittance coefficient of 0.001
+        # Note the high-damping and low stiffness on that axis.
+        # All other axis are position controlled and will keep the current gripper position as much as possible 
+        admittance: [0,0,0,0,0,0.001]
+        stiffness: [10, 10, 10, 10, 10, 1]
+        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+        maxVel:
+          linear: [0.2, 0.2, 0.5]
+          angular: [0.2, 0.2, 0.2]
+        # Target a desired force of 15N along the Z axis of the gripper surface
+        wrench:
+          force: [0, 0, -15]
+          couple: [0, 0, 0]
+      AdmittanceLHand:
+        type: admittance
+        surface: LeftHand
+        weight: 2000
+        targetSurface:
+          robot: human
+          surface: Back
+          admittance: [0,0,0,0,0,0.001]
+        stiffness: [10, 10, 10, 10, 10, 1]
+        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+        maxVel:
+          linear: [0.2, 0.2, 0.5]
+          angular: [0.2, 0.2, 0.2]
+        # Target a desired force of 15N along the Z axis of the gripper surface
+        wrench:
+          force: [0, 0, -15]
+          couple: [0, 0, 0]
+
 
   HumanGoFront:
     base: MetaTasks
     tasks:
+      HumanTransform:
+        type: surfaceTransform
+        robot: human
+        surface: Back
+        weight: 2000
+        completion:
+          AND:
+            - eval: 0.14
+            - speed: 0.001
+        targetPosition: [0.2, 0.0, 0.95]
+        targetRotation: [0.0, -0.785381, 0.0]
+      LeftFootTransform:
+        type: surfaceTransform
+        robot: human
+        surface: LeftSole
+        weight: 2000
+        completion:
+          AND:
+            - eval: 0.08
+            - speed: 0.001
+        targetPosition: [0.32, 0.11, 0.0]
+        targetRotation: [0.0, 0.0, 0.0]
+      RightFootTransform:
+        type: surfaceTransform
+        robot: human
+        surface: RightSole
+        weight: 2000
+        completion:
+          AND:
+            - eval: 0.08
+            - speed: 0.001
+        targetPosition: [0.32, -0.11, 0.0]
+        targetRotation: [0.0, 0.0, 0.0]
+    AddContactsAfter:
+      - r1: human
+        r2: ground
+        r1Surface: LeftSole
+        r2Surface: AllGround
+      - r1: human
+        r2: ground
+        r1Surface: RightSole
+        r2Surface: AllGround
+    RemoveContactsAfter:
+      - r1: human
+        r2: chair
+        r1Surface: RCheek
+        r2Surface: Top
+      - r1: human
+        r2: chair
+        r1Surface: LCheek
+        r2Surface: Top  
+
+
+  HumanGoFrontBalance:
+    base: MetaTasks
+    tasks:
       HumanPosture:
         type: posture
         robot: human
         completion:
           eval: 0.01
-        stiffness: 10
-        weight: 300
+        # stiffness: 10
+        weight: 1000
         target:
-          Torso_1: [0.75]
-          LLeg_1: [-1.70]
-          LShin_0: [1.91]
-          LAnkle_0: [-0.7]
-          RLeg_1: [-1.70]
-          RShin_0: [1.91]
-          RAnkle_0: [-0.7]
-          LArm_2: [-0.75]
-          RArm_2: [0.75]
+          LAnkle_0: [-0.23]
+          RAnkle_0: [-0.23]
+          LArm_2: [-0.45]
+          RArm_2: [0.45]
+              
 
   HumanGoUp:
     base: MetaTasks
     tasks:
-      HumanPosture:
+      Humanstand:
         type: posture
         robot: human
         completion:
           eval: 0.01
-        stiffness: 10
-        weight: 300
+        # stiffness: 10
+        weight: 1000
         target:
-          Torso_1: [0.80]
-          LLeg_1: [-1.70]
-          LShin_0: [1.50]
-          LAnkle_0: [-0.7]
-          RLeg_1: [-1.70]
-          RShin_0: [1.50]
-          RAnkle_0: [-0.7]
-          LArm_2: [-0.75]
-          RArm_2: [0.75]
+          Torso_1: [0.15]
+          LLeg_1: [-0.0]
+          LShin_0: [0.1]
+          LAnkle_0: [-0.1]
+          RLeg_1: [-0.0]
+          RShin_0: [0.1]
+          RAnkle_0: [-0.1]
+          LArm_2: [-0.0]
+          RArm_2: [0.0]
+          LForearm: [0.0]
+          RForearm: [0.0]
+    RemoveContactsAfter:
+      - r1: hrp4
+        r2: human
+        r1Surface: LeftHand
+        r2Surface: Back
+      - r1: hrp4
+        r2: human
+        r1Surface: RightHand
+        r2Surface: RightShoulder
 
-  HumanGoFrontCoM:
+
+  FinalState:
     base: MetaTasks
     tasks:
       HumanCoM:
         type: com
         robot: human
-        move_com: [0.15, 0, 0]
-        weight: 2000
-        stiffness: 5
-        completion:
-            AND:
-            - eval: 0.01
-            - speed: 0.01
+        weight: 1000
+        above: [LeftSole, RightSole]
+  
+  HumanCoMHigh:
+    base: HumanCoM
+    weight: 50000
+    dimWeight: [1, 1, 0]
 
-  HumanGoUpCoM:
-    base: MetaTasks
-    tasks:
-      HumanCoM:
-        type: com
-        robot: human
-        # above: [LeftSole, RightSole]
-        move_com: [0, 0, 0.1]
-        completion:
-          OR:
-            - timeout: 30
-            - AND:
-              - eval: 0.01
-              - speed: 0.005
+       
 
-
-
-  HRP4Support:
-    base: Parallel
-    states: [RobotStanding, MakeContact]        
 
   GoingFront:
     base: Parallel
-    states: [RobotStanding, HumanGoFront]
+    states: [RobotHolding, HumanGoFront] #RobotStanding,  RobotHolding, 
+
+  GoingFrontBalance:
+    base: Parallel
+    states: [RobotHolding, HumanGoFrontBalance]
   
   GoingUp:
     base: Parallel
-    states: [RobotStanding, HumanGoUp]
+    states: [RobotHolding, HumanGoUp]
+
+  front:
+    base: Parallel
+    states: [HumanCoM, HumanGoFront]
+
+  balance:
+    base: Parallel
+    states: [HumanCoMHigh, HumanGoFrontBalance]
+
+  up:
+    base: Parallel
+    states: [HumanCoMHigh, HumanGoUp]
+
+  final:
+    base: Parallel
+    states: [HumanCoM, FinalState] # update with hrp4 going back to init
 
 
 # Transitions map
 transitions:
-- [Pause, OK, HRP4Support, Strict]
-- [HRP4Support, OK, GoingFront, Auto]
-- [GoingFront, OK, GoingUp, Auto]
+- [Pause, OK, MakeContact, Strict]
+- [MakeContact, OK, front, Strict]
+- [front, OK, balance, Strict]
+- [balance, OK, up, Strict]
+- [up, OK, final, Strict]
+
+# - [MakeContact, OK, HumanGoFront, Strict]
+# - [HumanGoFront, OK, HumanGoFrontBalance, Strict]
+# - [HumanGoFrontBalance, OK, HumanGoUp, Strict]
+# - [HumanGoUp, OK, FinalState, Strict]
+
+# - [MakeContact, OK, GoingFront, Strict]
+# - [GoingFront, OK, GoingFrontBalance, Strict]
+# - [GoingFront, OK, GoingUp, Strict]
 
 # Initial state
 init: Pause
@@ -382,13 +490,6 @@ ObserverPipelines:
       position: encoderValues            #    - Sets joint position from encoder sensor values (default)
       velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
       computeFV: true                    # We now have the estimation of each joint position and velocity and the corresponding body positions and velocities, but we are still missing the floating base
-  # - type: BodySensor                     # - Use a BodySensor observer
-  #   update: true                        #   Do not update the real robot state
-  #   gui: true                           #   Do not display in the gui
-  #   config:                              #
-  #     bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
-  #                                        #   The observer computes the position and velocity of the floating base
-  #                                        #   by transforming the sensor measurements to the floating base frame
   - type: Attitude
     config: 
       bodySensor: Accelerometer 
@@ -410,16 +511,25 @@ ObserverPipelines:
       position: encoderValues            #    - Sets joint position from encoder sensor values (default)
       velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
       computeFV: true 
-  - type: Attitude
+  - type: BodySensor                     # - Use a BodySensor observer
+    update: true                        #   Do not update the real robot state
+    gui: true                           #   Do not display in the gui
     config: 
-      bodySensor: Accelerometer 
-  - type: KinematicInertial              # - Estimates the floating base state using the KinematicInertial observer
-    update: true                         #   update the real robot instance from its results
-    gui: true                            #   Displays the estimated velocity as an arrow (default)
-    config:
-      robot: human
-      updateRobot: human
-      bodySensor: Accelerometer 
+      robot: human                             
+      bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
+                                         #   The observer computes the position and velocity of the floating base
+                                         #   by transforming the sensor measurements to the floating base frame
+  # - type: Attitude
+  #   config: 
+  #     robot: human
+  #     bodySensor: Accelerometer 
+  # - type: KinematicInertial              # - Estimates the floating base state using the KinematicInertial observer
+  #   update: true                         #   update the real robot instance from its results
+  #   gui: true                            #   Displays the estimated velocity as an arrow (default)
+  #   config:
+  #     robot: human
+  #     updateRobot: human
+  #     bodySensor: Accelerometer 
 
 
 

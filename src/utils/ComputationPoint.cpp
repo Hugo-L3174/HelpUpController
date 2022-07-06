@@ -12,7 +12,7 @@ void ComputationPoint::computeEquilibriumRegion()
 {
   auto start = std::chrono::high_resolution_clock::now();
 
-  double precision = 0.05;
+  double precision = 0.1;
   try
   {  
     // polytope_ = std::make_shared<StaticStabilityPolytope> (contactSet_, 20, 0.01, GLPK);
@@ -20,6 +20,7 @@ void ComputationPoint::computeEquilibriumRegion()
     polytope_->initSolver();
     polytope_->projectionStabilityPolyhedron();
     polytope_->endSolver();
+    updateTriangles();
   }
   catch (std::runtime_error e)
   {
@@ -33,6 +34,8 @@ void ComputationPoint::computeEquilibriumRegion()
     polytope_->initSolver();
     polytope_->projectionStabilityPolyhedron();
     polytope_->endSolver();
+    updateTriangles();
+    // updateEdges();
     // throw e;
   }
   
@@ -43,6 +46,48 @@ void ComputationPoint::computeEquilibriumRegion()
   computationTime_ = duration.count();
 
 }
+
+void ComputationPoint::updateTriangles()
+{
+  triangles_.clear();
+  Eigen::Vector3d coord1, coord2, coord3, normal;
+  std::vector<Eigen::Vector3d> triangle;
+  for (auto face:polytope_->fullFaces())
+  {
+    triangle.clear();
+    triangle.push_back(face->get_vertex1()->get_coordinates());
+    triangle.push_back(face->get_vertex2()->get_coordinates());
+    triangle.push_back(face->get_vertex3()->get_coordinates());
+    // triangle.push_back(face->get_normal());
+
+    triangles_.push_back(triangle);
+  }
+
+}
+
+// void ComputationPoint::updateEdges()
+// {
+//   edgesPoly_.clear();
+//   Eigen::Vector3d edge1, edge2, edge3;
+//   for (auto face:polytope_->fullFaces())
+//   {
+//     edge1 = face->get_edge1()->get_vertex1()->get_coordinates() - face->get_edge1()->get_vertex2()->get_coordinates();
+//     edge2 = face->get_edge2()->get_vertex1()->get_coordinates() - face->get_edge2()->get_vertex2()->get_coordinates();
+//     edge3 = face->get_edge3()->get_vertex1()->get_coordinates() - face->get_edge3()->get_vertex2()->get_coordinates();  
+
+//     // avoid duplucate edges
+//     for (auto edge : edgesPoly_)
+//     {
+      
+//     }
+    
+
+//     edgesPoly_.push_back(edge1);
+//     edgesPoly_.push_back(edge2);
+//     edgesPoly_.push_back(edge3);
+//   }
+
+// }
 
 void ComputationPoint::computeOptimalCoMPosition(Eigen::Vector3d currentCoM)
 {
@@ -153,6 +198,7 @@ std::vector<Eigen::Vector4d> ComputationPoint::constraintPlanes() const
   if (computed_)
   {
     planes = polytope_->constraintPlanes();
+    
     // cheaty part ^^
     // Eigen::Vector4d zPlane1, zPlane2;
     // zPlane1 << 0, 0, 1, 0.85;

@@ -3,6 +3,9 @@ set(controller_SRC
   utils/ComputationPoint.cpp
   utils/PointProjector.cpp
   utils/CoMQP.cpp
+  states/PostAdd.cpp
+  # Tasks/BoundCoMAcceleration.cpp
+  # Tasks/BoundCoMVelocity.cpp
 )
 
 set(controller_HDR
@@ -10,6 +13,9 @@ set(controller_HDR
   utils/ComputationPoint.h
   utils/PointProjector.h
   utils/CoMQP.h
+  states/PostAdd.h
+  # Tasks/BoundCoMAcceleration.h
+  # Tasks/BoundCoMVelocity.h
 )
 
 add_library(${PROJECT_NAME} SHARED ${controller_SRC} ${controller_HDR})

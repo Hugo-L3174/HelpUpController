@@ -16,4 +16,7 @@ private:
 
     int weight_;
     Eigen::Vector3d dimWeight_;
+    int finalStiff_;
+    double z_objective_;
+    bool specific_Z_= false;
 };

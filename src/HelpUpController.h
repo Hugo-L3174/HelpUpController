@@ -158,6 +158,8 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     {
       return comTaskHum_;
     }
+  
+    std::optional<double> override_CoMz;
 
 
 private:
@@ -173,6 +175,8 @@ private:
 
     std::vector<mc_rbdyn::Plane> planes_;
     std::vector<mc_rbdyn::Plane> planesHum_;
+
+    std::shared_ptr<mc_solver::QPSolver> humanSolver_;
 
 
     /* Non normalized vector representing the plane (todo: normalize or implement a gui func to represent the polytopes)
@@ -265,5 +269,7 @@ private:
     bool hasRightHandAdmittanceTask_, hasLeftHandAdmittanceTask_;
     Eigen::Vector3d LHForceAdmittanceCoef_, LHWrenchAdmittanceCoef_;
     Eigen::Vector3d RHForceAdmittanceCoef_, RHWrenchAdmittanceCoef_;
+
+    
 
 };

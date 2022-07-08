@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1)
 
 set(CXX_DISABLE_WERROR 1)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 set(PROJECT_NAME HelpUpController)
 set(PROJECT_DESCRIPTION "HelpUpController")

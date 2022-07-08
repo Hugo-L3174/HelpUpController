@@ -230,7 +230,7 @@ states:
         completion:
           AND:
             - eval: 0.05
-            - speed: 0.001 #1e-4 
+            - speed: 0.002 #1e-4 
       LeftHandTrajectory:
         type: surfaceTransform
         surface: LeftHand
@@ -242,7 +242,7 @@ states:
         completion:
           AND:
             - eval: 0.05
-            - speed: 0.001 #1e-4 
+            - speed: 0.002 #1e-4 
     AddContactsAfter:
       - r1: hrp4
         r2: human
@@ -312,11 +312,12 @@ states:
         type: surfaceTransform
         robot: human
         surface: Back
+        stiffness: 5
         weight: 2000
         completion:
           AND:
-            - eval: 0.14
-            - speed: 0.001
+            - eval: 0.15
+            - speed: 0.01
         targetPosition: [0.2, 0.0, 0.95]
         targetRotation: [0.0, -0.785381, 0.0]
       LeftFootTransform:
@@ -324,10 +325,11 @@ states:
         robot: human
         surface: LeftSole
         weight: 2000
+        stiffness: 5
         completion:
           AND:
             - eval: 0.08
-            - speed: 0.001
+            - speed: 0.01
         targetPosition: [0.32, 0.11, 0.0]
         targetRotation: [0.0, 0.0, 0.0]
       RightFootTransform:
@@ -335,10 +337,11 @@ states:
         robot: human
         surface: RightSole
         weight: 2000
+        stiffness: 5
         completion:
           AND:
             - eval: 0.08
-            - speed: 0.001
+            - speed: 0.01
         targetPosition: [0.32, -0.11, 0.0]
         targetRotation: [0.0, 0.0, 0.0]
     AddContactsAfter:
@@ -368,9 +371,9 @@ states:
         type: posture
         robot: human
         completion:
-          eval: 0.01
-        # stiffness: 10
-        weight: 1000
+          eval: 0.03
+        # stiffness: 2
+        weight: 2500
         target:
           LAnkle_0: [-0.23]
           RAnkle_0: [-0.23]
@@ -386,7 +389,7 @@ states:
         robot: human
         completion:
           eval: 0.01
-        # stiffness: 10
+        stiffness: 3
         weight: 1000
         target:
           Torso_1: [0.15]
@@ -411,23 +414,170 @@ states:
         r2Surface: RightShoulder
 
 
-  FinalState:
+  GoBackInitHrp4:
     base: MetaTasks
     tasks:
-      HumanCoM:
-        type: com
-        robot: human
+      RightHandTrajectory:
+        type: surfaceTransform
+        surface: RightHand
+        weight: 2000
+        stiffness: 2
+        targetSurface:
+          robot: human
+          surface: RightShoulder
+          offset:
+            translation: [0.0, 0.0, 0.5]
+            rotation: [0.0, 0.0, 0.0]
+        completion:
+          AND:
+            - eval: 0.05
+            - speed: 0.002 #1e-4 
+      LeftHandTrajectory:
+        type: surfaceTransform
+        surface: LeftHand
+        weight: 2000
+        stiffness: 2
+        targetSurface:
+          robot: human
+          surface: Back
+          offset:
+            translation: [0.0, 0.0, 0.5]
+            rotation: [0.0, 0.0, 0.0]
+        completion:
+          AND:
+            - eval: 0.05
+            - speed: 0.002 #1e-4 
+      # RHandTrajectory:
+      #   type: bspline_trajectory
+      #   robot: hrp4
+      #   surface: RightHand
+      #   weight: 2000.0
+      #   stiffness: 10.0
+      #   duration: 3.0
+      #   displaySamples: 100
+      #   completion:
+      #     AND:
+      #       - OR:
+      #           - eval: 1e-4
+      #           - AND:
+      #               - timeout: 5.0
+      #               - speed: 1e-3
+      #       - timeElapsed: true
+      #   target:
+      #     translation: [0.4, -0.56, 0.67]
+      #     rotation: [1.5708, 0., 1.5708]
+      #   controlPoints:
+      #     - [0.6, -0.2, 1.1]
+      # LHandTrajectory:
+      #   type: bspline_trajectory
+      #   robot: hrp4
+      #   surface: LeftHand
+      #   weight: 2000.0
+      #   stiffness: 10.0
+      #   duration: 3.0
+      #   displaySamples: 100
+      #   completion:
+      #     AND:
+      #       - OR:
+      #           - eval: 1e-4
+      #           - AND:
+      #               - timeout: 5.0
+      #               - speed: 1e-3
+      #       - timeElapsed: true
+      #   target:
+      #     translation: [-0.08, -0.56, 0.67]
+      #     rotation: [-1.5708, 0.0, 1.5708]
+      #   controlPoints:
+      #     - [-0.14, -0.13, 1.11]
+
+  HRP4pos:
+    base: MetaTasks
+    tasks:
+      HRP4HalfSit:
+        type: posture
+        robot: hrp4
+        completion:
+          eval: 0.01
+        stiffness: 3
         weight: 1000
-        above: [LeftSole, RightSole]
+        target:
+          L_HIP_Y: [0.0]
+          L_HIP_R: [0.0]
+          R_KNEE_P: [0.719]
+          L_KNEE_P: [0.719]
+          R_ELBOW_P: [-0.524]
+          L_ELBOW_P: [-0.524]
+          R_HIP_Y: [0.0]
+          R_HIP_R: [-0.02]
+          R_HIP_P: [-0.384]
+          R_KNEE_P: [0.719]
+          R_ANKLE_P: [-0.335]
+          R_ANKLE_R: [0.02]
+          L_HIP_Y: [0.0]
+          L_HIP_R: [0.02]
+          L_HIP_P: [-0.384]
+          L_KNEE_P: [0.719]
+          L_ANKLE_P: [-0.335]
+          L_ANKLE_R: [-0.02]
+          CHEST_P: [0.14]
+          CHEST_Y: [0.0]
+          NECK_Y: [0.0]
+          NECK_P: [0.0]
+          R_SHOULDER_P: [-0.052]
+          R_SHOULDER_R: [-0.175]
+          R_SHOULDER_Y: [0.0]
+          R_ELBOW_P: [-0.524]
+          R_WRIST_Y: [0.0]
+          R_WRIST_P: [0.0]
+          R_WRIST_R: [0.0]
+          L_SHOULDER_P: [-0.052]
+          L_SHOULDER_R: [-0.175]
+          L_SHOULDER_Y: [0.0]
+          L_ELBOW_P: [-0.524]
+          L_WRIST_Y: [0.0]
+          L_WRIST_P: [0.0]
+          L_WRIST_R: [0.0]
+
+  HumanPos:
+    base: MetaTasks
+    tasks:
+      Humanstand:
+        type: posture
+        robot: human
+        completion:
+          eval: 0.01
+        stiffness: 3
+        weight: 1000
+        target:
+          Torso_1: [0.15]
+          LLeg_1: [-0.0]
+          LShin_0: [0.1]
+          LAnkle_0: [-0.1]
+          RLeg_1: [-0.0]
+          RShin_0: [0.1]
+          RAnkle_0: [-0.1]
+          LArm_2: [-0.0]
+          RArm_2: [0.0]
+          LForearm: [0.0]
+          RForearm: [0.0]
   
   HumanCoMHigh:
     base: HumanCoM
     weight: 50000
     dimWeight: [1, 1, 0]
 
+  HumanCoMHighUp:
+    base: HumanCoM
+    weight: 50000
+    z_objective: 0.75
+
+  HumanCoMHighStand:
+    base: HumanCoM
+    weight: 50000
+    z_objective: 0.96
+
+
        
-
-
   GoingFront:
     base: Parallel
     states: [RobotHolding, HumanGoFront] #RobotStanding,  RobotHolding, 
@@ -446,24 +596,29 @@ states:
 
   balance:
     base: Parallel
-    states: [HumanCoMHigh, HumanGoFrontBalance]
+    states: [HumanCoMHighUp, HumanGoFrontBalance]
 
   up:
     base: Parallel
-    states: [HumanCoMHigh, HumanGoUp]
+    states: [HumanCoMHighStand, HumanGoUp]
+
+  reinit:
+    base: Parallel
+    states: [HumanCoMHighStand, GoBackInitHrp4, HumanPos] # HRP4pos, 
 
   final:
     base: Parallel
-    states: [HumanCoM, FinalState] # update with hrp4 going back to init
+    states: [HumanCoMHighStand, HRP4pos, HumanPos]
 
 
 # Transitions map
 transitions:
 - [Pause, OK, MakeContact, Strict]
-- [MakeContact, OK, front, Strict]
-- [front, OK, balance, Strict]
-- [balance, OK, up, Strict]
-- [up, OK, final, Strict]
+- [MakeContact, OK, front, Auto]
+- [front, OK, balance, Auto]
+- [balance, OK, up, Auto]
+- [up, OK, reinit, Auto]
+- [reinit, OK, final, Strict]
 
 # - [MakeContact, OK, HumanGoFront, Strict]
 # - [HumanGoFront, OK, HumanGoFrontBalance, Strict]

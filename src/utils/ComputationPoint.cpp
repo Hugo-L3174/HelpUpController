@@ -226,7 +226,7 @@ Eigen::Vector3d ComputationPoint::objectiveCoM(int mode, Eigen::Vector3d current
       break;
     case 1: // chebichev
       com = chebichevCenter();
-      com[2] = currentCoM[2];
+      com[2] = currentCoM[2]; // z axis is not taken in account for polytope center (too low)
       break;
     case 2: // CoMQp
       com = optimalCoM(currentCoM);

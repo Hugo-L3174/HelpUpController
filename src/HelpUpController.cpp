@@ -16,7 +16,8 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   // datastore().make_call("KinematicAnchorFrame::human" , [this](const mc_rbdyn::Robot & robot) { // robot 3 (out of 4) is the human robots().robots()[3].name()
   //   return sva::interpolate(robot.surfacePose("LeftSole"), robot.surfacePose("RightSole"), 0.5);
   // });
-
+  
+  // HumanSolver_ = mc_solver::QPSolver();
 
   comIncPlaneConstraintPtr_ = std::make_shared<mc_solver::CoMIncPlaneConstr> (robots(), robots().robotIndex(), dt);
   comIncPlaneConstraintHumPtr_ = std::make_shared<mc_solver::CoMIncPlaneConstr> (robots(), robots().robotIndex("human"), dt);
@@ -29,15 +30,15 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   currentCompPoint_ = std::make_shared<ComputationPoint>  (-1, std::make_shared<ContactSet>(false));
   currentHumCompPoint_ = std::make_shared<ComputationPoint>  (-1, std::make_shared<ContactSet>(false));
   
-  comTask_ = std::make_shared<mc_tasks::CoMTask> (robots(), robots().robotIndex(), 5.0, 1e3); // Stiffness 5, weight 1000
+  comTask_ = std::make_shared<mc_tasks::CoMTask> (robots(), robots().robotIndex(), 5.0, 2e3); // Stiffness 5, weight 1000
   comTask_->damping(10.0); 
   // comTask_->com(realRobot().com());
-  // comDesired_ = robot().com();
-  comTask_->com(robot().com());
+  comDesired_ = robot().com();
+  comTask_->com(robot().com()); 
 
-  comTaskHum_ = std::make_shared<mc_tasks::CoMTask> (robots(), robots().robotIndex("human"), 5.0, 1e3); // Stiffness 5, weight 1000
+  comTaskHum_ = std::make_shared<mc_tasks::CoMTask> (robots(), robots().robotIndex("human"), 5.0, 2e3); // Stiffness 5, weight 1000
   comTaskHum_->damping(10.0); 
-  // comDesiredHum_ = robot("human").com();
+  comDesiredHum_ = robot("human").com();
   comTaskHum_->com(robot("human").com());
   
   addLogEntries();
@@ -689,17 +690,30 @@ void HelpUpController::updateContactForces()
 
 void HelpUpController::setNextToCurrent(whatRobot rob)
 {
+  Eigen::Vector3d newCoM;
   switch(rob)
   {
     case hrp4 : 
       currentCompPoint_ = nextCompPoint_;
       planes(currentCompPoint_->constraintPlanes(), rob);
-      desiredCoM(currentCompPoint_->objectiveCoM(1, realRobot().com()), rob); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
+      newCoM = currentCompPoint_->objectiveCoM(1, realRobot().com()); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
+      // if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
+      // {
+      //   newCoM[2] = *override_CoMz;
+      // }
+      // newCoM[2] = 0.75; // Overwriting of z axis, which set to current z otherwise (instead of z of cheb center)
+      desiredCoM(newCoM, rob); 
       break;
     case human :
       currentHumCompPoint_ = nextHumCompPoint_;
       planes(currentHumCompPoint_->constraintPlanes(), rob);
-      desiredCoM(currentHumCompPoint_->objectiveCoM(1, realRobot("human").com()), rob);
+      newCoM = currentHumCompPoint_->objectiveCoM(1, realRobot("human").com());
+      if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
+      {
+        newCoM[2] = *override_CoMz;
+      }
+      // newCoM[2] = 0.75;
+      desiredCoM(newCoM, rob);
       break;
     case combined :
 

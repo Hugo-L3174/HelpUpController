@@ -2,11 +2,14 @@
 
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
 : mc_control::fsm::Controller(rm, dt, config), polytopeIndex_(0), polytopeHumIndex_(0), computed_(false), computedHum_(false), computing_(false), 
-computingHum_(false), transitionning_(false), transitionningHum_(false), readyForComp_(false), readyForCompHum_(false)
+computingHum_(false), transitionning_(false), transitionningHum_(false), readyForComp_(false), readyForCompHum_(false), 
+humanSolver_(std::make_shared<mc_solver::QPSolver>(dt))
 {
   // Load entire controller configuration file
   config_.load(config);
 
+  // humanSolver_->gui(gui_);
+  
   /* Observers
   */
   datastore().make_call("KinematicAnchorFrame::" + robot().name(), [this](const mc_rbdyn::Robot & robot) { // robot() is the main robot (hrp4)
@@ -191,6 +194,14 @@ bool HelpUpController::run()
 
   bool ok = mc_control::fsm::Controller::run();
 
+  // bool ok2;
+  // if (!humanSolver_->run())
+  // {
+  //   mc_rtc::log::error("QP human failed to run()");
+  //   ok2=false;
+  // }
+  // else ok2=true;
+   
   // mc_rtc::log::success("HelpUpController has ran iteration ok ");
 
   return ok;
@@ -229,6 +240,7 @@ void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
 
   // }
   // Update constraints and resets posture tasks
+  // solver().updateConstrSize();
   mc_control::fsm::Controller::reset(reset_data);
 }
 
@@ -296,13 +308,21 @@ void HelpUpController::updateCombinedCoM()
 void HelpUpController::addLogEntries()
 {
   logger().addLogEntry("polytopeIndex", [this] () -> const int { return polytopeIndex_; });
-  logger().addLogEntry("polytope_computationTime", [this]() -> const int { return currentCompPoint_->computationTime();});
+  logger().addLogEntry("polytopeIndex", [this] () -> const int { return polytopeHumIndex_; });
 
-  // // Logging the desired CoM computed
-  // auto desiredCoM = [this](){
-  //   return comDesired_;
-  // };
-  // logger().addLogEntry("com_desired", desiredCoM);
+  logger().addLogEntry("polytope_computationTime", [this]() -> const int { return currentCompPoint_->computationTime();});
+  logger().addLogEntry("polytope_computationTime", [this]() -> const int { return currentHumCompPoint_->computationTime();});
+
+  // Logging the desired CoM computed
+  auto desiredCoM = [this](){
+    return comDesired_;
+  };
+  logger().addLogEntry("com_desired", desiredCoM);
+
+  auto desiredHumCoM = [this](){
+    return comDesiredHum_;
+  };
+  logger().addLogEntry("com_desired", desiredHumCoM);
 
   // Logging the control CoM position computed by mc_rtc
   auto controlCoM = [this](){
@@ -344,6 +364,47 @@ void HelpUpController::addLogEntries()
     return this->robot().comAcceleration();
   };
   logger().addLogEntry("comAcc_control", controlCoMAcc);
+
+  // Logging the pose of the right hand for control and real.
+  auto controlRightHand = [this](){
+    return this->robot().surfacePose("RightHand");
+  };
+  logger().addLogEntry("RightHandPose_control", controlRightHand);
+
+  auto realRightHand = [this](){
+    return this->realRobot().surfacePose("RightHand");
+  };
+  logger().addLogEntry("RightHandPose_real", realRightHand);
+
+  auto controlLeftHand = [this](){
+    return this->robot().surfacePose("LeftHand");
+  };
+  logger().addLogEntry("LeftHandPose_control", controlLeftHand);
+
+  auto realLeftHand = [this](){
+    return this->realRobot().surfacePose("LeftHand");
+  };
+  logger().addLogEntry("LeftHandPose_real", realLeftHand);
+
+  auto measuredTorquesHuman = [this](){
+    return this->realRobot("human").jointTorques();
+  };
+  logger().addLogEntry("Measured torques human", measuredTorquesHuman);
+
+  // auto controlTorquesHuman = [this](){
+  //   return this->robot("human").jointTorque().at(robot("human").jointIndexByName("RShin_0"));
+  // };
+  // logger().addLogEntry("Control torques human", controlTorquesHuman);
+
+  auto measuredTorquesHRP4 = [this](){
+    return this->realRobot("hrp4").jointTorques();
+  };
+  logger().addLogEntry("Measured torques hrp4", measuredTorquesHRP4);
+
+  // auto controlTorquesHRP4 = [this](){
+  //   return this->robot("hrp4").jointTorque().at(robot("hrp4").jointIndexByName("R_KNEE_P"));
+  // };
+  // logger().addLogEntry("Control torques hrp4", controlTorquesHRP4);
 
   
   // logging CoM Task weight
@@ -840,168 +901,4 @@ std::map<std::string, double> HelpUpController::getConfigFMin() const
     }
 
   return configFMin;
-}
-
-void HelpUpController::addRightHandAdmittanceTask()
-{
-  // add the admittance task
-  rightHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("RightHand", robots(), robots().robotIndex());
-  solver().addTask(rightHandAdmittancePtr_);
-  hasRightHandAdmittanceTask_ = true;
-
-  // show the default values for stuff
-  Eigen::Vector3d force, couple;
-  sva::ForceVec<double> target;
-  
-  auto admittance =  rightHandAdmittancePtr_->admittance();
-  RHForceAdmittanceCoef_ << 0.0, 0.0, 0.001;
-  RHWrenchAdmittanceCoef_ << 0.001, 0.001, 0.0;
-  admittance = sva::ForceVec<double>(RHWrenchAdmittanceCoef_, RHForceAdmittanceCoef_);
-  rightHandAdmittancePtr_->admittance(admittance);
-  
-  auto targetPose = rightHandAdmittancePtr_->targetPose();
-  rightHandAdmittancePtr_->targetPose(targetPose);
-
-  Eigen::Vector3d angular, linear;
-  auto stiffness = rightHandAdmittancePtr_->mvStiffness();
-  double stiff = 9;
-  angular << stiff, stiff, stiff;
-  linear << stiff, stiff, stiff;
-  stiffness = sva::MotionVec<double> (angular, linear);
-
-  auto damping = rightHandAdmittancePtr_->mvDamping(); // 7.74597
-  double damp = 2 * std::sqrt(stiff);
-  angular << damp, damp, damp;
-  linear << damp, damp, damp;
-  damping = sva::MotionVec<double> (angular, linear);
-
-  rightHandAdmittancePtr_->setGains(stiffness, damping);
-  
-  linear << 0.2, 0.2, 0.5;
-  rightHandAdmittancePtr_->maxLinearVel(linear);
-
-  // setting the target wrench
-  // 1/ look for the contact
-  auto contacts = this->solver().contacts();
-
-  auto pred = [](mc_rbdyn::Contact contact){
-    return (contact.r1Surface()->name() == "RightHand") or (contact.r2Surface()->name() == "RightHand");
-  };
-  
-  auto contactId_ptr = std::find_if(contacts.begin(), contacts.end(), pred);
-
-  // 2/ once the contact has been search for -> get the right target wrench
-
-  force << 0.0, 0.0, .0;
-  couple << 0.0, 0.0, 0.0;
-  target = sva::ForceVec<double>(couple, force);
-  
-  rightHandAdmittancePtr_->targetWrench(target);
-
-
-  gui()->addElement({"Admittances", "Right Hand"},
-		    mc_rtc::gui::NumberSlider("Admittance f_z",
-					      [this](){ return this->RHForceAdmittanceCoef_(2); },
-					      [this]( double v ){ return this->RHForceAdmittanceCoef_(2) = v; },
-					      0.0001, 0.003),
-		    mc_rtc::gui::ArrayInput("Force Admittance", {},
-					    [this](){ return RHForceAdmittanceCoef_; },
-					    [this]( Eigen::Vector3d const & v ){ RHForceAdmittanceCoef_ = v; }),
-		    mc_rtc::gui::ArrayInput("Wrench Admittance", {},
-					    [this](){ return RHWrenchAdmittanceCoef_; },
-					    [this]( Eigen::Vector3d const & v ){ RHWrenchAdmittanceCoef_ = v; })
-		    );
-}
-
-void HelpUpController::addLeftHandAdmittanceTask()
-{
-  // add the admittance task
-  leftHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("LeftHand", robots(), robots().robotIndex());
-  solver().addTask(leftHandAdmittancePtr_);
-  hasLeftHandAdmittanceTask_ = true;
-
-  // show the default values for stuff
-  Eigen::Vector3d force, couple;
-  sva::ForceVec<double> target;
-  
-  auto admittance =  leftHandAdmittancePtr_->admittance();
-  LHForceAdmittanceCoef_ << 0.0, 0.0, 0.001;
-  LHWrenchAdmittanceCoef_ << 0.001, 0.001, 0.0;
-  
-  admittance = sva::ForceVec<double>(LHWrenchAdmittanceCoef_, LHForceAdmittanceCoef_);
-  leftHandAdmittancePtr_->admittance(admittance);
-  
-  auto targetPose = leftHandAdmittancePtr_->targetPose();
-  leftHandAdmittancePtr_->targetPose(targetPose);
-
-  Eigen::Vector3d angular, linear;
-  auto stiffness = leftHandAdmittancePtr_->mvStiffness();
-  double stiff = 9;
-  angular << stiff, stiff, stiff;
-  linear << stiff, stiff, stiff;
-  stiffness = sva::MotionVec<double> (angular, linear);
-
-  auto damping = leftHandAdmittancePtr_->mvDamping(); // 7.74597
-  double damp = 2 * std::sqrt(stiff);
-  angular << damp, damp, damp;
-  linear << damp, damp, damp;
-  damping = sva::MotionVec<double> (angular, linear);
-
-  leftHandAdmittancePtr_->setGains(stiffness, damping);
-  
-  linear << 0.2, 0.2, 0.5;
-  leftHandAdmittancePtr_->maxLinearVel(linear);
-
-  // setting the target wrench
-  // 1/ look for the contact
-  auto contacts = this->solver().contacts();
-
-  auto pred = [](mc_rbdyn::Contact contact){
-    return (contact.r1Surface()->name() == "LeftHand") or (contact.r2Surface()->name() == "LeftHand");
-  };
-  
-  auto contactId_ptr = std::find_if(contacts.begin(), contacts.end(), pred);
-
-  // 2/ once the contact has been search for -> get the left target wrench
-
-  force << 0.0, 0.0, .0;
-  couple << 0.0, 0.0, 0.0;
-  target = sva::ForceVec<double>(couple, force);
-  // if (contactId_ptr == contacts.end()) // the contact has not been found
-  //   {
-  //     force << 0.0, 0.0, 0.0;
-  //     couple << 0.0, 0.0, 0.0;
-  //     target = sva::ForceVec<double>(couple, force);
-  //   }
-  // else // the contact has been found manually build the target and cid
-  //   {
-  //     target = this->solver().desiredContactForce(*contactId_ptr);
-  //     mc_rtc::log::info("[Box Pusher] The dedired Wrench for the left Hand is: {}\n For contact: {}", target.vector().transpose(), contactId_ptr->toStr());
-  //   }
-  
-  leftHandAdmittancePtr_->targetWrench(target);
-  // mc_rtc::log::info("Target Wrench: {}", target);
-
-    gui()->addElement({"Admittances", "Left Hand"},
-		    mc_rtc::gui::NumberSlider("Admittance f_z",
-					      [this](){ return this->LHForceAdmittanceCoef_(2); },
-					      [this]( double v ){ return this->LHForceAdmittanceCoef_(2) = v; },
-					      0.0001, 0.003),
-		    mc_rtc::gui::ArrayInput("Force Admittance", {},
-					    [this](){ return LHForceAdmittanceCoef_; },
-					    [this]( Eigen::Vector3d const & v ){ LHForceAdmittanceCoef_ = v; }),
-		    mc_rtc::gui::ArrayInput("Wrench Admittance", {},
-					    [this](){ return LHWrenchAdmittanceCoef_; },
-					    [this]( Eigen::Vector3d const & v ){ LHWrenchAdmittanceCoef_ = v; })
-		    );
-
-    
-    
-    // gui()->addPlot(
-    // 		   "LF Admittance Task f_z",
-    // 		   mc_rtc::gui::plot::X("t", [this]() { return t; }),
-    // 		   mc_rtc::gui::plot::Y("", [this]() { return sin(t); }, Color::Red)
-    // 		   );
-
-
 }

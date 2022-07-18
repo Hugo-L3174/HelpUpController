@@ -176,7 +176,7 @@ private:
     std::vector<mc_rbdyn::Plane> planes_;
     std::vector<mc_rbdyn::Plane> planesHum_;
 
-    std::shared_ptr<mc_solver::QPSolver> humanSolver_;
+    std::shared_ptr<mc_solver::QPSolver> humanSolver_; 
 
 
     /* Non normalized vector representing the plane (todo: normalize or implement a gui func to represent the polytopes)
@@ -263,12 +263,12 @@ private:
     std::shared_ptr<mc_tasks::EndEffectorTask> leftHandTask_;
 
     // DynamicsConstraint for human model
-    // mc_solver::DynamicsConstraint humanDynamicsConstraint_;
+    mc_solver::DynamicsConstraint humanDynamicsConstraint_;
 
-    std::shared_ptr<mc_tasks::force::AdmittanceTask> rightHandAdmittancePtr_, leftHandAdmittancePtr_;
-    bool hasRightHandAdmittanceTask_, hasLeftHandAdmittanceTask_;
-    Eigen::Vector3d LHForceAdmittanceCoef_, LHWrenchAdmittanceCoef_;
-    Eigen::Vector3d RHForceAdmittanceCoef_, RHWrenchAdmittanceCoef_;
+    
+    // bool hasRightHandAdmittanceTask_, hasLeftHandAdmittanceTask_;
+    // Eigen::Vector3d LHForceAdmittanceCoef_, LHWrenchAdmittanceCoef_;
+    // Eigen::Vector3d RHForceAdmittanceCoef_, RHWrenchAdmittanceCoef_;
 
     
 

@@ -39,8 +39,11 @@ robots:
 # General constraints, always on
 constraints:
 - type: contact
-- type:  dynamics #  
-  # infTorque: true
+- type:  dynamics 
+  robot: hrp4
+- type:  dynamics 
+  robot: human  
+  infTorque: true
   damper: [0.1, 0.01, 0.5]
 
 
@@ -248,10 +251,12 @@ states:
         r2: human
         r1Surface: RightHand
         r2Surface: RightShoulder
+        # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # last one is z axis
       - r1: hrp4
         r2: human
         r1Surface: LeftHand
         r2Surface: Back 
+        # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
     # RemoveContactsAfter:
     #   - r1: human
     #     r2: chair
@@ -263,46 +268,41 @@ states:
     #     r2Surface: Top
       
 
-  RobotHolding:
-    base: MetaTasks
-    tasks:
-      AdmittanceRHand:
-        type: admittance
-        surface: RightHand
-        weight: 2000
-        targetSurface:
-          robot: human
-          surface: RightShoulder
-        # Tracks the forces along the normal axis of the gripper surface with an admittance coefficient of 0.001
-        # Note the high-damping and low stiffness on that axis.
-        # All other axis are position controlled and will keep the current gripper position as much as possible 
-        admittance: [0,0,0,0,0,0.001]
-        stiffness: [10, 10, 10, 10, 10, 1]
-        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
-        maxVel:
-          linear: [0.2, 0.2, 0.5]
-          angular: [0.2, 0.2, 0.2]
-        # Target a desired force of 15N along the Z axis of the gripper surface
-        wrench:
-          force: [0, 0, -15]
-          couple: [0, 0, 0]
-      AdmittanceLHand:
-        type: admittance
-        surface: LeftHand
-        weight: 2000
-        targetSurface:
-          robot: human
-          surface: Back
-          admittance: [0,0,0,0,0,0.001]
-        stiffness: [10, 10, 10, 10, 10, 1]
-        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
-        maxVel:
-          linear: [0.2, 0.2, 0.5]
-          angular: [0.2, 0.2, 0.2]
-        # Target a desired force of 15N along the Z axis of the gripper surface
-        wrench:
-          force: [0, 0, -15]
-          couple: [0, 0, 0]
+  Holding:
+    base: RobotHolding
+    weight: 1000
+    stiffness: 2
+    AdmittanceRHand: 
+      # surface: RightHand
+      # stiffness: 2
+      # targetSurface: RightShoulder
+      # Tracks the forces along the normal axis of the gripper surface with an admittance coefficient of 0.001
+      # Note the high-damping and low stiffness on that axis.
+      # All other axis are position controlled and will keep the current gripper position as much as possible 
+      admittance: [0,0,0,0,0,0.005]
+      stiffness: [10, 10, 10, 10, 10, 1]
+      damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+      maxVel: [0.2, 0.2, 0.5]
+        # linear: [0.2, 0.2, 0.5]
+        # angular: [0.2, 0.2, 0.2]
+      # Target a desired force of 5N along the Z axis of the gripper surface
+      wrench: [0, 0, 0, 0, 0, 10] # When the argument is already 6d the couple is at the head, then the force
+        # force: [0, 0, -5]
+        # couple: [0, 0, 0]
+    AdmittanceLHand:
+      # surface: LeftHand
+      # targetSurface:
+      #   robot: human
+      #   surface: Back
+      admittance: [0,0,0,0,0,0.005]
+      stiffness: [10, 10, 10, 10, 10, 1]
+      damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+      maxVel: [0.2, 0.2, 0.5]
+        # linear: [0.2, 0.2, 0.5]
+        # angular: [0.2, 0.2, 0.2]
+      wrench: [0, 0, 0, 0, 0, 10]
+        # force: [0, 0, -5]
+        # couple: [0, 0, 0]
 
 
   HumanGoFront:
@@ -353,6 +353,16 @@ states:
         r2: ground
         r1Surface: RightSole
         r2Surface: AllGround
+      - r1: hrp4
+        r2: human
+        r1Surface: RightHand
+        r2Surface: RightShoulder
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+      - r1: hrp4
+        r2: human
+        r1Surface: LeftHand
+        r2Surface: Back 
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
     RemoveContactsAfter:
       - r1: human
         r2: chair
@@ -362,6 +372,7 @@ states:
         r2: chair
         r1Surface: LCheek
         r2Surface: Top  
+      
 
 
   HumanGoFrontBalance:
@@ -560,6 +571,17 @@ states:
           RArm_2: [0.0]
           LForearm: [0.0]
           RForearm: [0.0]
+
+  backstraight:
+    base: MetaTasks
+    tasks:
+      back:
+        type: posture
+        robot: human
+        stiffness: 5
+        weight: 10000
+        target:
+          Torso_1: [0.15]
   
   HumanCoMHigh:
     base: HumanCoM
@@ -578,17 +600,6 @@ states:
 
 
        
-  GoingFront:
-    base: Parallel
-    states: [RobotHolding, HumanGoFront] #RobotStanding,  RobotHolding, 
-
-  GoingFrontBalance:
-    base: Parallel
-    states: [RobotHolding, HumanGoFrontBalance]
-  
-  GoingUp:
-    base: Parallel
-    states: [RobotHolding, HumanGoUp]
 
   front:
     base: Parallel
@@ -596,11 +607,11 @@ states:
 
   balance:
     base: Parallel
-    states: [HumanCoMHighUp, HumanGoFrontBalance]
+    states: [HumanCoMHighUp, HumanGoFrontBalance, Holding]
 
   up:
     base: Parallel
-    states: [HumanCoMHighStand, HumanGoUp]
+    states: [HumanCoMHighStand, HumanGoUp, Holding]
 
   reinit:
     base: Parallel

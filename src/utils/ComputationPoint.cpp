@@ -18,9 +18,21 @@ void ComputationPoint::computeEquilibriumRegion()
     // polytope_ = std::make_shared<StaticStabilityPolytope> (contactSet_, 20, 0.01, GLPK);
     polytope_ = std::make_shared<RobustStabilityPolytope> (contactSet_, 20, precision, GLPK);
     polytope_->initSolver();
-    polytope_->projectionStabilityPolyhedron();
+    // polytope_->projectionStabilityPolyhedron();
+    auto solvedOK = polytope_->computeProjectionStabilityPolyhedron();
     polytope_->endSolver();
-    updateTriangles();
+    if (solvedOK)
+    {
+      updateTriangles();
+    }
+    else
+    {
+      std::cout << "error: " << polytope_->getError() << " num iter: " << polytope_->getIteration()<< std::endl;
+      
+    }
+    
+    
+    // updateTriangles();
   }
   catch (std::runtime_error e)
   {

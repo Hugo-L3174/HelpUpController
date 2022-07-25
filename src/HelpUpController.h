@@ -161,6 +161,11 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
   
     std::optional<double> override_CoMz;
 
+    // Checking if distance between real human feet/ground - butt/chair - (robot hands/back and shoulder? maybe robotside) is low enough to consider a contact
+    void updateRealHumContacts();
+
+    void addRealHumContact(std::string humanSurfName, double fmin, double fmax, ContactType type);
+
 
 private:
     mc_rtc::Configuration config_;
@@ -177,6 +182,8 @@ private:
     std::vector<mc_rbdyn::Plane> planesHum_;
 
     std::shared_ptr<mc_solver::QPSolver> humanSolver_; 
+
+    double humanMass_ = 65;
 
 
     /* Non normalized vector representing the plane (todo: normalize or implement a gui func to represent the polytopes)
@@ -270,6 +277,9 @@ private:
     // Eigen::Vector3d LHForceAdmittanceCoef_, LHWrenchAdmittanceCoef_;
     // Eigen::Vector3d RHForceAdmittanceCoef_, RHWrenchAdmittanceCoef_;
 
+    std::shared_ptr<mc_rbdyn::Frame> Back, RightShoulder, RCheek, LCheek, RFoot, LFoot;
+
+    std::shared_ptr<mc_rbdyn::PlanarSurface> BackSurf, RightShoulderSurf, RCheekSurf, LCheekSurf, RFootSurf, LFootSurf;
     
 
 };

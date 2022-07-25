@@ -118,20 +118,20 @@ collisions:
       iDist: 0.05
       sDist: 0.01
       damping: 0
-- type: collision
-  r1: human
-  r2: chair
-  collisions:
-    - body1: TorsoLink
-      body2: back_support
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: HipsLink
-      body2: chair
-      iDist: 0.005
-      sDist: 0.001
-      damping: 0
+# - type: collision
+#   r1: human
+#   r2: chair
+#   collisions:
+#     - body1: TorsoLink
+#       body2: back_support
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: HipsLink
+#       body2: chair
+#       iDist: 0.005
+#       sDist: 0.001
+#       damping: 0
 
 
 # Initial set of contacts
@@ -144,24 +144,24 @@ contacts:
   r2: ground
   r1Surface: RightFoot
   r2Surface: AllGround
-- r1: human
-  r2: ground
-  r1Surface: LeftSole
-  r2Surface: AllGround
-  dof: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
-- r1: human
-  r2: ground
-  r1Surface: RightSole
-  r2Surface: AllGround
-  dof: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
-- r1: human
-  r2: chair
-  r1Surface: RCheek
-  r2Surface: Top
-- r1: human
-  r2: chair
-  r1Surface: LCheek
-  r2Surface: Top
+# - r1: human
+#   r2: ground
+#   r1Surface: LeftSole
+#   r2Surface: AllGround
+#   dof: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+# - r1: human
+#   r2: ground
+#   r1Surface: RightSole
+#   r2Surface: AllGround
+#   dof: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+# - r1: human
+#   r2: chair
+#   r1Surface: RCheek
+#   r2Surface: Top
+# - r1: human
+#   r2: chair
+#   r1Surface: LCheek
+#   r2Surface: Top
 
 # Some options for a specific robot
 hrp4:
@@ -220,8 +220,8 @@ states:
     base: MetaTasks
     tasks:
       RightHandTrajectory:
-        type: surfaceTransform
-        surface: RightHand
+        type: transform
+        frame: RightHand
         weight: 2000
         stiffness: 2
         targetSurface:
@@ -235,8 +235,8 @@ states:
             - eval: 0.05
             - speed: 0.002 #1e-4 
       LeftHandTrajectory:
-        type: surfaceTransform
-        surface: LeftHand
+        type: transform
+        frame: LeftHand
         weight: 2000
         stiffness: 2
         targetSurface:
@@ -309,9 +309,9 @@ states:
     base: MetaTasks
     tasks:
       HumanTransform:
-        type: surfaceTransform
+        type: transform
         robot: human
-        surface: Back
+        frame: Back
         stiffness: 5
         weight: 2000
         completion:
@@ -321,9 +321,9 @@ states:
         targetPosition: [0.2, 0.0, 0.95]
         targetRotation: [0.0, -0.785381, 0.0]
       LeftFootTransform:
-        type: surfaceTransform
+        type: transform
         robot: human
-        surface: LeftSole
+        frame: LeftSole
         weight: 2000
         stiffness: 5
         completion:
@@ -333,9 +333,9 @@ states:
         targetPosition: [0.32, 0.11, 0.0]
         targetRotation: [0.0, 0.0, 0.0]
       RightFootTransform:
-        type: surfaceTransform
+        type: transform
         robot: human
-        surface: RightSole
+        frame: RightSole
         weight: 2000
         stiffness: 5
         completion:
@@ -598,7 +598,12 @@ states:
     weight: 50000
     z_objective: 0.96
 
-
+  XsensHumanPose:
+    base: XsensHuman
+    robot: human
+    stiffness: 10
+    completion:
+      - eval: 0.0001
        
 
   front:
@@ -622,14 +627,40 @@ states:
     states: [HumanCoMHighStand, HRP4pos, HumanPos]
 
 
-# Transitions map
-transitions:
-- [Pause, OK, MakeContact, Strict]
-- [MakeContact, OK, front, Auto]
-- [front, OK, balance, Auto]
-- [balance, OK, up, Auto]
-- [up, OK, reinit, Auto]
-- [reinit, OK, final, Strict]
+
+
+  MakeContact+hum:
+    base: Parallel
+    states: [MakeContact, XsensHumanPose]
+
+  holdingUp:
+    base: Parallel
+    states: [Holding, XsensHumanPose]
+
+  GoBackInitHrp4+hum:
+    base: Parallel
+    states: [GoBackInitHrp4, XsensHumanPose]
+
+  HRP4pos+hum:
+    base: Parallel
+    states: [HRP4pos, XsensHumanPose]
+
+# Transitions map for fully simulated controller
+# transitions:  
+# - [Pause, OK, MakeContact, Strict]
+# - [MakeContact, OK, front, Auto]
+# - [front, OK, balance, Auto]
+# - [balance, OK, up, Auto]
+# - [up, OK, reinit, Auto]
+# - [reinit, OK, final, Strict]
+
+# Transitions map for human tracking
+transitions:  
+- [Pause, OK, XsensHumanPose, Strict]
+- [XsensHumanPose, OK, MakeContact+hum, Strict]
+- [MakeContact+hum, OK, holdingUp, Strict]
+- [holdingUp, OK, GoBackInitHrp4+hum, Strict]
+- [GoBackInitHrp4+hum, OK, HRP4pos+hum, Strict]
 
 # - [MakeContact, OK, HumanGoFront, Strict]
 # - [HumanGoFront, OK, HumanGoFrontBalance, Strict]
@@ -698,44 +729,102 @@ ObserverPipelines:
   #     bodySensor: Accelerometer 
 
 
+# Plugins: [mocap_plugin]
+Plugins: [XsensPlugin]
+Xsens:
+  human:
+    HipsLink:
+      segment: "Pelvis"
+    TorsoLink:
+      segment: "T8" # Sternum
+    HeadLink:
+      segment: "Head"
+    # verifier chaque link + offsets
+    torso2rshoulder_1: #might be 2 instead of 1
+      segment: "Right Shoulder"
+    torso2rshoulder_2: 
+      segment: "Right Upper Arm"
+    RElbowLink:
+      segment: "Right Forearm"
+    RHandLink:
+      segment: "Right Hand"
+    torso2lshoulder_1:
+      segment: "Left Shoulder"
+    torso2lshoulder_2:
+      segment: "Left Upper Arm"
+    LElbowLink:
+      segment: "Left Forearm"
+    LHandLink:
+      segment: "Left Hand"
+    RLegLink:
+      segment: "Right Upper Leg"
+    RShinLink:
+      segment: "Right Lower Leg"
+    RAnkleLink:
+      segment: "Right Foot"
+    LLegLink:
+      segment: "Left Upper Leg"
+    LShinLink:
+      segment: "Left Lower Leg"
+    LAnkleLink:
+      segment: "Left Foot"
+    
 
-# # Additional robots to load
-# robots:
-#   ground:
-#     module: env/ground
-# # General constraints, always on
-# constraints:
-# - type: contact
-# - type: dynamics
-#   damper: [0.1, 0.01, 0.5]
-# - type: compoundJoint
-# # Collision constraint
-# collisions:
-# - type: collision
-#   useMinimal: true
-# # Initial set of contacts
-# contacts:
-# - r1: jvrc1
-#   r2: ground
-#   r1Surface: LeftFoot
-#   r2Surface: AllGround
-# - r1: jvrc1
-#   r2: ground
-#   r1Surface: RightFoot
-#   r2Surface: AllGround
 
-# # Some options for a specific robot
-# jvrc1:
-#   posture:
-#     stiffness: 1
-#     weight: 10
-#   ff:
-#     stiffness: 2
-#     weight: 100
-# # Implement some additional text states
-# states: {}
-# # Transitions map
-# transitions:
-# - [HelpUpController_Initial, OK, HelpUpController_Initial, Strict]
-# # Initial state
-# init: HelpUpController_Initial
+#   hrp4:
+#     body:
+#       segment: "Pelvis"
+#     torso:
+#       segment: "T8" # Sternum
+#     NECK_P_LINK:
+#       segment: "Head"
+#     R_SHOULDER_R_LINK:
+#       segment: "Right Shoulder"
+#     R_SHOULDER_Y_LINK:
+#       segment: "Right Upper Arm"
+#       offset:
+#         translation: [0,0,0]
+#         rotation: [-1.57, 0, 0]
+#     R_ELBOW_P_LINK:
+#       segment: "Right Forearm"
+#       offset:
+#         translation: [0,0,0]
+#         rotation: [-1.57, 0, 0]
+#     r_wrist:
+#       segment: "Right Hand"
+#       offset:
+#         translation: [0,0,0]
+#         rotation: [-1.57, 0, 0]
+#     L_SHOULDER_R_LINK:
+#       segment: "Left Shoulder"
+#       offset:
+#         translation: [0,0,0]
+#         rotation: [1.57, 0, 0]
+#     L_SHOULDER_Y_LINK:
+#       segment: "Left Upper Arm"
+#       offset:
+#         translation: [0,0,0]
+#         rotation: [1.57, 0, 0]
+#     L_ELBOW_P_LINK:
+#       segment: "Left Forearm"
+#       offset:
+#         translation: [0,0,0]
+#         rotation: [1.57, 0, 0]
+#     l_wrist:
+#       segment: "Left Hand"
+#       offset:
+#         translation: [0,0,0]
+#         rotation: [1.57, 0, 0]
+#     R_HIP_P_LINK:
+#       segment: "Right Upper Leg"
+#     R_KNEE_P_LINK:
+#       segment: "Right Lower Leg"
+#     r_ankle:
+#       segment: "Right Foot"
+#     L_HIP_P_LINK:
+#       segment: "Left Upper Leg"
+#     L_KNEE_P_LINK:
+#       segment: "Left Lower Leg"
+#     l_ankle:
+#       segment: "Left Foot"
+  

@@ -596,7 +596,7 @@ states:
   HumanCoMHighStand:
     base: HumanCoM
     weight: 50000
-    z_objective: 0.96
+    z_objective: 1.1
 
 
        

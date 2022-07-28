@@ -757,24 +757,32 @@ void HelpUpController::setNextToCurrent(whatRobot rob)
     case hrp4 : 
       currentCompPoint_ = nextCompPoint_;
       planes(currentCompPoint_->constraintPlanes(), rob);
-      newCoM = currentCompPoint_->objectiveCoM(1, realRobot().com()); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
-      // if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
-      // {
-      //   newCoM[2] = *override_CoMz;
-      // }
-      // newCoM[2] = 0.75; // Overwriting of z axis, which set to current z otherwise (instead of z of cheb center)
-      desiredCoM(newCoM, rob); 
+      if (planes_.size()>0)
+      {
+        newCoM = currentCompPoint_->objectiveCoM(1, realRobot().com()); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
+        // if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
+        // {
+        //   newCoM[2] = *override_CoMz;
+        // }
+        // newCoM[2] = 0.75; // Overwriting of z axis, which set to current z otherwise (instead of z of cheb center)
+        desiredCoM(newCoM, rob); 
+      }
+      
+      
       break;
     case human :
       currentHumCompPoint_ = nextHumCompPoint_;
       planes(currentHumCompPoint_->constraintPlanes(), rob);
-      newCoM = currentHumCompPoint_->objectiveCoM(1, realRobot("human").com());
-      if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
+      if (planesHum_.size()>0)
       {
-        newCoM[2] = *override_CoMz;
+        newCoM = currentHumCompPoint_->objectiveCoM(1, realRobot("human").com());
+        if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
+        {
+          newCoM[2] = *override_CoMz;
+        }
+        // newCoM[2] = 0.75;
+        desiredCoM(newCoM, rob);
       }
-      // newCoM[2] = 0.75;
-      desiredCoM(newCoM, rob);
       break;
     case combined :
 

@@ -43,67 +43,27 @@ humanSolver_(std::make_shared<mc_solver::QPSolver>(dt))
   comTaskHum_->com(robot("human").com());
 
 
-  std::vector<std::pair<double, double>> planarPoints;
-  std::pair<double, double> planarPoint;
+  const auto & human_surfaces = realRobot("human").surfaces();
+  RFootSurf = human_surfaces.at("RightSole");
+  LFootSurf = human_surfaces.at("LeftSole");
+  RCheekSurf = human_surfaces.at("RCheek");
+  LCheekSurf = human_surfaces.at("LCheek");
+  RightShoulderSurf = human_surfaces.at("RightShoulder");
+  BackSurf = human_surfaces.at("Back");
 
-  
-  planarPoint = {-0.08, 0.05};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {0.17, 0.05};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {0.17, -0.05};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {-0.08, -0.05};
-  planarPoints.push_back(planarPoint);
+  TopSurf = realRobot("chair").surfaces().at("Top");
+  GroundSurf = realRobot("ground").surfaces().at("AllGround");
 
-  
-  RFootSurf = std::make_shared<mc_rbdyn::PlanarSurface> ("RFootSurf", "ground", sva::PTransformd::Identity(),"", planarPoints);
-  LFootSurf = std::make_shared<mc_rbdyn::PlanarSurface> ("LFootSurf", "ground", sva::PTransformd::Identity(),"", planarPoints);
+  RHandSurf = realRobot("hrp4").surfaces().at("RightHand");
+  LHandSurf = realRobot("hrp4").surfaces().at("LeftHand");
 
-  planarPoints.clear();
-  planarPoint = {-0.1, 0.08};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {0.1, 0.07};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {0.1, -0.07};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {-0.1, -0.08};
-  planarPoints.push_back(planarPoint);
+  RCheekChair = std::make_shared<mc_control::SimulationContactPair> (RCheekSurf, TopSurf);
+  LCheekChair = std::make_shared<mc_control::SimulationContactPair>(LCheekSurf, TopSurf);
+  RFootGround = std::make_shared<mc_control::SimulationContactPair>(RFootSurf, GroundSurf);
+  LFootGround = std::make_shared<mc_control::SimulationContactPair>(LFootSurf, GroundSurf);
+  RHandShoulder = std::make_shared<mc_control::SimulationContactPair>(RHandSurf, RightShoulderSurf);
+  LHandBack = std::make_shared<mc_control::SimulationContactPair>(LHandSurf, BackSurf);
 
-  RCheekSurf = std::make_shared<mc_rbdyn::PlanarSurface> ("RCheekSurf", "ground", sva::PTransformd::Identity(),"", planarPoints);
-  LCheekSurf = std::make_shared<mc_rbdyn::PlanarSurface> ("LCheekSurf", "ground", sva::PTransformd::Identity(),"", planarPoints);
-
-  planarPoints.clear();
-  planarPoint = {-0.1, 0.1};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {-0.1, -0.1};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {0.1, -0.1};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {0.1, 0.1};
-  planarPoints.push_back(planarPoint);
-
-
-  RightShoulderSurf = std::make_shared<mc_rbdyn::PlanarSurface> ("RightShoulderSurf", "ground", sva::PTransformd::Identity(),"", planarPoints);
-
-  planarPoints.clear();
-  planarPoint = {-0.2, 0.1};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {-0.2, -0.1};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {0.2, -0.17};
-  planarPoints.push_back(planarPoint);
-  planarPoint = {0.2, 0.17};
-  planarPoints.push_back(planarPoint);
-
-  BackSurf = std::make_shared<mc_rbdyn::PlanarSurface> ("BackSurf", "ground", sva::PTransformd::Identity(),"", planarPoints);
-
-  robot("ground").addSurface(RFootSurf);
-  robot("ground").addSurface(LFootSurf);
-  robot("ground").addSurface(RCheekSurf);
-  robot("ground").addSurface(LCheekSurf);
-  robot("ground").addSurface(RightShoulderSurf);
-  robot("ground").addSurface(BackSurf);
 
   addLogEntries();
   addGuiElements();
@@ -133,15 +93,15 @@ bool HelpUpController::run()
     }
 
     // start the computation
-    if (!computed_ and readyForComp_)
+    if (!computed_ and readyForComp_ and !computingHum_)
     {
       polytopeIndex_++;
       polytopeReady_ = false;
 
-      stabThread_ = std::thread([this](int polIndex){
-        this->computeStabilityRegion(contactSet_, hrp4, false, polIndex);
+      stabThread_ = std::thread([this](int polIndex, std::shared_ptr<ContactSet> contactSet){
+        this->computeStabilityRegion(contactSet, hrp4, false, polIndex);
         polytopeReady_ = true;
-      }, polytopeIndex_);
+      }, polytopeIndex_, std::make_shared<ContactSet>(*contactSet_));
       computing_ = true;
       readyForComp_ = false;
     }
@@ -175,17 +135,17 @@ bool HelpUpController::run()
     }
 
     // start the computation
-    if (!computedHum_ and readyForCompHum_)
+    if (!computedHum_ and readyForCompHum_ )
     {
       polytopeHumIndex_++;
       polytopeHumReady_ = false;
 
       if (contactSetHum_->numberOfContacts()>1)
       {
-        stabThreadHum_ = std::thread([this](int polIndex){
-          this->computeStabilityRegion(contactSetHum_, human, true, polIndex);
+        stabThreadHum_ = std::thread([this](int polIndex, std::shared_ptr<ContactSet> contactSetHum){
+          this->computeStabilityRegion(contactSetHum, human, true, polIndex);
           polytopeHumReady_ = true;
-        }, polytopeHumIndex_);
+        }, polytopeHumIndex_, std::make_shared<ContactSet>(*contactSetHum_));
         computingHum_ = true;
       }
       readyForCompHum_ = false;
@@ -247,7 +207,24 @@ bool HelpUpController::run()
         transitionningHum_ = false;
       }
     }
-
+  
+  for (auto task:solver().tasks())
+  {
+    
+    if (task->name().std::string::compare("LeftHandTrajectory")==0)
+    {
+      auto LeftHandTask = static_cast<mc_tasks::TransformTask *>(task);
+      LeftHandTask->targetSurface(robots().robot("human").robotIndex(), "Back", sva::PTransformd::Identity());
+    }
+    if (task->name().std::string::compare("RightHandTrajectory")==0)
+    {
+      auto RightHandTask = static_cast<mc_tasks::TransformTask *>(task);
+      RightHandTask->targetSurface(robots().robot("human").robotIndex(), "RightShoulder", sva::PTransformd::Identity());
+    }
+    
+  }
+  
+  
   // std::cout<<"human contact set: "<<std::endl;
   // for (auto name:contactSetHum_->get_contactNames())
   // {
@@ -650,6 +627,13 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
             }
         }
       }
+    
+    // // Adding hand contacts to polytope contact set even if it is not a contact control wise ()
+    // RHandShoulder->update(realRobot("hrp4"), robot("human"));
+    // LHandBack->update(robot("hrp4"), robot("human"));
+
+
+
 
     // Adding the accelerations
     
@@ -817,18 +801,16 @@ void HelpUpController::setNextToCurrent(whatRobot rob)
     case hrp4 : 
       currentCompPoint_ = nextCompPoint_;
       planes(currentCompPoint_->constraintPlanes(), rob);
-      newCoM = currentCompPoint_->objectiveCoM(1, realRobot().com()); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
-      // if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
-      // {
-      //   newCoM[2] = *override_CoMz;
-      // }
-      // newCoM[2] = 0.75; // Overwriting of z axis, which set to current z otherwise (instead of z of cheb center)
-      desiredCoM(newCoM, rob); 
+      if (planes_.size()>0)
+      {
+        newCoM = currentCompPoint_->objectiveCoM(1, realRobot().com()); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
+        desiredCoM(newCoM, rob); 
+      }
       break;
     case human :
       currentHumCompPoint_ = nextHumCompPoint_;
       planes(currentHumCompPoint_->constraintPlanes(), rob);
-      try // catching wrong problem form of stabiliplus in some cases of too few contacts
+      if (planesHum_.size()>0)
       {
         newCoM = currentHumCompPoint_->objectiveCoM(1, realRobot("human").com());
         if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
@@ -837,10 +819,6 @@ void HelpUpController::setNextToCurrent(whatRobot rob)
         }
         // newCoM[2] = 0.75;
         desiredCoM(newCoM, rob);
-      }
-      catch(const std::exception& e)
-      {
-        std::cerr << e.what() << '\n';
       }
       
       break;
@@ -974,24 +952,15 @@ std::map<std::string, double> HelpUpController::getConfigFMin() const
 
 void HelpUpController::updateRealHumContacts()
 {
-  double RFootError, LFootError;
-  sva::PTransformd RCheekError, LCheekError, BackError, RShoulderError;
-  // Those are the ptransformd errors between the surfaces
-  // RFootError = RFootSurf->X_0_s(robot("ground")).inv()*robot("ground").frame("AllGround").position(); 
-  // LFootError = LFootSurf->X_0_s(robot("ground")).inv()*robot("ground").frame("AllGround").position(); 
-  // RCheekError = RCheekSurf->X_0_s(robot("ground")).inv()*robot("chair").frame("Top").position();
-  // LCheekError = LCheekSurf->X_0_s(robot("ground")).inv()*robot("chair").frame("Top").position();
-  // BackError = BackSurf->X_0_s(robot("ground")).inv()*robot("hrp4").frame("LeftHand").position();
-  // RShoulderError = RightShoulderSurf->X_0_s(robot("ground")).inv()*robot("hrp4").frame("RightHand").position();
-
-  RFootError = robot("human").surfacePose("RightSole").translation()[2]; 
-  LFootError = robot("human").surfacePose("LeftSole").translation()[2]; 
-  RCheekError = robot("human").surfacePose("RCheek").inv()*robot("chair").surfacePose("Top");
-  LCheekError = robot("human").surfacePose("LCheek").inv()*robot("chair").surfacePose("Top");
-  BackError = robot("human").surfacePose("Back").inv()*robot("hrp4").surfacePose("LeftHand");
-  RShoulderError = robot("human").surfacePose("RightShoulder").inv()*robot("hrp4").surfacePose("RightHand");
   
-  double distThreshold = 0.2;
+  RFootGround->update(robot("human"), robot("ground"));
+  LFootGround->update(robot("human"), robot("ground"));
+  RCheekChair->update(robot("human"), robot("chair"));
+  LCheekChair->update(robot("human"), robot("chair"));
+  RHandShoulder->update(robot("hrp4"), robot("human"));
+  LHandBack->update(robot("hrp4"), robot("human"));
+
+  double distThreshold = 0.005;
   double speedThreshold = 1e-4;
 
   // for (auto contact:solver().contacts())
@@ -999,7 +968,7 @@ void HelpUpController::updateRealHumContacts()
   //  std::cout<<contact.contactId(robots())<<std::endl;
   // }
   
-  std::cout<<"-------------------------------- human contacts"<<std::endl;
+  // std::cout<<"-------------------------------- human contacts"<<std::endl;
 
   // std::cout<<"top pose is"<<robot("chair").surfacePose("Top").translation()<<std::endl;
   // std::cout<<"rcheek pose is"<<robot("human").surfacePose("RCheek").translation()<<std::endl;
@@ -1009,36 +978,45 @@ void HelpUpController::updateRealHumContacts()
   contactSetHum_->mass(humanMass_);
   contactSetHum_->setFrictionSides(6);
 
-  if (RFootError<=0.045) // Distance is low enough to consider contact
+  // std::cout<<RFootGround->pair.getDistance()<<std::endl;
+  // std::cout<<LFootGround->pair.getDistance()<<std::endl;
+  // std::cout<<RCheekChair->pair.getDistance()<<std::endl;
+  // std::cout<<LCheekChair->pair.getDistance()<<std::endl;
+  // std::cout<<RHandShoulder->pair.getDistance()<<std::endl;
+  // std::cout<<LHandBack->pair.getDistance()<<std::endl;
+  
+
+
+  if (RFootGround->pair.getDistance()<=distThreshold)   // Distance is low enough to consider contact
   {
     addRealHumContact("RightSole", 0, 200, ContactType::support);
-    std::cout<<"adding right sole"<<std::endl;
+    // std::cout<<"adding right sole"<<std::endl;
   }
 
-  if (LFootError<=0.045)
+  if (LFootGround->pair.getDistance()<=distThreshold)
   {
     addRealHumContact("LeftSole", 0, 200, ContactType::support);
-    std::cout<<"adding left sole"<<std::endl;
+    // std::cout<<"adding left sole"<<std::endl;
   }
 
-  if (RCheekError.translation().norm()<=distThreshold)
+  if (RCheekChair->pair.getDistance()<=distThreshold)
   {
     addRealHumContact("RCheek", 0, 200, ContactType::support);
-    std::cout<<"adding right cheek"<<std::endl;
+    // std::cout<<"adding right cheek"<<std::endl;
   }
 
-  if (LCheekError.translation().norm()<=distThreshold)
+  if (LCheekChair->pair.getDistance()<=distThreshold)
   {
     addRealHumContact("LCheek", 0, 200, ContactType::support);
-    std::cout<<"adding left cheek"<<std::endl;
+    // std::cout<<"adding left cheek"<<std::endl;
   }
 
-  if (BackError.translation().norm()<=distThreshold)
+  if (LHandBack->pair.getDistance()<=distThreshold)
   {
     addRealHumContact("Back", 0, 200, ContactType::support);
   }
 
-  if (RShoulderError.translation().norm()<=distThreshold)
+  if (RHandShoulder->pair.getDistance()<=distThreshold)
   {
     addRealHumContact("RightShoulder", 0, 200, ContactType::support);
   }

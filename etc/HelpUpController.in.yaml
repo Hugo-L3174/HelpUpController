@@ -19,7 +19,7 @@ VerboseStateFactory: false
 
 # Initial position of HRP4
 init_pos: 
-  translation: [0.17, -0.60, 0.75]
+  translation: [-0.10, -0.38, 0.75] #offset x: 0.17  -0.60
   rotation: [0.0, 0.0, 1.6]
 
 
@@ -28,11 +28,11 @@ robots:
   chair:
     module: env/chair
     init_pos:
-      translation: [0.0, 0.0, -0.04]
+      translation: [-0.47, 0.22, -0.04] #0.0
   human:
     module: human
     init_pos:
-      translation: [0.12, 0.0, 0.69]
+      translation: [-0.35, 0.22, 0.69] #0.12
   ground:
     module: env/ground
 
@@ -41,6 +41,7 @@ constraints:
 - type: contact
 - type:  dynamics 
   robot: hrp4
+  damper: [0.1, 0.01, 0.5]
 - type:  dynamics 
   robot: human  
   infTorque: true
@@ -251,12 +252,12 @@ states:
         r2: human
         r1Surface: RightHand
         r2Surface: RightShoulder
-        # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # last one is z axis
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
       - r1: hrp4
         r2: human
         r1Surface: LeftHand
         r2Surface: Back 
-        # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
     # RemoveContactsAfter:
     #   - r1: human
     #     r2: chair
@@ -601,9 +602,16 @@ states:
   XsensHumanPose:
     base: XsensHuman
     robot: human
-    stiffness: 10
-    completion:
-      - eval: 0.0001
+    stiffness: 1000
+
+  Pause_inf:
+    base: Meta
+    transitions: 
+      - [Pause_2s, OK, Pause_2s, Auto]
+    
+  XsensHumanPause:
+    base: Parallel
+    states: [XsensHumanPose, Pause_inf]
        
 
   front:
@@ -635,7 +643,7 @@ states:
 
   holdingUp:
     base: Parallel
-    states: [Holding, XsensHumanPose]
+    states: [Holding, XsensHumanPose, Pause_inf]
 
   GoBackInitHrp4+hum:
     base: Parallel
@@ -643,7 +651,7 @@ states:
 
   HRP4pos+hum:
     base: Parallel
-    states: [HRP4pos, XsensHumanPose]
+    states: [HRP4pos, XsensHumanPose, Pause_inf]
 
 # Transitions map for fully simulated controller
 # transitions:  
@@ -656,8 +664,8 @@ states:
 
 # Transitions map for human tracking
 transitions:  
-- [Pause, OK, XsensHumanPose, Strict]
-- [XsensHumanPose, OK, MakeContact+hum, Strict]
+- [Pause, OK, XsensHumanPause, Strict]
+- [XsensHumanPause, OK, MakeContact+hum, Strict]
 - [MakeContact+hum, OK, holdingUp, Strict]
 - [holdingUp, OK, GoBackInitHrp4+hum, Strict]
 - [GoBackInitHrp4+hum, OK, HRP4pos+hum, Strict]
@@ -740,19 +748,19 @@ Xsens:
     HeadLink:
       segment: "Head"
     # verifier chaque link + offsets
-    torso2rshoulder_1: #might be 2 instead of 1
+    torso2rshoulder_2: #might be 2 instead of 1
       segment: "Right Shoulder"
-    torso2rshoulder_2: 
+    RElbowLink:   #torso2rshoulder_2
       segment: "Right Upper Arm"
-    RElbowLink:
+    RForearmLink:
       segment: "Right Forearm"
     RHandLink:
       segment: "Right Hand"
-    torso2lshoulder_1:
-      segment: "Left Shoulder"
     torso2lshoulder_2:
-      segment: "Left Upper Arm"
+      segment: "Left Shoulder"
     LElbowLink:
+      segment: "Left Upper Arm"
+    LForearmLink:
       segment: "Left Forearm"
     LHandLink:
       segment: "Left Hand"

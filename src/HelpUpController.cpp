@@ -192,17 +192,8 @@ bool HelpUpController::run()
       }
     }
 
+  t_ += solver().dt();
   bool ok = mc_control::fsm::Controller::run();
-
-  // bool ok2;
-  // if (!humanSolver_->run())
-  // {
-  //   mc_rtc::log::error("QP human failed to run()");
-  //   ok2=false;
-  // }
-  // else ok2=true;
-   
-  // mc_rtc::log::success("HelpUpController has ran iteration ok ");
 
   return ok;
 }
@@ -455,6 +446,14 @@ void HelpUpController::addGuiElements()
   // gui()->addElement({"Polytopes"},
   //     mc_rtc::gui::Polytope("HRP4BalanceRegion", [this]() { return currentCompPoint_->getTriangles(); })
   // );
+
+  gui()->addPlot(
+    "Applied force",
+    mc_rtc::gui::plot::X("t", [this]() { return t_; }),
+    mc_rtc::gui::plot::Y("RH Force", [this]() { return realRobot("hrp4").forceSensor("RightHandForceSensor").force().z(); }, mc_rtc::gui::Color::Red),
+    mc_rtc::gui::plot::Y("LH Force", [this]() { return realRobot("hrp4").forceSensor("LeftHandForceSensor").force().z(); }, mc_rtc::gui::Color::Green)
+
+  );
   
 
 

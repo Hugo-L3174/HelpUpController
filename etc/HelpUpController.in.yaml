@@ -19,7 +19,7 @@ VerboseStateFactory: false
 
 # Initial position of HRP4
 init_pos: 
-  translation: [0.17, -0.60, 0.75]
+  translation: [0.17, -0.52, 0.75]
   rotation: [0.0, 0.0, 1.6]
 
 
@@ -98,26 +98,26 @@ collisions:
       iDist: 0.05
       sDist: 0.01
       damping: 0
-    - body1: L_F23_LINK
-      body2: right_handle
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: L_F33_LINK
-      body2: right_handle
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: L_F43_LINK
-      body2: right_handle
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: L_F53_LINK
-      body2: right_handle
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
+    # - body1: L_F23_LINK
+    #   body2: right_handle
+    #   iDist: 0.05
+    #   sDist: 0.01
+    #   damping: 0
+    # - body1: L_F33_LINK
+    #   body2: right_handle
+    #   iDist: 0.05
+    #   sDist: 0.01
+    #   damping: 0
+    # - body1: L_F43_LINK
+    #   body2: right_handle
+    #   iDist: 0.05
+    #   sDist: 0.01
+    #   damping: 0
+    # - body1: L_F53_LINK
+    #   body2: right_handle
+    #   iDist: 0.05
+    #   sDist: 0.01
+    #   damping: 0
 - type: collision
   r1: human
   r2: chair
@@ -199,8 +199,8 @@ human:
 surfacesMaxForces:
   LeftFoot: 500
   RightFoot: 500
-  LeftHand: 15
-  RightHand: 15
+  LeftHandFlat: 15
+  RightHandFlat: 15
   RLegBack: 500
   LLegBack: 500
   LeftSole: 500
@@ -221,7 +221,7 @@ states:
     tasks:
       RightHandTrajectory:
         type: surfaceTransform
-        surface: RightHand
+        surface: RightHandFlat
         weight: 2000
         stiffness: 2
         targetSurface:
@@ -236,7 +236,7 @@ states:
             - speed: 0.002 #1e-4 
       LeftHandTrajectory:
         type: surfaceTransform
-        surface: LeftHand
+        surface: LeftHandFlat
         weight: 2000
         stiffness: 2
         targetSurface:
@@ -245,18 +245,30 @@ states:
         completion:
           AND:
             - eval: 0.05
-            - speed: 0.002 #1e-4 
+            - speed: 0.002 #1e-4
+      LeftArmPosture:
+        type: posture
+        robot: hrp4
+        completion:
+          eval: 0.03
+        stiffness: 2
+        weight: 2000
+        activeJoints: [L_ELBOW_P, L_SHOULDER_R, L_SHOULDER_Y]
+        target:
+          L_SHOULDER_R: [0.3]
+          L_SHOULDER_Y: [-1.4]
+          L_ELBOW_P: [-0.8]
     AddContactsAfter:
       - r1: hrp4
         r2: human
-        r1Surface: RightHand
+        r1Surface: RightHandFlat
         r2Surface: RightShoulder
-        # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # last one is z axis
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
       - r1: hrp4
         r2: human
-        r1Surface: LeftHand
+        r1Surface: LeftHandFlat
         r2Surface: Back 
-        # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
     # RemoveContactsAfter:
     #   - r1: human
     #     r2: chair
@@ -271,7 +283,7 @@ states:
   Holding:
     base: RobotHolding
     weight: 1000
-    stiffness: 2
+    stiffness: 5
     AdmittanceRHand: 
       # surface: RightHand
       # stiffness: 2
@@ -280,7 +292,7 @@ states:
       # Note the high-damping and low stiffness on that axis.
       # All other axis are position controlled and will keep the current gripper position as much as possible 
       admittance: [0,0,0,0,0,0.005]
-      stiffness: [10, 10, 10, 10, 10, 1]
+      stiffness: [5, 5, 5, 5, 5, 0.5]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
       maxVel: [0.2, 0.2, 0.5]
         # linear: [0.2, 0.2, 0.5]
@@ -295,7 +307,7 @@ states:
       #   robot: human
       #   surface: Back
       admittance: [0,0,0,0,0,0.005]
-      stiffness: [10, 10, 10, 10, 10, 1]
+      stiffness: [5, 5, 5, 5, 5, 0.5]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
       maxVel: [0.2, 0.2, 0.5]
         # linear: [0.2, 0.2, 0.5]
@@ -312,7 +324,8 @@ states:
         type: surfaceTransform
         robot: human
         surface: Back
-        stiffness: 5
+        unactiveJoints: [Torso_1]
+        stiffness: 10
         weight: 2000
         completion:
           AND:
@@ -353,16 +366,16 @@ states:
         r2: ground
         r1Surface: RightSole
         r2Surface: AllGround
-      - r1: hrp4
-        r2: human
-        r1Surface: RightHand
-        r2Surface: RightShoulder
-        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
-      - r1: hrp4
-        r2: human
-        r1Surface: LeftHand
-        r2Surface: Back 
-        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+      # - r1: hrp4
+      #   r2: human
+      #   r1Surface: RightHand
+      #   r2Surface: RightShoulder
+      #   dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+      # - r1: hrp4
+      #   r2: human
+      #   r1Surface: LeftHand
+      #   r2Surface: Back 
+      #   dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
     RemoveContactsAfter:
       - r1: human
         r2: chair
@@ -603,7 +616,7 @@ states:
 
   front:
     base: Parallel
-    states: [HumanCoM, HumanGoFront]
+    states: [HumanCoM, HumanGoFront, Holding]
 
   balance:
     base: Parallel
@@ -615,7 +628,7 @@ states:
 
   reinit:
     base: Parallel
-    states: [HumanCoMHighStand, GoBackInitHrp4, HumanPos] # HRP4pos, 
+    states: [HumanCoMHighStand, HRP4pos, HumanPos] # HRP4pos, 
 
   final:
     base: Parallel

@@ -12,6 +12,7 @@
 #include "Tasks/BoundCoMVelocity.h"
 
 #include "utils/ComputationPoint.h"
+#include <mc_rtc/gui/plot.h>
 
 #include <mc_control/SimulationContactPair.h>
 
@@ -171,6 +172,8 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
 private:
     mc_rtc::Configuration config_;
+
+    double t_ = 0.0;
 
     std::shared_ptr<mc_tasks::CoMTask> comTask_;
     std::shared_ptr<mc_tasks::CoMTask> comTaskHum_;

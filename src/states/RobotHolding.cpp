@@ -38,7 +38,7 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl_)
   auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   // right hand admittance
-  rightHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("RightHand", ctl.robots(), ctl.robots().robotIndex());
+  rightHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("RightHandFlat", ctl.robots(), ctl.robots().robotIndex());
   auto admittance = sva::ForceVec(RHadmittance_);
   rightHandAdmittancePtr_->admittance(admittance);
 
@@ -58,7 +58,7 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl_)
 
 
   // left hand admittance
-  leftHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("LeftHand", ctl.robots(), ctl.robots().robotIndex());
+  leftHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("LeftHandFlat", ctl.robots(), ctl.robots().robotIndex());
   admittance = sva::ForceVec(LHadmittance_);
   leftHandAdmittancePtr_->admittance(admittance);
 

@@ -99,26 +99,26 @@ collisions:
       iDist: 0.05
       sDist: 0.01
       damping: 0
-    - body1: L_F23_LINK
-      body2: right_handle
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: L_F33_LINK
-      body2: right_handle
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: L_F43_LINK
-      body2: right_handle
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: L_F53_LINK
-      body2: right_handle
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
+    # - body1: L_F23_LINK
+    #   body2: right_handle
+    #   iDist: 0.05
+    #   sDist: 0.01
+    #   damping: 0
+    # - body1: L_F33_LINK
+    #   body2: right_handle
+    #   iDist: 0.05
+    #   sDist: 0.01
+    #   damping: 0
+    # - body1: L_F43_LINK
+    #   body2: right_handle
+    #   iDist: 0.05
+    #   sDist: 0.01
+    #   damping: 0
+    # - body1: L_F53_LINK
+    #   body2: right_handle
+    #   iDist: 0.05
+    #   sDist: 0.01
+    #   damping: 0
 # - type: collision
 #   r1: human
 #   r2: chair
@@ -200,8 +200,8 @@ human:
 surfacesMaxForces:
   LeftFoot: 500
   RightFoot: 500
-  LeftHand: 15
-  RightHand: 15
+  LeftHandFlat: 15
+  RightHandFlat: 15
   RLegBack: 500
   LLegBack: 500
   LeftSole: 500
@@ -222,7 +222,7 @@ states:
     tasks:
       RightHandTrajectory:
         type: transform
-        frame: RightHand
+        frame: RightHandFlat
         weight: 2000
         stiffness: 2
         targetSurface:
@@ -237,7 +237,7 @@ states:
             - speed: 0.002 #1e-4 
       LeftHandTrajectory:
         type: transform
-        frame: LeftHand
+        frame: LeftHandFlat
         weight: 2000
         stiffness: 2
         targetSurface:
@@ -247,15 +247,27 @@ states:
           AND:
             - eval: 0.05
             - speed: 0.002 #1e-4 
+      LeftArmPosture:
+        type: posture
+        robot: hrp4
+        completion:
+          eval: 0.03
+        stiffness: 2
+        weight: 2000
+        activeJoints: [L_ELBOW_P, L_SHOULDER_R, L_SHOULDER_Y]
+        target:
+          L_SHOULDER_R: [0.3]
+          L_SHOULDER_Y: [-1.4]
+          L_ELBOW_P: [-0.8]
     AddContactsAfter:
       - r1: hrp4
         r2: human
-        r1Surface: RightHand
+        r1Surface: RightHandFlat
         r2Surface: RightShoulder
         dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
       - r1: hrp4
         r2: human
-        r1Surface: LeftHand
+        r1Surface: LeftHandFlat
         r2Surface: Back 
         dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
     # RemoveContactsAfter:
@@ -356,12 +368,12 @@ states:
         r2Surface: AllGround
       - r1: hrp4
         r2: human
-        r1Surface: RightHand
+        r1Surface: RightHandFlat
         r2Surface: RightShoulder
         dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
       - r1: hrp4
         r2: human
-        r1Surface: LeftHand
+        r1Surface: LeftHandFlat
         r2Surface: Back 
         dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
     RemoveContactsAfter:
@@ -418,11 +430,11 @@ states:
     RemoveContactsAfter:
       - r1: hrp4
         r2: human
-        r1Surface: LeftHand
+        r1Surface: LeftHandFlat
         r2Surface: Back
       - r1: hrp4
         r2: human
-        r1Surface: RightHand
+        r1Surface: RightHandFlat
         r2Surface: RightShoulder
 
 
@@ -431,7 +443,7 @@ states:
     tasks:
       RightHandTrajectory:
         type: surfaceTransform
-        surface: RightHand
+        surface: RightHandFlat
         weight: 2000
         stiffness: 2
         targetSurface:
@@ -446,7 +458,7 @@ states:
             - speed: 0.002 #1e-4 
       LeftHandTrajectory:
         type: surfaceTransform
-        surface: LeftHand
+        surface: LeftHandFlat
         weight: 2000
         stiffness: 2
         targetSurface:
@@ -705,23 +717,23 @@ ObserverPipelines:
       robot: hrp4
       updateRobot: hrp4
       bodySensor: Accelerometer          # This observer only uses roll and pitch rotation information from this sensor along with a kinematic anchor point and the robot kinematics between the anchor frame and the floating base frame. The anchor frame is expected to be provided through a datastore callback (see below for details)
-- name: HumanPipeline
-  gui: true
-  log: true
-  observers:
-  - type: Encoder                        # - Use an EncoderObserver
-    config: 
-      robot: human
-      updateRobot: human                             
-      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
-      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
-      computeFV: true 
-  - type: BodySensor                     # - Use a BodySensor observer
-    update: true                        #   Do not update the real robot state
-    gui: true                           #   Do not display in the gui
-    config: 
-      robot: human                             
-      bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
+# - name: HumanPipeline
+#   gui: true
+#   log: true
+#   observers:
+#   - type: Encoder                        # - Use an EncoderObserver
+#     config: 
+#       robot: human
+#       updateRobot: human                             
+#       position: encoderValues            #    - Sets joint position from encoder sensor values (default)
+#       velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
+#       computeFV: true 
+#   - type: BodySensor                     # - Use a BodySensor observer
+#     update: true                        #   Do not update the real robot state
+#     gui: true                           #   Do not display in the gui
+#     config: 
+#       robot: human                             
+#       bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
                                          #   The observer computes the position and velocity of the floating base
                                          #   by transforming the sensor measurements to the floating base frame
   # - type: Attitude
@@ -745,33 +757,69 @@ Xsens:
       segment: "Pelvis"
     TorsoLink:
       segment: "T8" # Sternum
+      offset:
+        translation: [0.1,0,-0.05]
+        rotation: [0, 0, 0]
     HeadLink:
       segment: "Head"
+      offset:
+        translation: [0.05,0,0]
+        rotation: [0, 0, 0]
     # verifier chaque link + offsets
-    torso2rshoulder_2: #might be 2 instead of 1
+    torso2rshoulder_1: #might be 2 instead of 1
       segment: "Right Shoulder"
-    RElbowLink:   #torso2rshoulder_2
-      segment: "Right Upper Arm"
+      offset:
+        translation: [0.1,-0.11,0]
+        rotation: [0, 0, 0]
+    # RElbowLink:   #torso2rshoulder_2
+    #   segment: "Right Upper Arm"
+    #   offset:
+    #     translation: [0,-0.13,0.18]
+    #     rotation: [0, 0, 0]
     RForearmLink:
       segment: "Right Forearm"
+      offset:
+        translation: [0,-0.05,0.1]
+        rotation: [0, 0, 0]
     RHandLink:
       segment: "Right Hand"
-    torso2lshoulder_2:
+      offset:
+        translation: [0,-0.05,0.1]
+        rotation: [0, 0, 0]
+    torso2lshoulder_1:
       segment: "Left Shoulder"
-    LElbowLink:
-      segment: "Left Upper Arm"
+      offset:
+        translation: [0.1,0.11,0]
+        rotation: [0, 0, 0]
+    # LElbowLink:
+    #   segment: "Left Upper Arm"
+    #   offset:
+    #     translation: [0,0.13,0.18]
+    #     rotation: [0, 0, 0]
     LForearmLink:
       segment: "Left Forearm"
+      offset:
+        translation: [0,0.05,0.1]
+        rotation: [0, 0, 0]
     LHandLink:
       segment: "Left Hand"
+      offset:
+        translation: [0,0.05,0.1]
+        rotation: [0, 0, 0]
     RLegLink:
       segment: "Right Upper Leg"
+      offset:
+        translation: [0,0,-0.15]
+        rotation: [0, 0, 0]
     RShinLink:
       segment: "Right Lower Leg"
     RAnkleLink:
       segment: "Right Foot"
     LLegLink:
       segment: "Left Upper Leg"
+      offset:
+        translation: [0,0,-0.15]
+        rotation: [0, 0, 0]
     LShinLink:
       segment: "Left Lower Leg"
     LAnkleLink:

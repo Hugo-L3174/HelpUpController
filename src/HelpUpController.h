@@ -12,7 +12,10 @@
 #include "Tasks/BoundCoMVelocity.h"
 
 #include "utils/ComputationPoint.h"
+#include "utils/TrajectoryModel.h"
 #include <mc_rtc/gui/plot.h>
+
+#include <mc_control/SimulationContactPair.h>
 
 #include <thread>
 #include <atomic>
@@ -162,6 +165,11 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
   
     std::optional<double> override_CoMz;
 
+    // Checking if distance between real human feet/ground - butt/chair - (robot hands/back and shoulder? maybe robotside) is low enough to consider a contact
+    void updateRealHumContacts();
+
+    void addRealHumContact(std::string humanSurfName, double fmin, double fmax, ContactType type);
+
 
 private:
     mc_rtc::Configuration config_;
@@ -180,6 +188,11 @@ private:
     std::vector<mc_rbdyn::Plane> planesHum_;
 
     std::shared_ptr<mc_solver::QPSolver> humanSolver_; 
+
+    std::shared_ptr<TrajectoryModel> trajectories_; 
+    std::vector<Eigen::Vector3d> traj_;
+
+    double humanMass_ = 65;
 
 
     /* Non normalized vector representing the plane (todo: normalize or implement a gui func to represent the polytopes)
@@ -273,6 +286,11 @@ private:
     // Eigen::Vector3d LHForceAdmittanceCoef_, LHWrenchAdmittanceCoef_;
     // Eigen::Vector3d RHForceAdmittanceCoef_, RHWrenchAdmittanceCoef_;
 
+    // std::shared_ptr<mc_rbdyn::Frame> Back, RightShoulder, RCheek, LCheek, RFoot, LFoot;
+
+    // Surfaces to check collisions
+    std::shared_ptr<mc_rbdyn::Surface> BackSurf, RightShoulderSurf, RCheekSurf, LCheekSurf, RFootSurf, LFootSurf, TopSurf, RHandSurf, LHandSurf, GroundSurf;
+    std::shared_ptr<mc_control::SimulationContactPair> RCheekChair, LCheekChair, RFootGround, LFootGround, RHandShoulder, LHandBack;
     
 
 };

@@ -284,7 +284,7 @@ states:
   Holding:
     base: RobotHolding
     weight: 1000
-    stiffness: 2
+    stiffness: 5
     AdmittanceRHand: 
       # surface: RightHand
       # stiffness: 2
@@ -293,7 +293,7 @@ states:
       # Note the high-damping and low stiffness on that axis.
       # All other axis are position controlled and will keep the current gripper position as much as possible 
       admittance: [0,0,0,0,0,0.005]
-      stiffness: [10, 10, 10, 10, 10, 1]
+      stiffness: [5, 5, 5, 5, 5, 0.5]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
       maxVel: [0.2, 0.2, 0.5]
         # linear: [0.2, 0.2, 0.5]
@@ -308,7 +308,7 @@ states:
       #   robot: human
       #   surface: Back
       admittance: [0,0,0,0,0,0.005]
-      stiffness: [10, 10, 10, 10, 10, 1]
+      stiffness: [5, 5, 5, 5, 5, 0.5]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
       maxVel: [0.2, 0.2, 0.5]
         # linear: [0.2, 0.2, 0.5]
@@ -609,7 +609,7 @@ states:
   HumanCoMHighStand:
     base: HumanCoM
     weight: 50000
-    z_objective: 0.96
+    z_objective: 1.1
 
   XsensHumanPose:
     base: XsensHuman
@@ -628,7 +628,7 @@ states:
 
   front:
     base: Parallel
-    states: [HumanCoM, HumanGoFront]
+    states: [HumanCoM, HumanGoFront, Holding]
 
   balance:
     base: Parallel
@@ -640,7 +640,7 @@ states:
 
   reinit:
     base: Parallel
-    states: [HumanCoMHighStand, GoBackInitHrp4, HumanPos] # HRP4pos, 
+    states: [HumanCoMHighStand, HRP4pos, HumanPos] # HRP4pos, 
 
   final:
     base: Parallel

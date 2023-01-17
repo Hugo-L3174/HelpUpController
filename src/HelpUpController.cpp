@@ -512,6 +512,14 @@ void HelpUpController::addGuiElements()
   //                         }
   //                         return res; })                    
   // );
+
+  gui()->addPlot(
+    "Applied force",
+    mc_rtc::gui::plot::X("t", [this]() { return t_; }),
+    mc_rtc::gui::plot::Y("RH Force", [this]() { return realRobot("hrp4").forceSensor("RightHandForceSensor").force().z(); }, mc_rtc::gui::Color::Red),
+    mc_rtc::gui::plot::Y("LH Force", [this]() { return realRobot("hrp4").forceSensor("LeftHandForceSensor").force().z(); }, mc_rtc::gui::Color::Green)
+
+  );
   
   
   gui()->addPlot(

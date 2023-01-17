@@ -1,13 +1,17 @@
 #pragma once
 
 #include <mc_control/fsm/State.h>
+#include <mc_tasks/TransformTask.h>
 #include <mc_tasks/EndEffectorTask.h>
+#include <gram_savitzky_golay/gram_savitzky_golay.h>
+#include <gram_savitzky_golay/sva_filters.h>
 
 struct XsensBodyConfiguration
 {
     std::string segmentName{};
     std::string bodyName{};
     sva::PTransformd offset = sva::PTransformd::Identity();
+    sva::PTransformd prevBodyPose_ = sva::PTransformd::Identity();
 };
 
 struct XsensHuman : mc_control::fsm::State
@@ -21,7 +25,12 @@ struct XsensHuman : mc_control::fsm::State
     void teardown(mc_control::fsm::Controller & ctl) override;
 private:
     std::map<std::string, XsensBodyConfiguration> bodyConfigurations_;
-    std::map<std::string, std::unique_ptr<mc_tasks::EndEffectorTask>> tasks_;
+    std::map<std::string, std::unique_ptr<mc_tasks::TransformTask>> tasks_;
+
+    std::shared_ptr<gram_sg::MotionVecdFilter> velocityFilter_;
+
+    // std::shared_ptr<gram_sg::SavitzkyGolayFilter> accFilter_;
+    
     double stiffness_ = 10;
     double weight_ = 1000;
     std::string robot_{};

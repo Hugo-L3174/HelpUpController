@@ -13,6 +13,7 @@ find_package(mc_rtc REQUIRED)
 find_package(Stabiliplus REQUIRED)
 find_package(eigen-quadprog REQUIRED)
 find_package(sch-core REQUIRED)
+find_package(gram_savitzky_golay REQUIRED)
 
 
 add_subdirectory(src)

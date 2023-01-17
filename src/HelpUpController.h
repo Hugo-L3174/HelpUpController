@@ -12,6 +12,7 @@
 #include "Tasks/BoundCoMVelocity.h"
 
 #include "utils/ComputationPoint.h"
+#include "utils/TrajectoryModel.h"
 #include <mc_rtc/gui/plot.h>
 
 #include <mc_control/SimulationContactPair.h>
@@ -187,6 +188,9 @@ private:
     std::vector<mc_rbdyn::Plane> planesHum_;
 
     std::shared_ptr<mc_solver::QPSolver> humanSolver_; 
+
+    std::shared_ptr<TrajectoryModel> trajectories_; 
+    std::vector<Eigen::Vector3d> traj_;
 
     double humanMass_ = 65;
 

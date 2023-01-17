@@ -19,7 +19,7 @@ VerboseStateFactory: false
 
 # Initial position of HRP4
 init_pos: 
-  translation: [-0.10, -0.38, 0.75] #offset x: 0.17  -0.60
+  translation: [-0.10, -0.43, 0.75] #offset x: 0.17  -0.60 y: -0.38
   rotation: [0.0, 0.0, 1.6]
 
 
@@ -32,7 +32,7 @@ robots:
   human:
     module: human
     init_pos:
-      translation: [-0.35, 0.22, 0.69] #0.12
+      translation: [-0.35, 0.22, 0.6] #0.12
   ground:
     module: env/ground
 
@@ -145,16 +145,16 @@ contacts:
   r2: ground
   r1Surface: RightFoot
   r2Surface: AllGround
-# - r1: human
-#   r2: ground
-#   r1Surface: LeftSole
-#   r2Surface: AllGround
-#   dof: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
-# - r1: human
-#   r2: ground
-#   r1Surface: RightSole
-#   r2Surface: AllGround
-#   dof: [1.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+- r1: human
+  r2: ground
+  r1Surface: LeftSole
+  r2Surface: AllGround
+  dof: [1.0, 1.0, 1.0, 0.0, 0.0, 1.0]
+- r1: human
+  r2: ground
+  r1Surface: RightSole
+  r2Surface: AllGround
+  dof: [1.0, 1.0, 1.0, 0.0, 0.0, 1.0]
 # - r1: human
 #   r2: chair
 #   r1Surface: RCheek
@@ -757,9 +757,9 @@ Xsens:
       segment: "Pelvis"
     TorsoLink:
       segment: "T8" # Sternum
-      offset:
-        translation: [0.1,0,-0.05]
-        rotation: [0, 0, 0]
+      # offset:
+      #   translation: [0.1,0,-0.05]
+      #   rotation: [0, 0, 0]
     HeadLink:
       segment: "Head"
       offset:
@@ -768,9 +768,9 @@ Xsens:
     # verifier chaque link + offsets
     torso2rshoulder_1: #might be 2 instead of 1
       segment: "Right Shoulder"
-      offset:
-        translation: [0.1,-0.11,0]
-        rotation: [0, 0, 0]
+      # offset:
+      #   translation: [0.1,-0.11,0]
+      #   rotation: [0, 0, 0]
     # RElbowLink:   #torso2rshoulder_2
     #   segment: "Right Upper Arm"
     #   offset:
@@ -778,19 +778,19 @@ Xsens:
     #     rotation: [0, 0, 0]
     RForearmLink:
       segment: "Right Forearm"
-      offset:
-        translation: [0,-0.05,0.1]
-        rotation: [0, 0, 0]
+      # offset:
+      #   translation: [0,-0.05,0.1]
+      #   rotation: [0, 0, 0]
     RHandLink:
       segment: "Right Hand"
-      offset:
-        translation: [0,-0.05,0.1]
-        rotation: [0, 0, 0]
+      # offset:
+      #   translation: [0,-0.05,0.1]
+      #   rotation: [0, 0, 0]
     torso2lshoulder_1:
       segment: "Left Shoulder"
-      offset:
-        translation: [0.1,0.11,0]
-        rotation: [0, 0, 0]
+      # offset:
+      #   translation: [0.1,0.11,0]
+      #   rotation: [0, 0, 0]
     # LElbowLink:
     #   segment: "Left Upper Arm"
     #   offset:
@@ -798,28 +798,28 @@ Xsens:
     #     rotation: [0, 0, 0]
     LForearmLink:
       segment: "Left Forearm"
-      offset:
-        translation: [0,0.05,0.1]
-        rotation: [0, 0, 0]
+      # offset:
+      #   translation: [0,0.05,0.1]
+      #   rotation: [0, 0, 0]
     LHandLink:
       segment: "Left Hand"
-      offset:
-        translation: [0,0.05,0.1]
-        rotation: [0, 0, 0]
+      # offset:
+      #   translation: [0,0.05,0.1]
+      #   rotation: [0, 0, 0]
     RLegLink:
       segment: "Right Upper Leg"
-      offset:
-        translation: [0,0,-0.15]
-        rotation: [0, 0, 0]
+      # offset:
+      #   translation: [0,0,-0.15]
+      #   rotation: [0, 0, 0]
     RShinLink:
       segment: "Right Lower Leg"
     RAnkleLink:
       segment: "Right Foot"
     LLegLink:
       segment: "Left Upper Leg"
-      offset:
-        translation: [0,0,-0.15]
-        rotation: [0, 0, 0]
+      # offset:
+      #   translation: [0,0,-0.15]
+      #   rotation: [0, 0, 0]
     LShinLink:
       segment: "Left Lower Leg"
     LAnkleLink:

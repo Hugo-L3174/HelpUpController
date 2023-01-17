@@ -62,6 +62,14 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
     );
   }
 
+  // init filters
+  gram_sg::SavitzkyGolayFilterConfig velfilterconf_(10,10,2,0,ctl.timeStep);
+  velocityFilter_ = std::make_shared<gram_sg::MotionVecdFilter>(velfilterconf_);
+ 
+
+  // gram_sg::SavitzkyGolayFilterConfig accfilterconf_(50,50,2,1,ctl.timeStep);
+  // accFilter_ = std::make_shared<gram_sg::SavitzkyGolayFilter>(accfilterconf_);
+
   // Initialize tasks
   for(auto & body: bodyConfigurations_)
   {
@@ -69,7 +77,7 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
     const auto & segmentName = body.second.bodyName;
     if(robot.hasBody(bodyName))
     {
-      auto task = std::unique_ptr<mc_tasks::EndEffectorTask>(new mc_tasks::EndEffectorTask(bodyName, ctl.robots(), robot.robotIndex(), stiffness_, weight_));
+      auto task = std::unique_ptr<mc_tasks::TransformTask>(new mc_tasks::TransformTask(bodyName, ctl.robots(), robot.robotIndex(), stiffness_, weight_));
       task->reset();
       ctl.solver().addTask(task.get());
       tasks_[bodyName] = std::move(task); 
@@ -95,7 +103,24 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
       try
       {
         const auto segmentPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName); 
-        tasks_[bodyName]->set_ef_pose(body.second.offset * segmentPose * offset_); 
+        auto poseTarget = body.second.offset * segmentPose * offset_;
+        tasks_[bodyName]->target(poseTarget);
+  
+        // get velocity from current and previous poses
+        auto X_p1_p2 = poseTarget * body.second.prevBodyPose_.inv();
+        auto vel = 1/ctl.timeStep * sva::transformVelocity(X_p1_p2);
+
+        // Add velocity to the filter
+        velocityFilter_->add(vel);
+        sva::MotionVecd filteredVel = velocityFilter_->filter();
+        // setting reference velocity
+        tasks_[bodyName]->refVelB(filteredVel);
+
+        // getting ref acceleration from velocity
+        // accFilter_.add();
+        // tasks_[bodyName]->refAccel();
+        
+        bodyConfigurations_.at(bodyName).prevBodyPose_ = poseTarget;
       }
       catch(...)
       {

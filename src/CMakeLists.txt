@@ -3,7 +3,8 @@ set(controller_SRC
   utils/ComputationPoint.cpp
   utils/PointProjector.cpp
   utils/CoMQP.cpp
-  states/PostAdd.cpp
+  # states/PostAdd.cpp
+  utils/TrajectoryModel.cpp
   # Tasks/BoundCoMAcceleration.cpp
   # Tasks/BoundCoMVelocity.cpp
 )
@@ -13,7 +14,8 @@ set(controller_HDR
   utils/ComputationPoint.h
   utils/PointProjector.h
   utils/CoMQP.h
-  states/PostAdd.h
+  # states/PostAdd.h
+  utils/TrajectoryModel.h
   # Tasks/BoundCoMAcceleration.h
   # Tasks/BoundCoMVelocity.h
 )
@@ -27,6 +29,7 @@ target_link_libraries(${PROJECT_NAME}
   Stabiliplus::StabilityPolytope
   eigen-quadprog::eigen-quadprog
   sch-core::sch-core
+  gram_savitzky_golay::gram_savitzky_golay_sva
   )
 target_include_directories(${PROJECT_NAME}
   PUBLIC

@@ -4,7 +4,7 @@ set(controller_SRC
   utils/PointProjector.cpp
   utils/CoMQP.cpp
   # states/PostAdd.cpp
-  utils/TrajectoryModel.cpp
+  # utils/TrajectoryModel.cpp
   # Tasks/BoundCoMAcceleration.cpp
   # Tasks/BoundCoMVelocity.cpp
 )
@@ -15,7 +15,7 @@ set(controller_HDR
   utils/PointProjector.h
   utils/CoMQP.h
   # states/PostAdd.h
-  utils/TrajectoryModel.h
+  # utils/TrajectoryModel.h
   # Tasks/BoundCoMAcceleration.h
   # Tasks/BoundCoMVelocity.h
 )

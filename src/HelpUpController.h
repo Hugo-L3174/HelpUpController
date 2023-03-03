@@ -170,6 +170,13 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     void addRealHumContact(std::string humanSurfName, double fmin, double fmax, ContactType type);
 
+    void setxsensCoM(Eigen::Vector3d pos, Eigen::Vector3d vel, Eigen::Vector3d acc)
+    {
+      xsensCoMpos_ = pos;
+      xsensCoMvel_ = vel;
+      xsensCoMacc_ = acc;
+    };
+
 
 private:
     mc_rtc::Configuration config_;
@@ -180,6 +187,10 @@ private:
     std::shared_ptr<mc_tasks::CoMTask> comTaskHum_;
     Eigen::Vector3d comDesired_;
     Eigen::Vector3d comDesiredHum_;
+
+    Eigen::Vector3d xsensCoMpos_;
+    Eigen::Vector3d xsensCoMvel_;
+    Eigen::Vector3d xsensCoMacc_;
 
     std::shared_ptr<mc_solver::CoMIncPlaneConstr> comIncPlaneConstraintPtr_;
     std::shared_ptr<mc_solver::CoMIncPlaneConstr> comIncPlaneConstraintHumPtr_;
@@ -231,6 +242,10 @@ private:
     /*! planes to be computed or currently computed
      */
     std::shared_ptr<ComputationPoint> futureCompPoint_;
+    /*! computed polytope for display (no constraint on the CoM)
+     */
+    std::shared_ptr<ComputationPoint> balanceCompPoint_;
+
 
     /*! computed currently used planes
      */
@@ -242,7 +257,9 @@ private:
     /*! planes to be computed or currently computed
      */
     std::shared_ptr<ComputationPoint> futureHumCompPoint_;
-
+    /*! computed polytope for display (no constraint on the CoM)
+     */
+    std::shared_ptr<ComputationPoint> balanceHumCompPoint_;
 
     Eigen::Vector3d combinedCoM_;
 

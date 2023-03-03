@@ -749,7 +749,6 @@ ObserverPipelines:
   #     bodySensor: Accelerometer 
 
 
-# Plugins: [mocap_plugin]
 Plugins: [XsensPlugin]
 Xsens:
   human:

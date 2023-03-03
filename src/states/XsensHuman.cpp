@@ -114,13 +114,18 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
         velocityFilter_->add(vel);
         sva::MotionVecd filteredVel = velocityFilter_->filter();
         // setting reference velocity
-        tasks_[bodyName]->refVelB(filteredVel);
+        // tasks_[bodyName]->refVelB(filteredVel);
 
         // getting ref acceleration from velocity
         // accFilter_.add();
         // tasks_[bodyName]->refAccel();
         
         bodyConfigurations_.at(bodyName).prevBodyPose_ = poseTarget;
+
+        const auto CoMpos = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos"); 
+        const auto CoMvel = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel"); 
+        const auto CoMacc = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc"); 
+        ctl.setxsensCoM(CoMpos, CoMvel, CoMacc);
       }
       catch(...)
       {

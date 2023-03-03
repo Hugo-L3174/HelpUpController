@@ -29,6 +29,10 @@ humanSolver_(std::make_shared<mc_solver::QPSolver>(dt))
   // initialize the current computation point:
   currentCompPoint_ = std::make_shared<ComputationPoint>  (-1, std::make_shared<ContactSet>(false));
   currentHumCompPoint_ = std::make_shared<ComputationPoint>  (-1, std::make_shared<ContactSet>(false));
+
+  // init display regions
+  balanceCompPoint_ = currentCompPoint_;
+  balanceHumCompPoint_ = currentHumCompPoint_;
   
   comTask_ = std::make_shared<mc_tasks::CoMTask> (robots(), robots().robotIndex(), 5.0, 2e3); // Stiffness 5, weight 2000
   comTask_->damping(10.0); 
@@ -187,7 +191,9 @@ bool HelpUpController::run()
     {
       // if we are not in next
       Eigen::Vector3d currentCoM = robot("hrp4").com();
-      nextCompPoint_->constraintPlanes();  
+      nextCompPoint_->constraintPlanes(); 
+      // update display regardless of com in or out
+      balanceCompPoint_ = nextCompPoint_;
       if (isVertexInPlanes(currentCoM, nextCompPoint_->constraintPlanes(), 0.03))
       {
         setNextToCurrent(hrp4);
@@ -201,6 +207,8 @@ bool HelpUpController::run()
       // if we are not in next
       Eigen::Vector3d currentHumCoM = robot("human").com(); 
       nextHumCompPoint_->constraintPlanes();
+      // update display regardless of com in or out
+      balanceHumCompPoint_ = nextHumCompPoint_;
       if (isVertexInPlanes(currentHumCoM, nextHumCompPoint_->constraintPlanes(), 0.03))
       {
         setNextToCurrent(human);
@@ -383,6 +391,20 @@ void HelpUpController::addLogEntries()
   // };
   // logger().addLogEntry("comVel_desired", desiredCoMVel);
 
+  auto xsensPos = [this](){
+    return this->xsensCoMpos_;
+  };
+  logger().addLogEntry("xsensCoMpose", xsensPos);
+
+  auto xsensVel = [this](){
+    return this->xsensCoMvel_;
+  };
+  logger().addLogEntry("xsensCoMvel", xsensVel);
+
+  auto xsensAcc = [this](){
+    return this->xsensCoMacc_;
+  };
+  logger().addLogEntry("xsensCoMacc", xsensAcc);
 
   // Logging the CoM acceleration
   auto realCoMAcc = [this](){
@@ -486,8 +508,8 @@ void HelpUpController::addGuiElements()
   // );
 
   gui()->addElement({"Polytopes"}, 
-      mc_rtc::gui::Polygon("HRP4BalanceRegion", mc_rtc::gui::Color{1., 0., 0.}, [this]() { return currentCompPoint_->getTriangles(); }),
-      mc_rtc::gui::Polygon("HumanBalanceRegion", mc_rtc::gui::Color{0., 1., 0.}, [this]() { return currentHumCompPoint_->getTriangles(); }) 
+      mc_rtc::gui::Polygon("HRP4BalanceRegion", mc_rtc::gui::Color{1., 0., 0.}, [this]() { return balanceCompPoint_->getTriangles(); }),
+      mc_rtc::gui::Polygon("HumanBalanceRegion", mc_rtc::gui::Color{0., 1., 0.}, [this]() { return balanceHumCompPoint_->getTriangles(); }) 
   );
 
   mc_rtc::gui::PolyhedronConfig pconfig;
@@ -521,13 +543,6 @@ void HelpUpController::addGuiElements()
 
   );
   
-  
-  gui()->addPlot(
-    "Applied force",
-    mc_rtc::gui::plot::X("t", [this]() { return t_; }),
-    mc_rtc::gui::plot::Y("RH Force", [this]() { return realRobot("hrp4").forceSensor("RightHandForceSensor").force().z(); }, mc_rtc::gui::Color::Red),
-    mc_rtc::gui::plot::Y("LH Force", [this]() { return realRobot("hrp4").forceSensor("LeftHandForceSensor").force().z(); }, mc_rtc::gui::Color::Green)
-  );
 
 
 }

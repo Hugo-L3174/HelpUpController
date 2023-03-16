@@ -19,7 +19,7 @@ VerboseStateFactory: false
 
 # Initial position of HRP4
 init_pos: 
-  translation: [-0.10, -0.43, 0.75] #offset x: 0.17  -0.60 y: -0.38
+  translation: [-0.20, -0.3, 0.75] #offset x: 0.17  -0.60 y: -0.38
   rotation: [0.0, 0.0, 1.6]
 
 
@@ -35,6 +35,8 @@ robots:
       translation: [-0.35, 0.22, 0.6] #0.12
   ground:
     module: env/ground
+    # init_pos:
+    #   translation: [0, 0, 0.05]
 
 # General constraints, always on
 constraints:
@@ -52,53 +54,53 @@ constraints:
 collisions:
 - type: collision
   useMinimal: true
-- type: collision
-  r1: human
-  r2: human
+# - type: collision
+#   r1: human
+#   r2: human
   useMinimal: true
-- type: collision
-  r1: hrp4
-  r2: human
-  collisions:
-    - body1: r_wrist
-      body2: TorsoLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: l_wrist
-      body2: TorsoLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: r_wrist
-      body2: RArmLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-- type: collision
-  r1: hrp4
-  r2: chair
-  collisions:
-    - body1: L_KNEE_P_LINK
-      body2: leg_fl
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: R_KNEE_P_LINK
-      body2: leg_fr
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: L_KNEE_P_LINK
-      body2: leg_rl
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
-    - body1: R_KNEE_P_LINK
-      body2: leg_rr
-      iDist: 0.05
-      sDist: 0.01
-      damping: 0
+# - type: collision
+#   r1: hrp4
+#   r2: human
+#   collisions:
+#     - body1: r_wrist
+#       body2: TorsoLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: l_wrist
+#       body2: TorsoLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: r_wrist
+#       body2: RArmLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+# - type: collision
+#   r1: hrp4
+#   r2: chair
+#   collisions:
+#     - body1: L_KNEE_P_LINK
+#       body2: leg_fl
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: R_KNEE_P_LINK
+#       body2: leg_fr
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: L_KNEE_P_LINK
+#       body2: leg_rl
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
+#     - body1: R_KNEE_P_LINK
+#       body2: leg_rr
+#       iDist: 0.05
+#       sDist: 0.01
+#       damping: 0
     # - body1: L_F23_LINK
     #   body2: right_handle
     #   iDist: 0.05
@@ -217,217 +219,206 @@ states:
     base: Pause
     duration: 10.0
 
-  MakeContact:
+  TakePosition:
     base: MetaTasks
     tasks:
-      RightHandTrajectory:
-        type: transform
-        frame: RightHandFlat
-        weight: 2000
-        stiffness: 2
-        targetSurface:
-          robot: human
-          surface: RightShoulder
-          # offset:
-          #   translation: [0.5, 0.0, 0.0]
-          #   rotation: [0.0, 0.0, 0.0]
-        completion:
-          AND:
-            - eval: 0.05
-            - speed: 0.002 #1e-4 
-      LeftHandTrajectory:
-        type: transform
-        frame: LeftHandFlat
-        weight: 2000
-        stiffness: 2
-        targetSurface:
-          robot: human
-          surface: Back
-        completion:
-          AND:
-            - eval: 0.05
-            - speed: 0.002 #1e-4 
-      LeftArmPosture:
-        type: posture
+      RHandTrajectory:
+        type: bspline_trajectory
         robot: hrp4
-        completion:
-          eval: 0.03
-        stiffness: 2
-        weight: 2000
-        activeJoints: [L_ELBOW_P, L_SHOULDER_R, L_SHOULDER_Y]
-        target:
-          L_SHOULDER_R: [0.3]
-          L_SHOULDER_Y: [-1.4]
-          L_ELBOW_P: [-0.8]
-    AddContactsAfter:
-      - r1: hrp4
-        r2: human
-        r1Surface: RightHandFlat
-        r2Surface: RightShoulder
-        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
-      - r1: hrp4
-        r2: human
-        r1Surface: LeftHandFlat
-        r2Surface: Back 
-        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
-    # RemoveContactsAfter:
-    #   - r1: human
-    #     r2: chair
-    #     r1Surface: RLegBack
-    #     r2Surface: Top
-    #   - r1: human
-    #     r2: chair
-    #     r1Surface: LLegBack
-    #     r2Surface: Top
+        frame: RightHandFlat
+        weight: 500.0
+        stiffness: 100.0
+        duration: 3.0
+        targetFrame:
+          robot: human
+          frame: Chest #RightShoulder
+          translation: [0.0, 0.0, 0.05]
+          controlPoints:
+            - [0, 0.2, 0.35]
+      LHandTrajectory:
+        type: bspline_trajectory
+        robot: hrp4
+        frame: LeftHandFlat
+        weight: 500.0
+        stiffness: 100.0
+        duration: 3.0
+        targetFrame:
+          robot: human
+          frame: Back
+          translation: [0.0, 0.0, 0.05]
+          controlPoints:
+            - [0, -0.2, 0.1]
+    # AddContactsAfter:
+    #   - r1: hrp4
+    #     r2: human
+    #     r1Surface: RightHandFlat
+    #     r2Surface: Chest #RightShoulder
+    #     dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
+    #   - r1: hrp4
+    #     r2: human
+    #     r1Surface: LeftHandFlat
+    #     r2Surface: Back 
+    #     dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
       
-
-  Holding:
+  KeepPosition:
     base: RobotHolding
     weight: 1000
-    stiffness: 5
+    stiffness: 10
     AdmittanceRHand: 
-      # surface: RightHand
-      # stiffness: 2
-      # targetSurface: RightShoulder
-      # Tracks the forces along the normal axis of the gripper surface with an admittance coefficient of 0.001
-      # Note the high-damping and low stiffness on that axis.
-      # All other axis are position controlled and will keep the current gripper position as much as possible 
-      admittance: [0,0,0,0,0,0.005]
-      stiffness: [5, 5, 5, 5, 5, 0.5]
-      damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      stiffness: [100, 100, 100, 100, 100, 100]
+      damping: [6.3, 6.3, 6.3, 6.3, 6.3, 6.3]
       maxVel: [0.2, 0.2, 0.5]
-        # linear: [0.2, 0.2, 0.5]
-        # angular: [0.2, 0.2, 0.2]
-      # Target a desired force of 5N along the Z axis of the gripper surface
-      wrench: [0, 0, 0, 0, 0, 10] # When the argument is already 6d the couple is at the head, then the force
-        # force: [0, 0, -5]
-        # couple: [0, 0, 0]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 20.0]
     AdmittanceLHand:
-      # surface: LeftHand
-      # targetSurface:
-      #   robot: human
-      #   surface: Back
-      admittance: [0,0,0,0,0,0.005]
-      stiffness: [5, 5, 5, 5, 5, 0.5]
+      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      stiffness: [100, 100, 100, 100, 100, 100]
+      damping: [6.3, 6.3, 6.3, 6.3, 6.3, 6.3]
+      maxVel: [0.2, 0.2, 0.5]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 20.0]
+    
+
+  HoldingBothHands:
+    base: RobotHolding
+    weight: 1000
+    stiffness: 10
+    AdmittanceRHand: 
+      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.002]
+      stiffness: [100, 100, 100, 100, 100, 10]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
       maxVel: [0.2, 0.2, 0.5]
-        # linear: [0.2, 0.2, 0.5]
-        # angular: [0.2, 0.2, 0.2]
-      wrench: [0, 0, 0, 0, 0, 10]
-        # force: [0, 0, -5]
-        # couple: [0, 0, 0]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 20.0]
+    AdmittanceLHand:
+      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.002]
+      stiffness: [100, 100, 100, 100, 100, 10]
+      damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+      maxVel: [0.2, 0.2, 0.5]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 20.0]
 
 
-  HumanGoFront:
-    base: MetaTasks
-    tasks:
-      HumanTransform:
-        type: transform
-        robot: human
-        frame: Back
-        stiffness: 5
-        weight: 2000
-        completion:
-          AND:
-            - eval: 0.15
-            - speed: 0.01
-        targetPosition: [0.2, 0.0, 0.95]
-        targetRotation: [0.0, -0.785381, 0.0]
-      LeftFootTransform:
-        type: transform
-        robot: human
-        frame: LeftSole
-        weight: 2000
-        stiffness: 5
-        completion:
-          AND:
-            - eval: 0.08
-            - speed: 0.01
-        targetPosition: [0.32, 0.11, 0.0]
-        targetRotation: [0.0, 0.0, 0.0]
-      RightFootTransform:
-        type: transform
-        robot: human
-        frame: RightSole
-        weight: 2000
-        stiffness: 5
-        completion:
-          AND:
-            - eval: 0.08
-            - speed: 0.01
-        targetPosition: [0.32, -0.11, 0.0]
-        targetRotation: [0.0, 0.0, 0.0]
-    AddContactsAfter:
-      - r1: human
-        r2: ground
-        r1Surface: LeftSole
-        r2Surface: AllGround
-      - r1: human
-        r2: ground
-        r1Surface: RightSole
-        r2Surface: AllGround
-      - r1: hrp4
-        r2: human
-        r1Surface: RightHandFlat
-        r2Surface: RightShoulder
-        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
-      - r1: hrp4
-        r2: human
-        r1Surface: LeftHandFlat
-        r2Surface: Back 
-        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
-    RemoveContactsAfter:
-      - r1: human
-        r2: chair
-        r1Surface: RCheek
-        r2Surface: Top
-      - r1: human
-        r2: chair
-        r1Surface: LCheek
-        r2Surface: Top  
+  # HumanGoFront:
+  #   base: MetaTasks
+  #   tasks:
+  #     HumanTransform:
+  #       type: transform
+  #       robot: human
+  #       frame: Back
+  #       stiffness: 5
+  #       weight: 2000
+  #       completion:
+  #         AND:
+  #           - eval: 0.15
+  #           - speed: 0.01
+  #       targetPosition: [0.2, 0.0, 0.95]
+  #       targetRotation: [0.0, -0.785381, 0.0]
+  #     LeftFootTransform:
+  #       type: transform
+  #       robot: human
+  #       frame: LeftSole
+  #       weight: 2000
+  #       stiffness: 5
+  #       completion:
+  #         AND:
+  #           - eval: 0.08
+  #           - speed: 0.01
+  #       targetPosition: [0.32, 0.11, 0.0]
+  #       targetRotation: [0.0, 0.0, 0.0]
+  #     RightFootTransform:
+  #       type: transform
+  #       robot: human
+  #       frame: RightSole
+  #       weight: 2000
+  #       stiffness: 5
+  #       completion:
+  #         AND:
+  #           - eval: 0.08
+  #           - speed: 0.01
+  #       targetPosition: [0.32, -0.11, 0.0]
+  #       targetRotation: [0.0, 0.0, 0.0]
+  #   AddContactsAfter:
+  #     - r1: human
+  #       r2: ground
+  #       r1Surface: LeftSole
+  #       r2Surface: AllGround
+  #     - r1: human
+  #       r2: ground
+  #       r1Surface: RightSole
+  #       r2Surface: AllGround
+  #     - r1: hrp4
+  #       r2: human
+  #       r1Surface: RightHandFlat
+  #       r2Surface: RightShoulder
+  #       dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+  #     - r1: hrp4
+  #       r2: human
+  #       r1Surface: LeftHandFlat
+  #       r2Surface: Back 
+  #       dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+  #   RemoveContactsAfter:
+  #     - r1: human
+  #       r2: chair
+  #       r1Surface: RCheek
+  #       r2Surface: Top
+  #     - r1: human
+  #       r2: chair
+  #       r1Surface: LCheek
+  #       r2Surface: Top  
       
 
 
-  HumanGoFrontBalance:
-    base: MetaTasks
-    tasks:
-      HumanPosture:
-        type: posture
-        robot: human
-        completion:
-          eval: 0.03
-        # stiffness: 2
-        weight: 2500
-        target:
-          LAnkle_0: [-0.23]
-          RAnkle_0: [-0.23]
-          LArm_2: [-0.45]
-          RArm_2: [0.45]
+  # HumanGoFrontBalance:
+  #   base: MetaTasks
+  #   tasks:
+  #     HumanPosture:
+  #       type: posture
+  #       robot: human
+  #       completion:
+  #         eval: 0.03
+  #       # stiffness: 2
+  #       weight: 2500
+  #       target:
+  #         LAnkle_0: [-0.23]
+  #         RAnkle_0: [-0.23]
+  #         LArm_2: [-0.45]
+  #         RArm_2: [0.45]
               
 
-  HumanGoUp:
+  # HumanGoUp:
+  #   base: MetaTasks
+  #   tasks:
+  #     Humanstand:
+  #       type: posture
+  #       robot: human
+  #       completion:
+  #         eval: 0.01
+  #       stiffness: 3
+  #       weight: 1000
+  #       target:
+  #         Torso_1: [0.15]
+  #         LLeg_1: [-0.0]
+  #         LShin_0: [0.1]
+  #         LAnkle_0: [-0.1]
+  #         RLeg_1: [-0.0]
+  #         RShin_0: [0.1]
+  #         RAnkle_0: [-0.1]
+  #         LArm_2: [-0.0]
+  #         RArm_2: [0.0]
+  #         LForearm: [0.0]
+  #         RForearm: [0.0]
+  #   RemoveContactsAfter:
+  #     - r1: hrp4
+  #       r2: human
+  #       r1Surface: LeftHandFlat
+  #       r2Surface: Back
+  #     - r1: hrp4
+  #       r2: human
+  #       r1Surface: RightHandFlat
+  #       r2Surface: RightShoulder
+
+
+  GoBackInitHrp4:
     base: MetaTasks
-    tasks:
-      Humanstand:
-        type: posture
-        robot: human
-        completion:
-          eval: 0.01
-        stiffness: 3
-        weight: 1000
-        target:
-          Torso_1: [0.15]
-          LLeg_1: [-0.0]
-          LShin_0: [0.1]
-          LAnkle_0: [-0.1]
-          RLeg_1: [-0.0]
-          RShin_0: [0.1]
-          RAnkle_0: [-0.1]
-          LArm_2: [-0.0]
-          RArm_2: [0.0]
-          LForearm: [0.0]
-          RForearm: [0.0]
-    RemoveContactsAfter:
+    RemoveContacts:
       - r1: hrp4
         r2: human
         r1Surface: LeftHandFlat
@@ -435,84 +426,35 @@ states:
       - r1: hrp4
         r2: human
         r1Surface: RightHandFlat
-        r2Surface: RightShoulder
-
-
-  GoBackInitHrp4:
-    base: MetaTasks
+        r2Surface: Chest
+    # make bsplines to get away from human
     tasks:
-      RightHandTrajectory:
-        type: surfaceTransform
-        surface: RightHandFlat
-        weight: 2000
-        stiffness: 2
-        targetSurface:
+      RHandTrajectory:
+        type: bspline_trajectory
+        robot: hrp4
+        frame: RightHandFlat
+        weight: 500.0
+        stiffness: 100.0
+        duration: 2.0
+        targetFrame:
           robot: human
-          surface: RightShoulder
-          offset:
-            translation: [0.0, 0.0, 0.5]
-            rotation: [0.0, 0.0, 0.0]
-        completion:
-          AND:
-            - eval: 0.05
-            - speed: 0.002 #1e-4 
-      LeftHandTrajectory:
-        type: surfaceTransform
-        surface: LeftHandFlat
-        weight: 2000
-        stiffness: 2
-        targetSurface:
+          frame: Chest
+          translation: [-0.15, 0.3, 0.3]
+          controlPoints:
+            - [0.2, 0, 0.3]
+      LHandTrajectory:
+        type: bspline_trajectory
+        robot: hrp4
+        frame: LeftHandFlat
+        weight: 500.0
+        stiffness: 100.0
+        duration: 2.0
+        targetFrame:
           robot: human
-          surface: Back
-          offset:
-            translation: [0.0, 0.0, 0.5]
-            rotation: [0.0, 0.0, 0.0]
-        completion:
-          AND:
-            - eval: 0.05
-            - speed: 0.002 #1e-4 
-      # RHandTrajectory:
-      #   type: bspline_trajectory
-      #   robot: hrp4
-      #   surface: RightHand
-      #   weight: 2000.0
-      #   stiffness: 10.0
-      #   duration: 3.0
-      #   displaySamples: 100
-      #   completion:
-      #     AND:
-      #       - OR:
-      #           - eval: 1e-4
-      #           - AND:
-      #               - timeout: 5.0
-      #               - speed: 1e-3
-      #       - timeElapsed: true
-      #   target:
-      #     translation: [0.4, -0.56, 0.67]
-      #     rotation: [1.5708, 0., 1.5708]
-      #   controlPoints:
-      #     - [0.6, -0.2, 1.1]
-      # LHandTrajectory:
-      #   type: bspline_trajectory
-      #   robot: hrp4
-      #   surface: LeftHand
-      #   weight: 2000.0
-      #   stiffness: 10.0
-      #   duration: 3.0
-      #   displaySamples: 100
-      #   completion:
-      #     AND:
-      #       - OR:
-      #           - eval: 1e-4
-      #           - AND:
-      #               - timeout: 5.0
-      #               - speed: 1e-3
-      #       - timeElapsed: true
-      #   target:
-      #     translation: [-0.08, -0.56, 0.67]
-      #     rotation: [-1.5708, 0.0, 1.5708]
-      #   controlPoints:
-      #     - [-0.14, -0.13, 1.11]
+          frame: Back
+          translation: [-0.15, -0.3, 0.3]
+          controlPoints:
+            - [0.2, 0, 0.3]
 
   HRP4pos:
     base: MetaTasks
@@ -562,39 +504,39 @@ states:
           L_WRIST_P: [0.0]
           L_WRIST_R: [0.0]
 
-  HumanPos:
-    base: MetaTasks
-    tasks:
-      Humanstand:
-        type: posture
-        robot: human
-        completion:
-          eval: 0.01
-        stiffness: 3
-        weight: 1000
-        target:
-          Torso_1: [0.15]
-          LLeg_1: [-0.0]
-          LShin_0: [0.1]
-          LAnkle_0: [-0.1]
-          RLeg_1: [-0.0]
-          RShin_0: [0.1]
-          RAnkle_0: [-0.1]
-          LArm_2: [-0.0]
-          RArm_2: [0.0]
-          LForearm: [0.0]
-          RForearm: [0.0]
+  # HumanPos:
+  #   base: MetaTasks
+  #   tasks:
+  #     Humanstand:
+  #       type: posture
+  #       robot: human
+  #       completion:
+  #         eval: 0.01
+  #       stiffness: 3
+  #       weight: 1000
+  #       target:
+  #         Torso_1: [0.15]
+  #         LLeg_1: [-0.0]
+  #         LShin_0: [0.1]
+  #         LAnkle_0: [-0.1]
+  #         RLeg_1: [-0.0]
+  #         RShin_0: [0.1]
+  #         RAnkle_0: [-0.1]
+  #         LArm_2: [-0.0]
+  #         RArm_2: [0.0]
+  #         LForearm: [0.0]
+  #         RForearm: [0.0]
 
-  backstraight:
-    base: MetaTasks
-    tasks:
-      back:
-        type: posture
-        robot: human
-        stiffness: 5
-        weight: 10000
-        target:
-          Torso_1: [0.15]
+  # backstraight:
+  #   base: MetaTasks
+  #   tasks:
+  #     back:
+  #       type: posture
+  #       robot: human
+  #       stiffness: 5
+  #       weight: 10000
+  #       target:
+  #         Torso_1: [0.15]
   
   HumanCoMHigh:
     base: HumanCoM
@@ -626,21 +568,18 @@ states:
     states: [XsensHumanPose, Pause_inf]
        
 
-  front:
-    base: Parallel
-    states: [HumanCoM, HumanGoFront, Holding]
+  # front:
+  #   base: Parallel
+  #   states: [HumanCoM, HumanGoFront, Holding]
 
-  balance:
-    base: Parallel
-    states: [HumanCoMHighUp, HumanGoFrontBalance, Holding]
+  # balance:
+  #   base: Parallel
+  #   states: [HumanCoMHighUp, HumanGoFrontBalance, Holding]
 
-  up:
-    base: Parallel
-    states: [HumanCoMHighStand, HumanGoUp, Holding]
+  # up:
+  #   base: Parallel
+  #   states: [HumanCoMHighStand, HumanGoUp, Holding]
 
-  reinit:
-    base: Parallel
-    states: [HumanCoMHighStand, HRP4pos, HumanPos] # HRP4pos, 
 
   final:
     base: Parallel
@@ -649,9 +588,9 @@ states:
 
 
 
-  MakeContact+hum:
+  TakePosition+hum:
     base: Parallel
-    states: [MakeContact, XsensHumanPose]
+    states: [TakePosition, XsensHumanPose]
 
   holdingUp:
     base: Parallel
@@ -665,10 +604,24 @@ states:
     base: Parallel
     states: [HRP4pos, XsensHumanPose, Pause_inf]
 
+  HelpFSM:
+    base: Meta
+    transitions:
+    - [Pause_2s, OK, TakePosition, Strict]
+    # - [TakePosition, OK, HoldingBothHands, Strict]
+    - [TakePosition, OK, KeepPosition, Strict]
+    # - [HoldingBothHands, OK, GoBackInitHrp4, Strict]
+    - [KeepPosition, OK, GoBackInitHrp4, Strict]
+    - [GoBackInitHrp4, OK, HRP4pos, Strict]
+
+  HelpDemo:
+    base: Parallel
+    states: [XsensHumanPose,  HelpFSM] #AddCollisionWithHuman,
+
 # Transitions map for fully simulated controller
 # transitions:  
-# - [Pause, OK, MakeContact, Strict]
-# - [MakeContact, OK, front, Auto]
+# - [Pause, OK, TakePosition, Strict]
+# - [TakePosition, OK, front, Auto]
 # - [front, OK, balance, Auto]
 # - [balance, OK, up, Auto]
 # - [up, OK, reinit, Auto]
@@ -676,23 +629,26 @@ states:
 
 # Transitions map for human tracking
 transitions:  
-- [Pause, OK, XsensHumanPause, Strict]
-- [XsensHumanPause, OK, MakeContact+hum, Strict]
-- [MakeContact+hum, OK, holdingUp, Strict]
-- [holdingUp, OK, GoBackInitHrp4+hum, Strict]
-- [GoBackInitHrp4+hum, OK, HRP4pos+hum, Strict]
+- [XsensHumanPause, OK, HelpDemo, Strict]
 
-# - [MakeContact, OK, HumanGoFront, Strict]
+
+# - [Pause, OK, XsensHumanPause, Strict]
+# - [XsensHumanPause, OK, TakePosition+hum, Strict]
+# - [TakePosition+hum, OK, holdingUp, Strict]
+# - [holdingUp, OK, GoBackInitHrp4+hum, Strict]
+# - [GoBackInitHrp4+hum, OK, HRP4pos+hum, Strict]
+
+# - [TakePosition, OK, HumanGoFront, Strict]
 # - [HumanGoFront, OK, HumanGoFrontBalance, Strict]
 # - [HumanGoFrontBalance, OK, HumanGoUp, Strict]
 # - [HumanGoUp, OK, FinalState, Strict]
 
-# - [MakeContact, OK, GoingFront, Strict]
+# - [TakePosition, OK, GoingFront, Strict]
 # - [GoingFront, OK, GoingFrontBalance, Strict]
 # - [GoingFront, OK, GoingUp, Strict]
 
 # Initial state
-init: Pause
+init: XsensHumanPause
 
 
 ObserverPipelines:
@@ -750,79 +706,82 @@ ObserverPipelines:
 
 
 Plugins: [XsensPlugin]
+
+# configuration for XsensHuman state
 Xsens:
   human:
     HipsLink:
       segment: "Pelvis"
     TorsoLink:
       segment: "T8" # Sternum
-      # offset:
-      #   translation: [0.1,0,-0.05]
-      #   rotation: [0, 0, 0]
+      offset:
+        translation: [0, 0, 0.02]
+        rotation: [0, 0, 0]
     HeadLink:
       segment: "Head"
       offset:
-        translation: [0.05,0,0]
+        translation: [0, 0, 0.02]
         rotation: [0, 0, 0]
-    # verifier chaque link + offsets
     torso2rshoulder_1: #might be 2 instead of 1
-      segment: "Right Shoulder"
-      # offset:
-      #   translation: [0.1,-0.11,0]
-      #   rotation: [0, 0, 0]
-    # RElbowLink:   #torso2rshoulder_2
-    #   segment: "Right Upper Arm"
-    #   offset:
-    #     translation: [0,-0.13,0.18]
-    #     rotation: [0, 0, 0]
+      segment: "Right Upper Arm"
+      offset:
+        translation: [0, -0.01, 0.02]
+        rotation: [0, 0, 0]
     RForearmLink:
       segment: "Right Forearm"
-      # offset:
-      #   translation: [0,-0.05,0.1]
-      #   rotation: [0, 0, 0]
+      offset:
+        translation: [0, -0.02, 0.01]
+        rotation: [0, 0, 0]
     RHandLink:
       segment: "Right Hand"
-      # offset:
-      #   translation: [0,-0.05,0.1]
-      #   rotation: [0, 0, 0]
+      offset:
+        translation: [0, 0, 0.01]
+        rotation: [0, 0, 0]
     torso2lshoulder_1:
-      segment: "Left Shoulder"
-      # offset:
-      #   translation: [0.1,0.11,0]
-      #   rotation: [0, 0, 0]
-    # LElbowLink:
-    #   segment: "Left Upper Arm"
-    #   offset:
-    #     translation: [0,0.13,0.18]
-    #     rotation: [0, 0, 0]
+      segment: "Left Upper Arm"
+      offset:
+        translation: [0, 0.01, 0.02]
+        rotation: [0, 0, 0]
     LForearmLink:
       segment: "Left Forearm"
-      # offset:
-      #   translation: [0,0.05,0.1]
-      #   rotation: [0, 0, 0]
+      offset:
+        translation: [0, 0.02, 0.01]
+        rotation: [0, 0, 0]
     LHandLink:
       segment: "Left Hand"
-      # offset:
-      #   translation: [0,0.05,0.1]
-      #   rotation: [0, 0, 0]
+      offset:
+        translation: [0, 0, 0.01]
+        rotation: [0, 0, 0]
     RLegLink:
       segment: "Right Upper Leg"
-      # offset:
-      #   translation: [0,0,-0.15]
-      #   rotation: [0, 0, 0]
+      offset:
+        translation: [0, 0, -0.05]
+        rotation: [0, 0, 0]
     RShinLink:
       segment: "Right Lower Leg"
+      offset:
+        translation: [0, 0, 0]
+        rotation: [0, 0, 0]
     RAnkleLink:
       segment: "Right Foot"
+      offset:
+        translation: [0, 0, 0]
+        rotation: [0, 0, 0]
     LLegLink:
       segment: "Left Upper Leg"
-      # offset:
-      #   translation: [0,0,-0.15]
-      #   rotation: [0, 0, 0]
+      offset:
+        translation: [0, 0, -0.05]
+        rotation: [0, 0, 0]
     LShinLink:
       segment: "Left Lower Leg"
+      offset:
+        translation: [0, 0, 0]
+        rotation: [0, 0, 0]
     LAnkleLink:
       segment: "Left Foot"
+      offset:
+        translation: [0, 0, 0]
+        rotation: [0, 0, 0]
     
 
 

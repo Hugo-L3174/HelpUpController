@@ -4,6 +4,7 @@
 #include <mc_control/fsm/Controller.h>
 #include <mc_solver/CoMIncPlaneConstr.h>
 #include <mc_tasks/AdmittanceTask.h>
+#include <mc_tasks/lipm_stabilizer/StabilizerTask.h>
 
 #include <mc_tasks/CoMTask.h>
 
@@ -192,6 +193,8 @@ private:
     Eigen::Vector3d xsensCoMvel_;
     Eigen::Vector3d xsensCoMacc_;
 
+    std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask> stabTask_;
+
     std::shared_ptr<mc_solver::CoMIncPlaneConstr> comIncPlaneConstraintPtr_;
     std::shared_ptr<mc_solver::CoMIncPlaneConstr> comIncPlaneConstraintHumPtr_;
 
@@ -296,7 +299,7 @@ private:
     std::shared_ptr<mc_tasks::EndEffectorTask> leftHandTask_;
 
     // DynamicsConstraint for human model
-    mc_solver::DynamicsConstraint humanDynamicsConstraint_;
+    // mc_solver::DynamicsConstraint humanDynamicsConstraint_;
 
     
     // bool hasRightHandAdmittanceTask_, hasLeftHandAdmittanceTask_;

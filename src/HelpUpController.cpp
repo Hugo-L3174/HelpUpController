@@ -2,13 +2,11 @@
 
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
 : mc_control::fsm::Controller(rm, dt, config), polytopeIndex_(0), polytopeHumIndex_(0), computed_(false), computedHum_(false), computing_(false), 
-computingHum_(false), transitionning_(false), transitionningHum_(false), readyForComp_(false), readyForCompHum_(false), 
-humanSolver_(std::make_shared<mc_solver::QPSolver>(dt))
+computingHum_(false), transitionning_(false), transitionningHum_(false), readyForComp_(false), readyForCompHum_(false)
 {
   // Load entire controller configuration file
   config_.load(config);
   // trajectories_ = std::make_shared<TrajectoryModel> (/*path*/);
-  // humanSolver_->gui(gui_);
   
   /* Observers
   */
@@ -46,7 +44,24 @@ humanSolver_(std::make_shared<mc_solver::QPSolver>(dt))
   comDesiredHum_ = robot("human").com();
   comTaskHum_->com(robot("human").com());
 
+  // Stabilizer task
+  auto stabConf = robot().module().defaultLIPMStabilizerConfiguration();
+  stabTask_ = std::make_shared<mc_tasks::lipm_stabilizer::StabilizerTask>(
+          solver().robots(),
+          solver().realRobots(),
+          robot("hrp4").robotIndex(),
+          dt
+          );
 
+  stabTask_->reset();
+  stabConf.comHeight = 0.7;
+  stabConf.torsoWeight = 10;
+  stabConf.pelvisWeight = 100;
+  stabConf.comStiffness[2]=1000;
+  stabTask_->configure(stabConf);
+  stabTask_->staticTarget(robot().com());
+
+  // surfaces pointers for live contact sets
   const auto & human_surfaces = robot("human").surfaces();
   RFootSurf = human_surfaces.at("RightSole");
   LFootSurf = human_surfaces.at("LeftSole");
@@ -216,21 +231,6 @@ bool HelpUpController::run()
       }
     }
   
-  // for (auto task:solver().tasks())
-  // {
-    
-  //   if (task->name().std::string::compare("LeftHandTrajectory")==0)
-  //   {
-  //     auto LeftHandTask = static_cast<mc_tasks::TransformTask *>(task);
-  //     LeftHandTask->targetSurface(robots().robot("human").robotIndex(), "Back", sva::PTransformd::Identity());
-  //   }
-  //   if (task->name().std::string::compare("RightHandTrajectory")==0)
-  //   {
-  //     auto RightHandTask = static_cast<mc_tasks::TransformTask *>(task);
-  //     RightHandTask->targetSurface(robots().robot("human").robotIndex(), "RightShoulder", sva::PTransformd::Identity());
-  //   }
-    
-  // }
   
   
   // std::cout<<"human contact set: "<<std::endl;
@@ -311,8 +311,10 @@ void HelpUpController::computeStabilityRegion(std::shared_ptr<ContactSet> contac
 
 bool HelpUpController::addTasksToSolver()
 {
-  solver().addTask(comTask_);
+  solver().addTask(comTask_); //We now use the stabilizer task to manage the com and not a simple com task
   // human com is done in custom state
+
+  // solver().addTask(stabTask_);
 
   solver().addConstraintSet(*comIncPlaneConstraintPtr_);
   planes_ = {};
@@ -356,7 +358,7 @@ void HelpUpController::addLogEntries()
   auto desiredCoM = [this](){
     return comDesired_;
   };
-  logger().addLogEntry("com_desired", desiredCoM);
+  logger().addLogEntry("hrp4com_desired", desiredCoM);
 
   auto desiredHumCoM = [this](){
     return comDesiredHum_;
@@ -367,13 +369,25 @@ void HelpUpController::addLogEntries()
   auto controlCoM = [this](){
     return this->robot().com();
   };
-  logger().addLogEntry("com_control", controlCoM);
+  logger().addLogEntry("hrp4_com_control", controlCoM);
 
   // Logging the estimated CoM position of the real robot estimated by the observers
   auto realCoM = [this](){
     return this->realRobot().com();
   };
-  logger().addLogEntry("com_real", realCoM);
+  logger().addLogEntry("hrp4_com_real", realCoM);
+
+  // Logging the control CoM position computed by mc_rtc
+  auto humcontrolCoM = [this](){
+    return this->robot("human").com();
+  };
+  logger().addLogEntry("human_com_control", controlCoM);
+
+  // Logging the estimated CoM position of the real robot estimated by the observers
+  auto humrealCoM = [this](){
+    return this->realRobot("human").com();
+  };
+  logger().addLogEntry("human_com_real", realCoM);
 
   // Logging the CoM velocity
   auto controlCoMVel = [this](){
@@ -385,6 +399,18 @@ void HelpUpController::addLogEntries()
     return this->realRobot().comVelocity();
   };
   logger().addLogEntry("comVel_real", realCoMVel);
+
+  // Logging the CoM acceleration
+  auto realCoMAcc = [this](){
+    return this->realRobot().comAcceleration();
+  };
+  logger().addLogEntry("comAcc_real", realCoMAcc);
+
+  // Logging the CoM acceleration
+  auto controlCoMAcc = [this](){
+    return this->robot().comAcceleration();
+  };
+  logger().addLogEntry("comAcc_control", controlCoMAcc);
 
   // auto desiredCoMVel = [this](){
   //   return this->comp_c_;
@@ -406,17 +432,6 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("xsensCoMacc", xsensAcc);
 
-  // Logging the CoM acceleration
-  auto realCoMAcc = [this](){
-    return this->realRobot().comAcceleration();
-  };
-  logger().addLogEntry("comAcc_real", realCoMAcc);
-
-  // Logging the CoM acceleration
-  auto controlCoMAcc = [this](){
-    return this->robot().comAcceleration();
-  };
-  logger().addLogEntry("comAcc_control", controlCoMAcc);
 
   // Logging the pose of the right hand for control and real.
   auto controlRightHand = [this](){
@@ -454,10 +469,10 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("Measured torques hrp4", measuredTorquesHRP4);
 
-  // auto controlTorquesHRP4 = [this](){
-  //   return this->robot("hrp4").jointTorque().at(robot("hrp4").jointIndexByName("R_KNEE_P"));
-  // };
-  // logger().addLogEntry("Control torques hrp4", controlTorquesHRP4);
+  auto controlTorquesHRP4 = [this](){
+    return this->robot("hrp4").jointTorques();
+  };
+  logger().addLogEntry("Control torques hrp4", controlTorquesHRP4);
 
   
   // logging CoM Task weight
@@ -895,9 +910,14 @@ void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
   switch(rob)
   {
     case hrp4 : 
+    // setting com height manually, scaled as human stands up
+      // hrp4 half sitting com: 0.78, human standing com: 0.91
+      desiredCoM[2] = std::max((0.78*robot("human").com().z())/0.91 , 0.7);
       prevCoM = comDesired_;
       comDesired_ = (1-coef)*prevCoM + coef * desiredCoM;
       comTask_->com(comDesired_);
+      // Instead of the general com task we use the stabilizer task to manage the robot com
+      // stabTask_->staticTarget(comDesired_);
       break;
     case human :
       // this is now deprecated and shouldn't be used since human com is managed by custom state

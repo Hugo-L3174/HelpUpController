@@ -53,7 +53,7 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl_)
 
   // setting right hand target surface
   // auto target = ctl.realRobot("human").surfacePose("RightShoulder");
-  auto target = ctl.robot("human").surfacePose("RightShoulder");
+  auto target = ctl.robot("human").surfacePose("Chest");
   rightHandAdmittancePtr_->targetPose(target);
 
 
@@ -93,14 +93,11 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl_)
   auto & ctl = static_cast<HelpUpController &>(ctl_);
   
   // updating target positions each iteration
-  // auto target = ctl.realRobot("human").surfacePose("RightShoulder");
-  auto target = ctl.realRobot("human").surfacePose("RightShoulder");
+  auto target = ctl.robot("human").surfacePose("Chest");
   rightHandAdmittancePtr_->targetPose(target);
 
-  // target = ctl.realRobot("human").surfacePose("Back");
-  target = ctl.realRobot("human").surfacePose("Back");
+  target = ctl.robot("human").surfacePose("Back");
   leftHandAdmittancePtr_->targetPose(target);
-
 
   output("OK");
   return true;

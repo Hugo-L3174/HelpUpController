@@ -269,13 +269,13 @@ states:
       stiffness: [100, 100, 100, 100, 100, 100]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 6.3]
       maxVel: [0.2, 0.2, 0.5]
-      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 20.0]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     AdmittanceLHand:
       admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
       stiffness: [100, 100, 100, 100, 100, 100]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 6.3]
       maxVel: [0.2, 0.2, 0.5]
-      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 20.0]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     
 
   HoldingBothHands:
@@ -629,7 +629,7 @@ states:
 
 # Transitions map for human tracking
 transitions:  
-- [XsensHumanPause, OK, HelpDemo, Strict]
+- [HelpDemo, OK, HelpDemo, Strict]
 
 
 # - [Pause, OK, XsensHumanPause, Strict]
@@ -648,7 +648,7 @@ transitions:
 # - [GoingFront, OK, GoingUp, Strict]
 
 # Initial state
-init: XsensHumanPause
+init: HelpDemo
 
 
 ObserverPipelines:
@@ -673,23 +673,23 @@ ObserverPipelines:
       robot: hrp4
       updateRobot: hrp4
       bodySensor: Accelerometer          # This observer only uses roll and pitch rotation information from this sensor along with a kinematic anchor point and the robot kinematics between the anchor frame and the floating base frame. The anchor frame is expected to be provided through a datastore callback (see below for details)
-# - name: HumanPipeline
-#   gui: true
-#   log: true
-#   observers:
-#   - type: Encoder                        # - Use an EncoderObserver
-#     config: 
-#       robot: human
-#       updateRobot: human                             
-#       position: encoderValues            #    - Sets joint position from encoder sensor values (default)
-#       velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
-#       computeFV: true 
-#   - type: BodySensor                     # - Use a BodySensor observer
-#     update: true                        #   Do not update the real robot state
-#     gui: true                           #   Do not display in the gui
-#     config: 
-#       robot: human                             
-#       bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
+- name: HumanPipeline
+  gui: true
+  log: true
+  observers:
+  - type: Encoder                        # - Use an EncoderObserver
+    config: 
+      robot: human
+      updateRobot: human                             
+      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
+      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
+      computeFV: true 
+  - type: BodySensor                     # - Use a BodySensor observer
+    update: true                        #   Do not update the real robot state
+    gui: true                           #   Do not display in the gui
+    config: 
+      robot: human                             
+      bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
                                          #   The observer computes the position and velocity of the floating base
                                          #   by transforming the sensor measurements to the floating base frame
   # - type: Attitude

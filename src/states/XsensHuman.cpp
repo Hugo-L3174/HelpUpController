@@ -30,6 +30,8 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
     mc_rtc::log::error_and_throw<std::runtime_error>("[{}] This state requires the XsensPlugin", name());
   }
   
+  auto & grounding_offset = ctl.datastore().make<sva::PTransformd>("XsensHuman::GetGroundOffset");
+
   auto robotConfig = static_cast<std::map<std::string, mc_rtc::Configuration>>(ctl.config()("Xsens")(robot.name()));
   for(const auto & bodyConfig : robotConfig)
   {
@@ -94,6 +96,19 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
   auto & robot = ctl.robot(robot_);
+
+  auto & realRobot = ctl.realRobot(robot_);
+  auto & grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GetGroundOffset");
+
+  // getting transform from foot to ground (to apply everywhere)
+  auto X_ground_foot = realRobot.surfacePose("RightSole").inv();
+  X_ground_foot.translation().x() = 0;
+  X_ground_foot.translation().y() = 0;
+  X_ground_foot.translation().z() *= 3; // *3 otherwise is too small
+  // writing offset in datastore, to be applied by XsensPlugin (applying on positions read by mujoco and others)
+  grounding_offset = X_ground_foot;
+  
+
   for(const auto & body: bodyConfigurations_)
   {
     const auto & bodyName = body.first;
@@ -106,13 +121,13 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
         auto poseTarget = body.second.offset * segmentPose * offset_;
         tasks_[bodyName]->target(poseTarget);
   
-        // get velocity from current and previous poses
-        auto X_p1_p2 = poseTarget * body.second.prevBodyPose_.inv();
-        auto vel = 1/ctl.timeStep * sva::transformVelocity(X_p1_p2);
+        // // get velocity from current and previous poses
+        // auto X_p1_p2 = poseTarget * body.second.prevBodyPose_.inv();
+        // auto vel = 1/ctl.timeStep * sva::transformVelocity(X_p1_p2);
 
-        // Add velocity to the filter
-        velocityFilter_->add(vel);
-        sva::MotionVecd filteredVel = velocityFilter_->filter();
+        // // Add velocity to the filter
+        // velocityFilter_->add(vel);
+        // sva::MotionVecd filteredVel = velocityFilter_->filter();
         // setting reference velocity
         // tasks_[bodyName]->refVelB(filteredVel);
 

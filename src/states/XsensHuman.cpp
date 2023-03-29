@@ -121,22 +121,6 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
         auto poseTarget = body.second.offset * segmentPose * offset_;
         tasks_[bodyName]->target(poseTarget);
   
-        // // get velocity from current and previous poses
-        // auto X_p1_p2 = poseTarget * body.second.prevBodyPose_.inv();
-        // auto vel = 1/ctl.timeStep * sva::transformVelocity(X_p1_p2);
-
-        // // Add velocity to the filter
-        // velocityFilter_->add(vel);
-        // sva::MotionVecd filteredVel = velocityFilter_->filter();
-        // setting reference velocity
-        // tasks_[bodyName]->refVelB(filteredVel);
-
-        // getting ref acceleration from velocity
-        // accFilter_.add();
-        // tasks_[bodyName]->refAccel();
-        
-        bodyConfigurations_.at(bodyName).prevBodyPose_ = poseTarget;
-
         const auto CoMpos = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos"); 
         const auto CoMvel = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel"); 
         const auto CoMacc = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc"); 
@@ -146,6 +130,28 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
       {
         mc_rtc::log::error("[{}] No pose for segment {}", name(), segmentName);
       }
+
+      try
+      {
+        const auto segmentVel = ctl.datastore().call<sva::MotionVecd>("XsensPlugin::GetSegmentVel", segmentName);
+        tasks_[bodyName]->refVelB(segmentVel);
+      }
+      catch(...)
+      {
+        mc_rtc::log::error("[{}] No velocity for segment {}", name(), segmentName);
+      }
+
+      try
+      {
+        const auto segmentAcc = ctl.datastore().call<sva::MotionVecd>("XsensPlugin::GetSegmentAcc", segmentName);
+        tasks_[bodyName]->refAccel(segmentAcc);
+      }
+      catch(...)
+      {
+        mc_rtc::log::error("[{}] No acceleration for segment {}", name(), segmentName);
+      }
+      
+      
     }
     else
     {

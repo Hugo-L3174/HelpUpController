@@ -11,7 +11,6 @@ struct XsensBodyConfiguration
     std::string segmentName{};
     std::string bodyName{};
     sva::PTransformd offset = sva::PTransformd::Identity();
-    sva::PTransformd prevBodyPose_ = sva::PTransformd::Identity();
 };
 
 struct XsensHuman : mc_control::fsm::State

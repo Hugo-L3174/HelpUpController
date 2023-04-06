@@ -44,12 +44,12 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   comDesiredHum_ = robot("human").com();
   comTaskHum_->com(robot("human").com());
 
-  // Stabilizer task
+  // Stabilizer task: check configuration?
   auto stabConf = robot().module().defaultLIPMStabilizerConfiguration();
   stabTask_ = std::make_shared<mc_tasks::lipm_stabilizer::StabilizerTask>(
           solver().robots(),
           solver().realRobots(),
-          robot("hrp4").robotIndex(),
+          robot().robotIndex(),
           dt
           );
 
@@ -58,6 +58,11 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   stabConf.torsoWeight = 10;
   stabConf.pelvisWeight = 100;
   stabConf.comStiffness[2]=1000;
+  // stabConf.comHeight = 0.75;
+  // stabConf.pelvisWeight = 1000;
+  // stabConf.comStiffness[0]=1000;
+  // stabConf.comStiffness[1]=2000;
+  // stabConf.comStiffness[2]=2000;
   stabTask_->configure(stabConf);
   stabTask_->staticTarget(robot().com());
 
@@ -70,14 +75,16 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   RightShoulderSurf = human_surfaces.at("RightShoulder");
   BackSurf = human_surfaces.at("Back");
 
-  TopSurf = realRobot("chair").surfaces().at("Top");
+  // TopSurf = realRobot("chair").surfaces().at("Top");
   GroundSurf = realRobot("ground").surfaces().at("AllGround");
 
-  RHandSurf = realRobot("hrp4").surfaces().at("RightHand");
-  LHandSurf = realRobot("hrp4").surfaces().at("LeftHand");
+  // RHandSurf = realRobot("e2dr").surfaces().at("RightHand");
+  // LHandSurf = realRobot("e2dr").surfaces().at("LeftHand");
+  RHandSurf = realRobot("hrp4").surfaces().at("RightHandFlat");
+  LHandSurf = realRobot("hrp4").surfaces().at("LeftHandFlat");
 
-  RCheekChair = std::make_shared<mc_control::SimulationContactPair> (RCheekSurf, TopSurf);
-  LCheekChair = std::make_shared<mc_control::SimulationContactPair>(LCheekSurf, TopSurf);
+  // RCheekChair = std::make_shared<mc_control::SimulationContactPair> (RCheekSurf, TopSurf);
+  // LCheekChair = std::make_shared<mc_control::SimulationContactPair>(LCheekSurf, TopSurf);
   RFootGround = std::make_shared<mc_control::SimulationContactPair>(RFootSurf, GroundSurf);
   LFootGround = std::make_shared<mc_control::SimulationContactPair>(LFootSurf, GroundSurf);
   RHandShoulder = std::make_shared<mc_control::SimulationContactPair>(RHandSurf, RightShoulderSurf);
@@ -102,7 +109,7 @@ bool HelpUpController::run()
     if (!readyForComp_)
     {
       computed_ = false;
-      updateContactSet(robots().robotIndex("hrp4"), hrp4);
+      updateContactSet(robot().robotIndex(), hrp4); //robots().robotIndex("hrp4")
       // Instead of keeping the max forces as given in the config we update them as the current applied force on the contact ?
       // Not a good idea, only limiting. It is better to change the max force as what we allow the robot to exert (to stay safe for the human),
       // and the min force (necessary to help the human stand?)
@@ -205,7 +212,7 @@ bool HelpUpController::run()
   if (transitionning_)
     {
       // if we are not in next
-      Eigen::Vector3d currentCoM = robot("hrp4").com();
+      Eigen::Vector3d currentCoM = robot().com(); 
       nextCompPoint_->constraintPlanes(); 
       // update display regardless of com in or out
       balanceCompPoint_ = nextCompPoint_;
@@ -311,10 +318,10 @@ void HelpUpController::computeStabilityRegion(std::shared_ptr<ContactSet> contac
 
 bool HelpUpController::addTasksToSolver()
 {
-  solver().addTask(comTask_); //We now use the stabilizer task to manage the com and not a simple com task
+  // solver().addTask(comTask_); //We now use the stabilizer task to manage the com and not a simple com task 
   // human com is done in custom state
 
-  // solver().addTask(stabTask_);
+  solver().addTask(stabTask_); 
 
   solver().addConstraintSet(*comIncPlaneConstraintPtr_);
   planes_ = {};
@@ -338,8 +345,8 @@ bool HelpUpController::addTasksToSolver()
 
 void HelpUpController::updateCombinedCoM()
 {
-  double total_mass = realRobot("hrp4").mass()+realRobot("human").mass();
-  combinedCoM_ = ((robot("hrp4").com()*robot("hrp4").mass())+(robot("human").com()*robot("human").mass()))/total_mass;
+  double total_mass = realRobot().mass()+realRobot("human").mass();
+  combinedCoM_ = ((robot().com()*robot().mass())+(robot("human").com()*robot("human").mass()))/total_mass;
   // (maybe better with com.cpp method from rbdyn)
 }
 
@@ -358,7 +365,7 @@ void HelpUpController::addLogEntries()
   auto desiredCoM = [this](){
     return comDesired_;
   };
-  logger().addLogEntry("hrp4com_desired", desiredCoM);
+  logger().addLogEntry("mainRob_com_desired", desiredCoM);
 
   auto desiredHumCoM = [this](){
     return comDesiredHum_;
@@ -369,13 +376,13 @@ void HelpUpController::addLogEntries()
   auto controlCoM = [this](){
     return this->robot().com();
   };
-  logger().addLogEntry("hrp4_com_control", controlCoM);
+  logger().addLogEntry("mainRob_com_control", controlCoM);
 
   // Logging the estimated CoM position of the real robot estimated by the observers
   auto realCoM = [this](){
     return this->realRobot().com();
   };
-  logger().addLogEntry("hrp4_com_real", realCoM);
+  logger().addLogEntry("mainRob_com_real", realCoM);
 
   // Logging the control CoM position computed by mc_rtc
   auto humcontrolCoM = [this](){
@@ -465,14 +472,14 @@ void HelpUpController::addLogEntries()
   // logger().addLogEntry("Control torques human", controlTorquesHuman);
 
   auto measuredTorquesHRP4 = [this](){
-    return this->realRobot("hrp4").jointTorques();
+    return this->realRobot().jointTorques();
   };
-  logger().addLogEntry("Measured torques hrp4", measuredTorquesHRP4);
+  logger().addLogEntry("Measured torques main robot", measuredTorquesHRP4);
 
   auto controlTorquesHRP4 = [this](){
-    return this->robot("hrp4").jointTorques();
+    return this->robot().jointTorques();
   };
-  logger().addLogEntry("Control torques hrp4", controlTorquesHRP4);
+  logger().addLogEntry("Control torques main robot", controlTorquesHRP4);
 
   
   // logging CoM Task weight
@@ -509,7 +516,7 @@ void HelpUpController::addGuiElements()
   mc_rtc::gui::PointConfig CoMconfig2(mc_rtc::gui::Color{0., 1., 1.}, 0.07);
 
   gui()->addElement({"CoM"},
-      mc_rtc::gui::Point3D("CoMhrp4", CoMconfig1, [this]() { return robot("hrp4").com(); }), // Note that this is the control robot com and not the real robot com 
+      mc_rtc::gui::Point3D("CoM_main", CoMconfig1, [this]() { return robot().com(); }), // Note that this is the control robot com and not the real robot com 
       mc_rtc::gui::Point3D("CoMhuman", CoMconfig1, [this]() { return robot("human").com(); })
       // mc_rtc::gui::Point3D("CoMcombined", CoMconfig2, [this]() { return combinedCoM_; })
   );
@@ -523,9 +530,14 @@ void HelpUpController::addGuiElements()
   // );
 
   gui()->addElement({"Polytopes"}, 
-      mc_rtc::gui::Polygon("HRP4BalanceRegion", mc_rtc::gui::Color{1., 0., 0.}, [this]() { return balanceCompPoint_->getTriangles(); }),
+      mc_rtc::gui::Polygon("MainRobBalanceRegion", mc_rtc::gui::Color{1., 0., 0.}, [this]() { return balanceCompPoint_->getTriangles(); }),
       mc_rtc::gui::Polygon("HumanBalanceRegion", mc_rtc::gui::Color{0., 1., 0.}, [this]() { return balanceHumCompPoint_->getTriangles(); }) 
   );
+
+  // gui()->addElement({"AccPoly"}, 
+  //     mc_rtc::gui::Polygon("HRP4accBalanceRegion", mc_rtc::gui::Color{0.8, 0., 0.}, [this]() { return accelerations_; }),
+  //     mc_rtc::gui::Polygon("HumanaccBalanceRegion", mc_rtc::gui::Color{0., 0.8, 0.}, [this]() { return humaccelerations_; }) 
+  // );
 
   mc_rtc::gui::PolyhedronConfig pconfig;
   pconfig.triangle_color = mc_rtc::gui::Color(0.2, 0.2, 0.2, 0.3);
@@ -553,8 +565,8 @@ void HelpUpController::addGuiElements()
   gui()->addPlot(
     "Applied force",
     mc_rtc::gui::plot::X("t", [this]() { return t_; }),
-    mc_rtc::gui::plot::Y("RH Force", [this]() { return realRobot("hrp4").forceSensor("RightHandForceSensor").force().z(); }, mc_rtc::gui::Color::Red),
-    mc_rtc::gui::plot::Y("LH Force", [this]() { return realRobot("hrp4").forceSensor("LeftHandForceSensor").force().z(); }, mc_rtc::gui::Color::Green)
+    mc_rtc::gui::plot::Y("RH Force", [this]() { return realRobot().forceSensor("RightHandForceSensor").force().z(); }, mc_rtc::gui::Color::Red),
+    mc_rtc::gui::plot::Y("LH Force", [this]() { return realRobot().forceSensor("LeftHandForceSensor").force().z(); }, mc_rtc::gui::Color::Green)
 
   );
   
@@ -627,6 +639,7 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
   switch (rob)
   {
   case hrp4:
+    // accelerations_.resize(0);
     contactSet_ = std::make_shared<ContactSet> (false);
     contactSet_->mass(robots().robot(robotIndex).mass());
     contactSet_->setFrictionSides(6);
@@ -706,6 +719,8 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
 
     acceleration << 0.0, 0.0, -9.81;
     contactSet_->addCoMAcc(acceleration);
+    // acceleration << robots().robot("")
+    // accelerations_.push_back()
 
     acceleration << 0.8, 0, -9.81;
     contactSet_->addCoMAcc(acceleration);
@@ -905,19 +920,20 @@ void HelpUpController::setNextToCurrent(whatRobot rob)
 
 void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
 {
-  double coef = 0.1;
+  double coef = 0.01;
   Eigen::Vector3d prevCoM;
   switch(rob)
   {
     case hrp4 : 
-    // setting com height manually, scaled as human stands up
-      // hrp4 half sitting com: 0.78, human standing com: 0.91
-      desiredCoM[2] = std::max((0.78*robot("human").com().z())/0.91 , 0.7);
+      // setting com height manually, scaled as human stands up
+      // hrp4 half sitting com: 0.78, human standing com: 0.87
+      desiredCoM[2] = std::max((0.78*robot("human").com().z())/0.87 , 0.7);
+      // desiredCoM[2] = std::max((0.96*robot("human").com().z())/0.87 , 0.9);
       prevCoM = comDesired_;
       comDesired_ = (1-coef)*prevCoM + coef * desiredCoM;
-      comTask_->com(comDesired_);
-      // Instead of the general com task we use the stabilizer task to manage the robot com
-      // stabTask_->staticTarget(comDesired_);
+      // comTask_->com(comDesired_); 
+      // Instead of the general com task we use the stabilizer task to manage the robot com 
+      stabTask_->staticTarget(comDesired_); 
       break;
     case human :
       // this is now deprecated and shouldn't be used since human com is managed by custom state
@@ -1026,10 +1042,10 @@ void HelpUpController::updateRealHumContacts()
   
   RFootGround->update(robot("human"), robot("ground"));
   LFootGround->update(robot("human"), robot("ground"));
-  RCheekChair->update(robot("human"), robot("chair"));
-  LCheekChair->update(robot("human"), robot("chair"));
-  RHandShoulder->update(robot("hrp4"), robot("human"));
-  LHandBack->update(robot("hrp4"), robot("human"));
+  // RCheekChair->update(robot("human"), robot("chair"));
+  // LCheekChair->update(robot("human"), robot("chair"));
+  RHandShoulder->update(robot(), robot("human"));
+  LHandBack->update(robot(), robot("human"));
 
   double distThreshold = 0.005;
   double speedThreshold = 1e-4;
@@ -1070,17 +1086,17 @@ void HelpUpController::updateRealHumContacts()
     // std::cout<<"adding left sole"<<std::endl;
   }
 
-  if (RCheekChair->pair.getDistance()<=distThreshold)
-  {
-    addRealHumContact("RCheek", 0, 200, ContactType::support);
-    // std::cout<<"adding right cheek"<<std::endl;
-  }
+  // if (RCheekChair->pair.getDistance()<=distThreshold)
+  // {
+  //   addRealHumContact("RCheek", 0, 200, ContactType::support);
+  //   // std::cout<<"adding right cheek"<<std::endl;
+  // }
 
-  if (LCheekChair->pair.getDistance()<=distThreshold)
-  {
-    addRealHumContact("LCheek", 0, 200, ContactType::support);
-    // std::cout<<"adding left cheek"<<std::endl;
-  }
+  // if (LCheekChair->pair.getDistance()<=distThreshold)
+  // {
+  //   addRealHumContact("LCheek", 0, 200, ContactType::support);
+  //   // std::cout<<"adding left cheek"<<std::endl;
+  // }
 
   if (LHandBack->pair.getDistance()<=distThreshold)
   {

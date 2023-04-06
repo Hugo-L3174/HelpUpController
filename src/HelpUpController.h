@@ -249,6 +249,10 @@ private:
      */
     std::shared_ptr<ComputationPoint> balanceCompPoint_;
 
+    // /*! vector of tolerated accelerations for hrp4 polytope
+    // */
+    // std::vector<Eigen::Vector3d> accelerations_;
+
 
     /*! computed currently used planes
      */
@@ -263,6 +267,10 @@ private:
     /*! computed polytope for display (no constraint on the CoM)
      */
     std::shared_ptr<ComputationPoint> balanceHumCompPoint_;
+
+    // /*! vector of tolerated accelerations for human polytope
+    // */
+    // std::vector<Eigen::Vector3d> humaccelerations_;
 
     Eigen::Vector3d combinedCoM_;
 

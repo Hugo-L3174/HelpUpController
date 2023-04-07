@@ -1,7 +1,6 @@
 add_fsm_state_simple(HelpUpController_Initial)
 
 add_fsm_state_simple(HumanCoM)
-add_fsm_state_simple(PostAdd)
 add_fsm_state_simple(RobotHolding)
 add_fsm_state_simple(XsensHuman)
 

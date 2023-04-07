@@ -13,6 +13,8 @@ struct RobotHolding : mc_control::fsm::State
     bool run(mc_control::fsm::Controller & ctl) override;
 
     void teardown(mc_control::fsm::Controller & ctl) override;
+
+    void addToGUI(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Controller & ctl);
 private:
 
     std::shared_ptr<mc_tasks::force::AdmittanceTask> rightHandAdmittancePtr_, leftHandAdmittancePtr_;

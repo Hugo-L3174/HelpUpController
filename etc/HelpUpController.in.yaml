@@ -248,19 +248,19 @@ states:
           controlPoints: # in target frame !
             - [-0.2, -0.2, 0.2]
     RemoveCollisionsAfter:
-      r1: hrp4 #e2dr
-      r2: human
-      collisions:
-        - body1: l_wrist
-          body2: TorsoLink
-          iDist: 0.003
-          sDist: 0.0001
-          damping: 0
-        - body1: r_wrist
-          body2: TorsoLink
-          iDist: 0.003
-          sDist: 0.0001
-          damping: 0
+      - r1: hrp4 #e2dr
+        r2: human
+        collisions:
+          - body1: l_wrist
+            body2: TorsoLink
+            iDist: 0.003
+            sDist: 0.0001
+            damping: 0
+          - body1: r_wrist
+            body2: TorsoLink
+            iDist: 0.003
+            sDist: 0.0001
+            damping: 0
     AddContactsAfter:
       - r1: hrp4 #e2dr
         r2: human
@@ -277,72 +277,73 @@ states:
     base: MetaTasks
     tasks: 
       RHCoP:
-        # type: cop
-        # frame: RightHandFlat
-        # targetFrame:
-        #   robot: human
-        #   frame: RightShoulder
-        # force: [0.0, 0.0, 10.0]
-        # admittance:
-        #   couple: [0.005, 0.005, 0.0]
-        #   force: [0.0, 0.0, 0.005]
-        type: admittance
+        type: cop
         frame: RightHandFlat
-        stiffness: [10, 10, 10, 10, 10, 1]
-        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
         targetFrame:
           robot: human
           frame: RightShoulder
-        wrench:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 10.0]
+        force: [0.0, 0.0, 10.0]
         admittance:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 0.001]
-        completion:
-            wrench:
-              couple: [0.0, 0.0, 0.0]
-              force: [0.0, 0.0, 5.0]
-      LHCoP:
-        # type: cop
-        # frame: LeftHandFlat
+          couple: [0.005, 0.005, 0.0]
+          force: [0.0, 0.0, 0.005]
+        # type: admittance
+        # frame: RightHandFlat
+        # stiffness: [10, 10, 10, 10, 10, 1]
+        # damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
         # targetFrame:
         #   robot: human
-        #   frame: Back
-        # force: [0.0, 0.0, 10.0]
+        #   frame: RightShoulder
+        # wrench:
+        #   couple: [0.0, 0.0, 0.0]
+        #   force: [0.0, 0.0, 10.0]
         # admittance:
-        #   couple: [0.005, 0.005, 0.0]
-        #   force: [0.0, 0.0, 0.005]
-        type: admittance
+        #   couple: [0.0, 0.0, 0.0]
+        #   force: [0.0, 0.0, 0.001]
+        # completion:
+        #     wrench:
+        #       couple: [0.0, 0.0, 0.0]
+        #       force: [0.0, 0.0, 5.0]
+      LHCoP:
+        type: cop
         frame: LeftHandFlat
-        stiffness: [10, 10, 10, 10, 10, 1]
-        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
         targetFrame:
           robot: human
           frame: Back
-        wrench:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 10.0]
+        force: [0.0, 0.0, 10.0]
         admittance:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 0.001]
-        completion:
-            wrench:
-              couple: [0.0, 0.0, 0.0]
-              force: [0.0, 0.0, 5.0]
+          couple: [0.005, 0.005, 0.0]
+          force: [0.0, 0.0, 0.005]
+        # type: admittance
+        # frame: LeftHandFlat
+        # stiffness: [10, 10, 10, 10, 10, 1]
+        # damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+        # targetFrame:
+        #   robot: human
+        #   frame: Back
+        # wrench:
+        #   couple: [0.0, 0.0, 0.0]
+        #   force: [0.0, 0.0, 10.0]
+        # admittance:
+        #   couple: [0.0, 0.0, 0.0]
+        #   force: [0.0, 0.0, 0.001]
+        # completion:
+        #     wrench:
+        #       couple: [0.0, 0.0, 0.0]
+        #       force: [0.0, 0.0, 5.0]
     
 
   KeepPosition:
     base: RobotHolding # add compliance mode to robot holding
     weight: 1000
     stiffness: 10
-    AdmittanceRHand: 
+    mode: forceConstrained
+    ForceRHand: 
       admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # force control: low stiffness high damping; position control: high stiffness low damping
       stiffness: [100, 100, 100, 100, 100, 100]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 6.3]
       maxVel: [0.2, 0.2, 0.5]
       wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    AdmittanceLHand:
+    ForceLHand:
       admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.002]
       stiffness: [100, 100, 100, 100, 100, 10]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
@@ -351,21 +352,21 @@ states:
     
 
   KeepPositionCompli:
-    base:
-    # base: MetaTasks
-    # tasks:
-    #   RHandCompli:
-    #     type: compliance
-    #     body: r_wrist #RArm_6AF
-    #     wrench:
-    #       couple: [0.0, 0.0, 0.0]
-    #       force: [0.0, 0.0, 0.0]
-    #   LHandCompli:
-    #     type: compliance
-    #     body: l_wrist #LArm_6AF
-    #     wrench:
-    #       couple: [0.0, 0.0, 0.0]
-    #       force: [0.0, 0.0, 0.0]
+    # base:
+    base: MetaTasks
+    tasks:
+      RHandCompli:
+        type: compliance
+        body: r_wrist #RArm_6AF
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.0]
+      LHandCompli:
+        type: compliance
+        body: l_wrist #LArm_6AF
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.0]
 
   HoldingBothHands:
     base: RobotHolding

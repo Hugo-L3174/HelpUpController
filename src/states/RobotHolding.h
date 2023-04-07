@@ -2,6 +2,13 @@
 
 #include <mc_control/fsm/State.h>
 #include <mc_tasks/AdmittanceTask.h>
+#include <mc_tasks/ForceConstrainedTransformTask.h>
+
+enum holdMode
+{
+  simpleAdmi,
+  forceConstraint
+};
 
 struct RobotHolding : mc_control::fsm::State
 {
@@ -19,6 +26,8 @@ private:
 
     std::shared_ptr<mc_tasks::force::AdmittanceTask> rightHandAdmittancePtr_, leftHandAdmittancePtr_;
 
+    std::shared_ptr<mc_tasks::ForceConstrainedTransformTask> rightHandForceConstPtr_, leftHandForceConstPtr_;
+    int mode_ = simpleAdmi;
     // int RHweight_, LHweight_;
     int weight_, stiffness_;
     

@@ -15,90 +15,109 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl_)
   if (config_.has("stiffness")) stiffness_ = static_cast<int>(config_("stiffness"));
   else stiffness_ = 5;
 
-
-
   // if (config_.has("dimWeight")) dimWeight_ = config_("dimWeight");
   // else dimWeight_.setOnes();
-  auto RHadmiConf = config_("AdmittanceRHand");
 
-  RHadmittance_ = RHadmiConf("admittance");
-  RHstiffness_ = RHadmiConf("stiffness");
-  RHdamping_ = RHadmiConf("damping");
-  RHmaxVel_ = RHadmiConf("maxVel");
-  RHwrench_ = RHadmiConf("wrench");
-
-  auto LHadmiConf = config_("AdmittanceLHand");  
-
-  LHadmittance_ = LHadmiConf("admittance");
-  LHstiffness_ = LHadmiConf("stiffness");
-  LHdamping_ = LHadmiConf("damping");
-  LHmaxVel_ = LHadmiConf("maxVel");
-  LHwrench_ = LHadmiConf("wrench");
+  if (config_.has("mode"))
+  {
+    auto mode = static_cast<std::string>(config_("mode"));
+    if (mode.compare("forceConstrained") == 0)
+    {
+      mode_ = forceConstraint;
+    }
+  } 
   
   auto & ctl = static_cast<HelpUpController &>(ctl_);
 
-  // right hand admittance
-  rightHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("RightHandFlat", ctl.robots(), ctl.robots().robotIndex());
-  auto Radmittance = sva::ForceVec(RHadmittance_);
-  rightHandAdmittancePtr_->admittance(Radmittance);
+  auto RHForceConf = config_("ForceRHand");
 
-  auto Rstiffness = sva::MotionVec(RHstiffness_);
-  auto Rdamping = sva::MotionVec(RHdamping_);
-  rightHandAdmittancePtr_->setGains(Rstiffness, Rdamping);
+  RHadmittance_ = RHForceConf("admittance");
+  RHstiffness_ = RHForceConf("stiffness");
+  RHdamping_ = RHForceConf("damping");
+  RHmaxVel_ = RHForceConf("maxVel");
+  RHwrench_ = RHForceConf("wrench");
 
-  rightHandAdmittancePtr_->maxLinearVel(RHmaxVel_);
+  auto LHForceConf = config_("ForceLHand");  
 
-  auto Rwrench = sva:: ForceVec(RHwrench_);
-  rightHandAdmittancePtr_->targetWrench(Rwrench);
-
-  // setting right hand target surface
-  // auto target = ctl.realRobot("human").surfacePose("RightShoulder");
-  auto Rtarget = ctl.robot("human").surfacePose("Chest");
-  rightHandAdmittancePtr_->targetPose(Rtarget);
+  LHadmittance_ = LHForceConf("admittance");
+  LHstiffness_ = LHForceConf("stiffness");
+  LHdamping_ = LHForceConf("damping");
+  LHmaxVel_ = LHForceConf("maxVel");
+  LHwrench_ = LHForceConf("wrench");
 
 
-  // left hand admittance
-  leftHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("LeftHandFlat", ctl.robots(), ctl.robots().robotIndex());
-  auto Ladmittance = sva::ForceVec(LHadmittance_);
-  leftHandAdmittancePtr_->admittance(Ladmittance);
+  switch (mode_)
+  {
+  case simpleAdmi:
+    // right hand admittance
+    rightHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("RightHandFlat", ctl.robots(), ctl.robots().robotIndex());
+    rightHandAdmittancePtr_->admittance(sva::ForceVec(RHadmittance_));
+    rightHandAdmittancePtr_->setGains(sva::MotionVec(RHstiffness_), sva::MotionVec(RHdamping_));
+    rightHandAdmittancePtr_->maxLinearVel(RHmaxVel_);
+    rightHandAdmittancePtr_->targetWrench(sva:: ForceVec(RHwrench_));
+    // setting right hand target surface
+    // auto target = ctl.realRobot("human").surfacePose("RightShoulder");
+    rightHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("Chest"));
 
-  auto Lstiffness = sva::MotionVec(LHstiffness_);
-  auto Ldamping = sva::MotionVec(LHdamping_);
-  leftHandAdmittancePtr_->setGains(Lstiffness, Ldamping);
+    // left hand admittance
+    leftHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("LeftHandFlat", ctl.robots(), ctl.robots().robotIndex());
+    leftHandAdmittancePtr_->admittance(sva::ForceVec(LHadmittance_));
+    leftHandAdmittancePtr_->setGains(sva::MotionVec(LHstiffness_), sva::MotionVec(LHdamping_));
+    leftHandAdmittancePtr_->maxLinearVel(LHmaxVel_);
+    leftHandAdmittancePtr_->targetWrench(sva:: ForceVec(LHwrench_));
+    // setting left hand target surface
+    // target = ctl.realRobot("human").surfacePose("Back");
+    leftHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("Back"));
+    // rightHandAdmittancePtr_->weight(weight_);
+    // leftHandAdmittancePtr_->weight(weight_);
 
-  leftHandAdmittancePtr_->maxLinearVel(LHmaxVel_);
+    // rightHandAdmittancePtr_->stiffness(stiffness_);
+    // leftHandAdmittancePtr_->stiffness(stiffness_);
 
-  auto Ldesired_wrench = sva:: ForceVec(LHwrench_);
-  leftHandAdmittancePtr_->targetWrench(Ldesired_wrench);
+    // adding tasks to solver
+    addToGUI(*ctl.gui(), ctl);
+    ctl.solver().addTask(rightHandAdmittancePtr_);
+    ctl.solver().addTask(leftHandAdmittancePtr_);
+    break;
+  
 
-  // setting left hand target surface
-  // target = ctl.realRobot("human").surfacePose("Back");
-  auto Ltarget = ctl.robot("human").surfacePose("Back");
-  leftHandAdmittancePtr_->targetPose(Ltarget);
 
+  case forceConstraint:
+    rightHandForceConstPtr_ = std::make_shared<mc_tasks::ForceConstrainedTransformTask>(ctl.robot().frame("RightHandFlat")); //TODO stiffness and weight of task ? here default stiff 2 weight 500
+    // Express the wrench constraint: max normal force of 20N with a soft margin of 5N on the shoulder frame
+    Eigen::Vector6d dof = Eigen::Vector6d::Zero();
+    dof(5) = 1.0; //selecting only z axis to constraint
+    rightHandForceConstPtr_->addFrameConstraint(ctl.robot("human").frame("RightShoulder"),
+                            dof,
+                            sva::ForceVecd(Eigen::Vector3d::Zero(), {0, 0, 20.0}),
+                            sva::ForceVecd(Eigen::Vector3d::Zero(), {0, 0, 5.0}));
+    
+    
+    leftHandForceConstPtr_ = std::make_shared<mc_tasks::ForceConstrainedTransformTask>(ctl.robot().frame("LeftHandFlat"));
+    break;
+  }
+  
+  
 
-  // rightHandAdmittancePtr_->weight(weight_);
-  // leftHandAdmittancePtr_->weight(weight_);
-
-  // rightHandAdmittancePtr_->stiffness(stiffness_);
-  // leftHandAdmittancePtr_->stiffness(stiffness_);
-
-  // adding tasks to solver
-  addToGUI(*ctl.gui(), ctl);
-  ctl.solver().addTask(rightHandAdmittancePtr_);
-  ctl.solver().addTask(leftHandAdmittancePtr_);
 }
 
 bool RobotHolding::run(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
   
-  // updating target positions each iteration
-  auto target = ctl.robot("human").surfacePose("RightShoulder"); //Chest
-  rightHandAdmittancePtr_->targetPose(target);
+  switch (mode_)
+  {
+  case simpleAdmi:
+    // updating target positions each iteration
+    rightHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("RightShoulder"));
+    leftHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("Back"));
+    break;
+  
+  case forceConstraint:
 
-  target = ctl.robot("human").surfacePose("Back");
-  leftHandAdmittancePtr_->targetPose(target);
+    break;
+  }
+
 
   output("OK");
   return true;
@@ -108,10 +127,21 @@ void RobotHolding::teardown(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
 
-  ctl.solver().removeTask(rightHandAdmittancePtr_);
-  ctl.solver().removeTask(leftHandAdmittancePtr_);
+  switch (mode_)
+  {
+  case simpleAdmi:
+    ctl.solver().removeTask(rightHandAdmittancePtr_);
+    ctl.solver().removeTask(leftHandAdmittancePtr_);
+    //TODO: remove gui addition when teardown
+    break;
+  
+  case forceConstraint:
+    break;
+  }
+  
 }
 
+// TODO: case of force constrained task
 void RobotHolding::addToGUI(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Controller & ctl_)
 {
   using namespace mc_rtc::gui;

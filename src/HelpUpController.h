@@ -178,6 +178,36 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       xsensCoMacc_ = acc;
     };
 
+    double humanOmega()
+    {
+      return std::sqrt(9.81/xsensCoMpos_.z());
+    };
+
+    double mainOmega()
+    {
+      return std::sqrt(9.81/robot().com().z());
+    };
+
+    double mainRealOmega()
+    {
+      return std::sqrt(9.81/realRobot().com().z());
+    };
+
+    Eigen::Vector3d humanXsensDCM()
+    {
+      return xsensCoMpos_ + xsensCoMvel_ / humanOmega();
+    };
+
+    Eigen::Vector3d mainCtlDCM()
+    {
+      return robot().com() + robot().comVelocity() / mainOmega();
+    };
+
+    Eigen::Vector3d mainRealDCM()
+    {
+      return realRobot().com() + realRobot().comVelocity() / mainRealOmega();
+    };
+
 
 private:
     mc_rtc::Configuration config_;

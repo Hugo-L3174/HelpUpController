@@ -512,15 +512,33 @@ void HelpUpController::addLogEntries()
 
 void HelpUpController::addGuiElements()
 {
-  mc_rtc::gui::PointConfig CoMconfig1(mc_rtc::gui::Color{1., 0.5, 0.}, 0.05);
-  mc_rtc::gui::PointConfig CoMconfig2(mc_rtc::gui::Color{0., 1., 1.}, 0.07);
+  constexpr double DCM_POINT_SIZE = 0.015;
+  constexpr double COM_POINT_SIZE = 0.02;
+
+  const std::map<char, mc_rtc::gui::Color> COLORS =
+    {
+      {'r', mc_rtc::gui::Color{1.0, 0.0, 0.0}},
+      {'g', mc_rtc::gui::Color{0.0, 1.0, 0.0}},
+      {'b', mc_rtc::gui::Color{0.0, 0.0, 1.0}},
+      {'y', mc_rtc::gui::Color{1.0, 0.5, 0.0}},
+      {'c', mc_rtc::gui::Color{0.0, 0.5, 1.0}},
+      {'m', mc_rtc::gui::Color{1.0, 0.0, 0.5}}
+    };
 
   gui()->addElement({"CoM"},
-      mc_rtc::gui::Point3D("CoM_main", CoMconfig1, [this]() { return robot().com(); }), // Note that this is the control robot com and not the real robot com 
-      mc_rtc::gui::Point3D("CoMhuman", CoMconfig1, [this]() { return robot("human").com(); })
+      mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot().com(); }),
+      mc_rtc::gui::Point3D("mainCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return realRobot().com(); }), // Note that this is the control robot com and not the real robot com 
+      mc_rtc::gui::Point3D("humanCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot("human").com(); }),
+      mc_rtc::gui::Point3D("humanCoMXsens", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return xsensCoMpos_; })
       // mc_rtc::gui::Point3D("CoMcombined", CoMconfig2, [this]() { return combinedCoM_; })
   );
 
+  gui()->addElement({"DCM"},
+      mc_rtc::gui::Point3D("mainDCM", mc_rtc::gui::PointConfig(COLORS.at('b'), DCM_POINT_SIZE), [this]() { return mainCtlDCM(); }),
+      mc_rtc::gui::Point3D("mainDCMreal", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return mainRealDCM(); }),
+      mc_rtc::gui::Point3D("humanDCMXsens", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return humanXsensDCM(); })
+  
+  );
 
 
   // gui()->addElement({"Trajectories"},
@@ -530,8 +548,8 @@ void HelpUpController::addGuiElements()
   // );
 
   gui()->addElement({"Polytopes"}, 
-      mc_rtc::gui::Polygon("MainRobBalanceRegion", mc_rtc::gui::Color{1., 0., 0.}, [this]() { return balanceCompPoint_->getTriangles(); }),
-      mc_rtc::gui::Polygon("HumanBalanceRegion", mc_rtc::gui::Color{0., 1., 0.}, [this]() { return balanceHumCompPoint_->getTriangles(); }) 
+      mc_rtc::gui::Polygon("MainRobBalanceRegion", COLORS.at('r'), [this]() { return balanceCompPoint_->getTriangles(); }),
+      mc_rtc::gui::Polygon("HumanBalanceRegion", COLORS.at('g'), [this]() { return balanceHumCompPoint_->getTriangles(); }) 
   );
 
   // gui()->addElement({"AccPoly"}, 
@@ -725,13 +743,13 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
     acceleration << 0.8, 0, -9.81;
     contactSet_->addCoMAcc(acceleration);
 
-    acceleration << 0, 0.6, -9.81;
+    acceleration << 0, 0.8, -9.81;
     contactSet_->addCoMAcc(acceleration);
 
     acceleration << -0.8, 0, -9.81;
     contactSet_->addCoMAcc(acceleration);
 
-    acceleration << 0, -0.6, -9.81;
+    acceleration << 0, -0.8, -9.81;
     contactSet_->addCoMAcc(acceleration);
 
     // std::cout << "#-----------------------------------------" << std::endl;
@@ -819,13 +837,13 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
     acceleration << 0.8, 0, -9.81;
     contactSetHum_->addCoMAcc(acceleration);
 
-    acceleration << 0, 0.6, -9.81;
+    acceleration << 0, 0.8, -9.81;
     contactSetHum_->addCoMAcc(acceleration);
 
     acceleration << -0.8, 0, -9.81;
     contactSetHum_->addCoMAcc(acceleration);
 
-    acceleration << 0, -0.6, -9.81;
+    acceleration << 0, -0.8, -9.81;
     contactSetHum_->addCoMAcc(acceleration);
 
     // std::cout << "#-----------------------------------------" << std::endl;

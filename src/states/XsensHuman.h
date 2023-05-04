@@ -34,4 +34,5 @@ private:
     double weight_ = 1000;
     std::string robot_{};
     sva::PTransformd offset_ = sva::PTransformd::Identity();
+    bool liveMode_ = true;
 };

@@ -1,0 +1,56 @@
+# Keys are entry in the log, values are entry in the datastore
+# mc_bin_utils show log.bin shows every log entry and their types (ie keys)
+
+# datastore entries to reproduce:
+xsensCoMpose: ReplayPlugin::GetCoMpos
+xsensCoMvel: ReplayPlugin::GetCoMvel
+xsensCoMacc: ReplayPlugin::GetCoMacc
+
+# list of segment names:
+transform_human_HeadLink_target_pose: ReplayPlugin::GetSegmentPose::HeadLink
+transform_human_HipsLink_target_pose: ReplayPlugin::GetSegmentPose::HipsLink
+transform_human_LAnkleLink_target_pose: ReplayPlugin::GetSegmentPose::LAnkleLink
+transform_human_LForearmLink_target_pose: ReplayPlugin::GetSegmentPose::LForearmLink
+transform_human_LHandLink_target_pose: ReplayPlugin::GetSegmentPose::LHandLink
+transform_human_LLegLink_target_pose: ReplayPlugin::GetSegmentPose::LLegLink
+transform_human_LShinLink_target_pose: ReplayPlugin::GetSegmentPose::LShinLink
+transform_human_RAnkleLink_target_pose: ReplayPlugin::GetSegmentPose::RAnkleLink
+transform_human_RForearmLink_target_pose: ReplayPlugin::GetSegmentPose::RForearmLink
+transform_human_RHandLink_target_pose: ReplayPlugin::GetSegmentPose::RHandLink
+transform_human_RLegLink_target_pose: ReplayPlugin::GetSegmentPose::RLegLink
+transform_human_RShinLink_target_pose: ReplayPlugin::GetSegmentPose::RShinLink
+transform_human_TorsoLink_target_pose: ReplayPlugin::GetSegmentPose::TorsoLink
+transform_human_torso2lshoulder_1_target_pose: ReplayPlugin::GetSegmentPose::torso2lshoulder_1
+transform_human_torso2rshoulder_1_target_pose: ReplayPlugin::GetSegmentPose::torso2rshoulder_1
+
+transform_human_HeadLink_refVel: ReplayPlugin::GetSegmentVel::HeadLink
+transform_human_HipsLink_refVel: ReplayPlugin::GetSegmentVel::HipsLink
+transform_human_LAnkleLink_refVel: ReplayPlugin::GetSegmentVel::LAnkleLink
+transform_human_LForearmLink_refVel: ReplayPlugin::GetSegmentVel::LForearmLink
+transform_human_LHandLink_refVel: ReplayPlugin::GetSegmentVel::LHandLink
+transform_human_LLegLink_refVel: ReplayPlugin::GetSegmentVel::LLegLink
+transform_human_LShinLink_refVel: ReplayPlugin::GetSegmentVel::LShinLink
+transform_human_RAnkleLink_refVel: ReplayPlugin::GetSegmentVel::RAnkleLink
+transform_human_RForearmLink_refVel: ReplayPlugin::GetSegmentVel::RForearmLink
+transform_human_RHandLink_refVel: ReplayPlugin::GetSegmentVel::RHandLink
+transform_human_RLegLink_refVel: ReplayPlugin::GetSegmentVel::RLegLink
+transform_human_RShinLink_refVel: ReplayPlugin::GetSegmentVel::RShinLink
+transform_human_TorsoLink_refVel: ReplayPlugin::GetSegmentVel::TorsoLink
+transform_human_torso2lshoulder_1_refVel: ReplayPlugin::GetSegmentVel::torso2lshoulder_1
+transform_human_torso2rshoulder_1_refVel: ReplayPlugin::GetSegmentVel::torso2rshoulder_1
+
+transform_human_HeadLink_refAccel: ReplayPlugin::GetSegmentAcc::HeadLink
+transform_human_HipsLink_refAccel: ReplayPlugin::GetSegmentAcc::HipsLink
+transform_human_LAnkleLink_refAccel: ReplayPlugin::GetSegmentAcc::LAnkleLink
+transform_human_LForearmLink_refAccel: ReplayPlugin::GetSegmentAcc::LForearmLink
+transform_human_LHandLink_refAccel: ReplayPlugin::GetSegmentAcc::LHandLink
+transform_human_LLegLink_refAccel: ReplayPlugin::GetSegmentAcc::LLegLink
+transform_human_LShinLink_refAccel: ReplayPlugin::GetSegmentAcc::LShinLink
+transform_human_RAnkleLink_refAccel: ReplayPlugin::GetSegmentAcc::RAnkleLink
+transform_human_RForearmLink_refAccel: ReplayPlugin::GetSegmentAcc::RForearmLink
+transform_human_RHandLink_refAccel: ReplayPlugin::GetSegmentAcc::RHandLink
+transform_human_RLegLink_refAccel: ReplayPlugin::GetSegmentAcc::RLegLink
+transform_human_RShinLink_refAccel: ReplayPlugin::GetSegmentAcc::RShinLink
+transform_human_TorsoLink_refAccel: ReplayPlugin::GetSegmentAcc::TorsoLink
+transform_human_torso2lshoulder_1_refAccel: ReplayPlugin::GetSegmentAcc::torso2lshoulder_1
+transform_human_torso2rshoulder_1_refAccel: ReplayPlugin::GetSegmentAcc::torso2rshoulder_1

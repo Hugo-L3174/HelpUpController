@@ -21,6 +21,8 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
     mc_rtc::log::error_and_throw<std::runtime_error>("[{}] No robot named \"{}\"");
   }
   auto & robot = ctl.robot(robot_);
+
+
   if(!ctl.config()("Xsens").has(robot.name()))
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("[{}] Robot {} not supported (missing Xsens->{} configuration)", robot.name(), name(), robot.name());
@@ -29,7 +31,35 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
   {
     mc_rtc::log::error_and_throw<std::runtime_error>("[{}] This state requires the XsensPlugin", name());
   }
+
+  if (ctl.datastore().has("XsensMode"))
+  {
+    liveMode_ = ctl.datastore().get<bool>("XsensMode");
+    if (!liveMode_)
+    {
+      auto plugins = ctl.config()("Plugins").operator std::vector<std::string>();
+      if(std::find(plugins.begin(), plugins.end(), "Replay") != plugins.end())
+      {
+        if(!ctl.config().has("Replay"))
+        {
+          mc_rtc::log::error_and_throw<std::runtime_error>("[{}] Missing Replay configuration", name());
+        }
+        mc_rtc::log::info("Running human state with logged Xsens mode.");
+      }
+      else
+      {
+        mc_rtc::log::error_and_throw<std::runtime_error>("[{}] Running the logged Xsens mode requires the Replay plugin", name());
+      }
+      
+    }
+    
+  }
+  else
+  {
+    mc_rtc::log::info("Running human state with live Xsens mode.");
+  }
   
+
   auto & grounding_offset = ctl.datastore().make<sva::PTransformd>("XsensHuman::GetGroundOffset");
 
   auto robotConfig = static_cast<std::map<std::string, mc_rtc::Configuration>>(ctl.config()("Xsens")(robot.name()));
@@ -65,8 +95,8 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
   }
 
   // init filters
-  gram_sg::SavitzkyGolayFilterConfig velfilterconf_(10,10,2,0,ctl.timeStep);
-  velocityFilter_ = std::make_shared<gram_sg::MotionVecdFilter>(velfilterconf_);
+  // gram_sg::SavitzkyGolayFilterConfig velfilterconf_(10,10,2,0,ctl.timeStep);
+  // velocityFilter_ = std::make_shared<gram_sg::MotionVecdFilter>(velfilterconf_);
  
 
   // gram_sg::SavitzkyGolayFilterConfig accfilterconf_(50,50,2,1,ctl.timeStep);
@@ -76,7 +106,6 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
   for(auto & body: bodyConfigurations_)
   {
     const auto & bodyName = body.first;
-    const auto & segmentName = body.second.bodyName;
     if(robot.hasBody(bodyName))
     {
       auto task = std::unique_ptr<mc_tasks::TransformTask>(new mc_tasks::TransformTask(bodyName, ctl.robots(), robot.robotIndex(), stiffness_, weight_));
@@ -89,6 +118,7 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
       mc_rtc::log::error("[{}] No body named {}", bodyName);
     }
   }
+
   run(ctl);
 }
 
@@ -107,6 +137,26 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
   X_ground_foot.translation().z() *= 3; // *3 otherwise is too small
   // writing offset in datastore, to be applied by XsensPlugin (applying on positions read by mujoco and others)
   grounding_offset = X_ground_foot;
+
+  // // Debug:
+  // mc_rtc::log::info("offset is {}", X_ground_foot.translation());
+  // mc_rtc::log::info("entries are: ");
+  // for (const auto & entry:ctl.datastore().keys())
+  // {
+  //   mc_rtc::log::info("{}", entry);
+  // }
+    
+  try
+  {
+    const auto CoMpos = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos"); 
+    const auto CoMvel = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel"); 
+    const auto CoMacc = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc"); 
+    ctl.setxsensCoM(CoMpos, CoMvel, CoMacc);
+  }
+  catch(...)
+  {
+    mc_rtc::log::error("No datastore value for human CoM");
+  }
   
 
   for(const auto & body: bodyConfigurations_)
@@ -121,10 +171,6 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
         auto poseTarget = body.second.offset * segmentPose * offset_;
         tasks_[bodyName]->target(poseTarget);
   
-        const auto CoMpos = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos"); 
-        const auto CoMvel = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel"); 
-        const auto CoMacc = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc"); 
-        ctl.setxsensCoM(CoMpos, CoMvel, CoMacc);
       }
       catch(...)
       {

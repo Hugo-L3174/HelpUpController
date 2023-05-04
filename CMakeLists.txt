@@ -20,5 +20,8 @@ add_subdirectory(src)
 
 set(AROBASE "@")
 configure_file(etc/HelpUpController.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/HelpUpController.yaml")
+configure_file(etc/trajectories/log-to-datastore.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/trajectories/log-to-datastore.yaml")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/HelpUpController.yaml" DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/trajectories/log-to-datastore.yaml" DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories")
+install(FILES etc/trajectories/standup.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories")
 

@@ -231,7 +231,7 @@ states:
         targetFrame:
           robot: human
           frame:  RightShoulder #Chest
-          translation: [0.0, 0.0, 0.1]
+          translation: [0.0, 0.0, 0.05]
           controlPoints:
             - [-0.2, 0.2, 0.2]
       LHandTrajectory:
@@ -244,7 +244,7 @@ states:
         targetFrame:
           robot: human
           frame: Back
-          translation: [0.0, 0.23, 0.1]
+          translation: [0.0, 0.23, 0.05]
           controlPoints: # in target frame !
             - [-0.2, -0.2, 0.2]
     RemoveCollisionsAfter:
@@ -261,7 +261,7 @@ states:
             iDist: 0.003
             sDist: 0.0001
             damping: 0
-    AddContactsAfter:
+    AddContactsAfter: # here the contact constraint added is on the x and y axis to keep position
       - r1: hrp4 #e2dr
         r2: human
         r1Surface: RightHandFlat #Flat
@@ -286,23 +286,24 @@ states:
         admittance:
           couple: [0.005, 0.005, 0.0]
           force: [0.0, 0.0, 0.005]
-        # type: admittance
-        # frame: RightHandFlat
-        # stiffness: [10, 10, 10, 10, 10, 1]
-        # damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
-        # targetFrame:
-        #   robot: human
-        #   frame: RightShoulder
-        # wrench:
-        #   couple: [0.0, 0.0, 0.0]
-        #   force: [0.0, 0.0, 10.0]
-        # admittance:
-        #   couple: [0.0, 0.0, 0.0]
-        #   force: [0.0, 0.0, 0.001]
-        # completion:
-        #     wrench:
-        #       couple: [0.0, 0.0, 0.0]
-        #       force: [0.0, 0.0, 5.0]
+      RHAdmi:
+        type: admittance
+        frame: RightHandFlat
+        stiffness: [10, 10, 10, 10, 10, 1]
+        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+        targetFrame:
+          robot: human
+          frame: RightShoulder
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 10.0]
+        admittance:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.001]
+        completion:
+            wrench:
+              couple: [0.0, 0.0, 0.0]
+              force: [0.0, 0.0, 5.0]
       LHCoP:
         type: cop
         frame: LeftHandFlat
@@ -313,23 +314,35 @@ states:
         admittance:
           couple: [0.005, 0.005, 0.0]
           force: [0.0, 0.0, 0.005]
-        # type: admittance
-        # frame: LeftHandFlat
-        # stiffness: [10, 10, 10, 10, 10, 1]
-        # damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
-        # targetFrame:
-        #   robot: human
-        #   frame: Back
-        # wrench:
-        #   couple: [0.0, 0.0, 0.0]
-        #   force: [0.0, 0.0, 10.0]
-        # admittance:
-        #   couple: [0.0, 0.0, 0.0]
-        #   force: [0.0, 0.0, 0.001]
-        # completion:
-        #     wrench:
-        #       couple: [0.0, 0.0, 0.0]
-        #       force: [0.0, 0.0, 5.0]
+      LHAdmi:
+        type: admittance
+        frame: LeftHandFlat
+        stiffness: [10, 10, 10, 10, 10, 1]
+        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+        targetFrame:
+          robot: human
+          frame: Back
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 10.0]
+        admittance:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.001]
+        completion:
+            wrench:
+              couple: [0.0, 0.0, 0.0]
+              force: [0.0, 0.0, 5.0]
+    AddContactsAfter: # here the contact constraint is added on the first 3 dofs as well after adapting with CoP task
+      - r1: hrp4 #e2dr
+        r2: human
+        r1Surface: RightHandFlat #Flat
+        r2Surface: RightShoulder #Chest 
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] 
+      - r1: hrp4 #e2dr
+        r2: human
+        r1Surface: LeftHandFlat #Flat
+        r2Surface: Back 
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     
 
   KeepPosition:
@@ -338,17 +351,17 @@ states:
     stiffness: 10
     mode: forceConstrained
     ForceRHand: 
-      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # force control: low stiffness high damping; position control: high stiffness low damping
-      stiffness: [100, 100, 100, 100, 100, 100]
-      damping: [6.3, 6.3, 6.3, 6.3, 6.3, 6.3]
-      maxVel: [0.2, 0.2, 0.5]
-      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-    ForceLHand:
-      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.002]
+      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.005] # force control: low stiffness high damping; position control: high stiffness low damping
       stiffness: [100, 100, 100, 100, 100, 10]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
       maxVel: [0.2, 0.2, 0.5]
-      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 5.0]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
+    ForceLHand:
+      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.005]
+      stiffness: [100, 100, 100, 100, 100, 10]
+      damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+      maxVel: [0.2, 0.2, 0.5]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
     
 
   KeepPositionCompli:
@@ -515,8 +528,8 @@ states:
     # - [TakePosition, OK, HoldingBothHands, Strict]
     - [TakePosition, OK, MakeHandContacts, Strict] #KeepPosition
     # - [HoldingBothHands, OK, GoBackInitHrp4, Strict]
-    - [MakeHandContacts, OK, KeepPositionCompli, Strict]
-    - [KeepPositionCompli, OK, GoBackInitHrp4, Strict]
+    - [MakeHandContacts, OK, KeepPosition, Strict]
+    - [KeepPosition, OK, GoBackInitHrp4, Strict]
     - [GoBackInitHrp4, OK, HRP4pos, Strict]
 
   HelpDemo:
@@ -562,25 +575,25 @@ ObserverPipelines:
       robot: hrp4 #e2dr
       updateRobot: hrp4 #e2dr
       bodySensor: Accelerometer          # This observer only uses roll and pitch rotation information from this sensor along with a kinematic anchor point and the robot kinematics between the anchor frame and the floating base frame. The anchor frame is expected to be provided through a datastore callback (see below for details)
-# - name: HumanPipeline
-#   gui: true
-#   log: true
-#   observers:
-#   - type: Encoder                        # - Use an EncoderObserver
-#     config: 
-#       robot: human
-#       updateRobot: human                             
-#       position: encoderValues            #    - Sets joint position from encoder sensor values (default)
-#       velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
-#       computeFV: true 
-#   - type: BodySensor                     # - Use a BodySensor observer
-#     update: true                        #   Do not update the real robot state
-#     gui: true                           #   Do not display in the gui
-#     config: 
-#       robot: human                             
-#       bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
-#                                          #   The observer computes the position and velocity of the floating base
-#                                          #   by transforming the sensor measurements to the floating base frame
+- name: HumanPipeline
+  gui: true
+  log: true
+  observers:
+  - type: Encoder                        # - Use an EncoderObserver
+    config: 
+      robot: human
+      updateRobot: human                             
+      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
+      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
+      computeFV: true 
+  - type: BodySensor                     # - Use a BodySensor observer
+    update: true                        #   Do not update the real robot state
+    gui: true                           #   Do not display in the gui
+    config: 
+      robot: human                             
+      bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
+                                         #   The observer computes the position and velocity of the floating base
+                                         #   by transforming the sensor measurements to the floating base frame
   # - type: Attitude
   #   config: 
   #     robot: human
@@ -594,18 +607,19 @@ ObserverPipelines:
   #     bodySensor: Accelerometer 
 
 
-Plugins: [XsensPlugin]
-# Plugins: [Replay]
+# Plugins: [XsensPlugin]
+Plugins: [XsensPlugin, Replay]
 # configuration for Replay plugin
 Replay:
-  log: ~/Bureau/logs_stand/poseOnly_vs_refVel_refAcc/refs_vel_acc.bin
+  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin
   with-inputs: false
   with-outputs: false
   with-gui-inputs: false
-  with-datastore-config: etc/trajectories/log-to-datastore.yaml
+  with-datastore-config: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/log-to-datastore.yaml
 
 # configuration for XsensHuman state
 Xsens:
+  liveMode: true
   human:
     HipsLink:
       segment: "Pelvis"

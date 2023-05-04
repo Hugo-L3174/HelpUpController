@@ -14,6 +14,7 @@ set(controller_HDR
   utils/ComputationPoint.h
   utils/PointProjector.h
   utils/CoMQP.h
+  Tasks/TrackDesiredForceTask.h
   # states/PostAdd.h
   # utils/TrajectoryModel.h
   # Tasks/BoundCoMAcceleration.h

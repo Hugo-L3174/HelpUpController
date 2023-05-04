@@ -349,6 +349,8 @@ private:
     // Surfaces to check collisions
     std::shared_ptr<mc_rbdyn::Surface> BackSurf, RightShoulderSurf, RCheekSurf, LCheekSurf, RFootSurf, LFootSurf, TopSurf, RHandSurf, LHandSurf, GroundSurf;
     std::shared_ptr<mc_control::SimulationContactPair> RCheekChair, LCheekChair, RFootGround, LFootGround, RHandShoulder, LHandBack;
-    
+
+public:
+    using mc_control::fsm::Controller::updateContacts;
 
 };

@@ -2,7 +2,7 @@
 
 #include <mc_control/fsm/State.h>
 #include <mc_tasks/AdmittanceTask.h>
-#include <mc_tasks/ForceConstrainedTransformTask.h>
+#include "Tasks/TrackDesiredForceTask.h"
 
 enum holdMode
 {
@@ -22,11 +22,13 @@ struct RobotHolding : mc_control::fsm::State
     void teardown(mc_control::fsm::Controller & ctl) override;
 
     void addToGUI(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Controller & ctl);
+
+    void GUIForceContacts(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Controller & ctl);
 private:
 
     std::shared_ptr<mc_tasks::force::AdmittanceTask> rightHandAdmittancePtr_, leftHandAdmittancePtr_;
 
-    std::shared_ptr<mc_tasks::ForceConstrainedTransformTask> rightHandForceConstPtr_, leftHandForceConstPtr_;
+    std::shared_ptr<TrackDesiredForceTask> rightHandForceConstPtr_, leftHandForceConstPtr_;
     int mode_ = simpleAdmi;
     // int RHweight_, LHweight_;
     int weight_, stiffness_;
@@ -35,13 +37,13 @@ private:
     Eigen::Vector6d RHstiffness_;
     Eigen::Vector6d RHdamping_;
     Eigen::Vector3d RHmaxVel_;
-    Eigen::Vector6d RHwrench_;
+    sva::ForceVecd RHwrench_;
     // std::string RHtargetSurf_;
 
     Eigen::Vector6d LHadmittance_;
     Eigen::Vector6d LHstiffness_;
     Eigen::Vector6d LHdamping_;
     Eigen::Vector3d LHmaxVel_;
-    Eigen::Vector6d LHwrench_;
+    sva::ForceVecd LHwrench_;
     // std::string LHtargetSurf_;
 };

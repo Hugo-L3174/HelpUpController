@@ -1,4 +1,5 @@
 #include "RobotHolding.h"
+#include <mc_solver/TasksQPSolver.h>
 
 #include "../HelpUpController.h"
 
@@ -54,7 +55,7 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl_)
     rightHandAdmittancePtr_->admittance(sva::ForceVec(RHadmittance_));
     rightHandAdmittancePtr_->setGains(sva::MotionVec(RHstiffness_), sva::MotionVec(RHdamping_));
     rightHandAdmittancePtr_->maxLinearVel(RHmaxVel_);
-    rightHandAdmittancePtr_->targetWrench(sva:: ForceVec(RHwrench_));
+    rightHandAdmittancePtr_->targetWrench(RHwrench_);
     // setting right hand target surface
     // auto target = ctl.realRobot("human").surfacePose("RightShoulder");
     rightHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("Chest"));
@@ -64,7 +65,7 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl_)
     leftHandAdmittancePtr_->admittance(sva::ForceVec(LHadmittance_));
     leftHandAdmittancePtr_->setGains(sva::MotionVec(LHstiffness_), sva::MotionVec(LHdamping_));
     leftHandAdmittancePtr_->maxLinearVel(LHmaxVel_);
-    leftHandAdmittancePtr_->targetWrench(sva:: ForceVec(LHwrench_));
+    leftHandAdmittancePtr_->targetWrench(LHwrench_);
     // setting left hand target surface
     // target = ctl.realRobot("human").surfacePose("Back");
     leftHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("Back"));
@@ -83,17 +84,71 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl_)
 
 
   case forceConstraint:
-    rightHandForceConstPtr_ = std::make_shared<mc_tasks::ForceConstrainedTransformTask>(ctl.robot().frame("RightHandFlat")); //TODO stiffness and weight of task ? here default stiff 2 weight 500
-    // Express the wrench constraint: max normal force of 20N with a soft margin of 5N on the shoulder frame
-    Eigen::Vector6d dof = Eigen::Vector6d::Zero();
-    dof(5) = 1.0; //selecting only z axis to constraint
-    rightHandForceConstPtr_->addFrameConstraint(ctl.robot("human").frame("RightShoulder"),
-                            dof,
-                            sva::ForceVecd(Eigen::Vector3d::Zero(), {0, 0, 20.0}),
-                            sva::ForceVecd(Eigen::Vector3d::Zero(), {0, 0, 5.0}));
+    // ctl.addContact({ctl.robot().name(), "human", "RightHandFlat", "RightShoulder"});
+    // ctl.addContact({ctl.robot().name(), "human", "LeftHandFlat", "Back"});
+    // Trigger the contact update now so the contact is in the solver
+    ctl.updateContacts();
+
+    // Todo: generalize lambda (pb of string argument)
+    mc_rbdyn::Contact contactRH = [this, &ctl]() {
+      for(const auto & c : ctl.solver().contacts())
+      {
+        if(c.r1Surface()->name() == "RightHandFlat")
+        {
+          return c;
+        }
+      }
+      mc_rtc::log::error_and_throw("Unreachable");
+    }();
+
+    mc_rbdyn::Contact contactLH = [this, &ctl]() {
+      for(const auto & c : ctl.solver().contacts())
+      {
+        if(c.r1Surface()->name() == "LeftHandFlat")
+        {
+          return c;
+        }
+      }
+      mc_rtc::log::error_and_throw("Unreachable");
+    }();
+
+    // Adding RH contact task
+    auto cid = contactRH.contactId(ctl.robots());
+    rightHandForceConstPtr_ = std::make_shared<TrackDesiredForceTask>(ctl.solver(), cid); 
+    rightHandForceConstPtr_->setTargetWrench(RHwrench_);
+    tasks_solver(ctl.solver()).addTask(rightHandForceConstPtr_.get());
+
+    // Adding LH
+    cid = contactLH.contactId(ctl.robots());
+    leftHandForceConstPtr_ = std::make_shared<TrackDesiredForceTask>(ctl.solver(), cid); 
+    leftHandForceConstPtr_->setTargetWrench(LHwrench_);
+    tasks_solver(ctl.solver()).addTask(leftHandForceConstPtr_.get());
     
+    // Add gui elements
+    GUIForceContacts(*ctl.gui(), ctl);
+
+
+    // Add hands admittance tasks
+    // right hand admittance
+    rightHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("RightHandFlat", ctl.robots(), ctl.robots().robotIndex());
+    rightHandAdmittancePtr_->admittance(sva::ForceVec(RHadmittance_));
+    rightHandAdmittancePtr_->setGains(sva::MotionVec(RHstiffness_), sva::MotionVec(RHdamping_));
+    rightHandAdmittancePtr_->maxLinearVel(RHmaxVel_);
+    rightHandAdmittancePtr_->targetWrench(RHwrench_);
+    rightHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("RightShoulder"));
+    // left hand admittance
+    leftHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("LeftHandFlat", ctl.robots(), ctl.robots().robotIndex());
+    leftHandAdmittancePtr_->admittance(sva::ForceVec(LHadmittance_));
+    leftHandAdmittancePtr_->setGains(sva::MotionVec(LHstiffness_), sva::MotionVec(LHdamping_));
+    leftHandAdmittancePtr_->maxLinearVel(LHmaxVel_);
+    leftHandAdmittancePtr_->targetWrench(LHwrench_);
+    leftHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("Back"));
+    // adding admittance tasks to solver
+    addToGUI(*ctl.gui(), ctl);
+    ctl.solver().addTask(rightHandAdmittancePtr_);
+    ctl.solver().addTask(leftHandAdmittancePtr_);
+
     
-    leftHandForceConstPtr_ = std::make_shared<mc_tasks::ForceConstrainedTransformTask>(ctl.robot().frame("LeftHandFlat"));
     break;
   }
   
@@ -136,6 +191,8 @@ void RobotHolding::teardown(mc_control::fsm::Controller & ctl_)
     break;
   
   case forceConstraint:
+
+
     break;
   }
   
@@ -172,8 +229,6 @@ void RobotHolding::addToGUI(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Co
   copForceConfig.start_point_scale = 0.02;
   copForceConfig.end_point_scale = 0.;
 
-  constexpr double COM_POINT_SIZE = 0.02;
-  constexpr double DCM_POINT_SIZE = 0.015;
 
   // gui.addElement({"Tasks", name_, "Markers", "CoM-DCM"},
   //                Arrow(
@@ -207,6 +262,52 @@ void RobotHolding::addToGUI(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Co
   // }
 
 
+}
+
+void RobotHolding::GUIForceContacts(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Controller & ctl)
+{ 
+  mc_rbdyn::Contact contactRH = [this, &ctl]() {
+      for(const auto & c : ctl.solver().contacts())
+      {
+        if(c.r1Surface()->name() == "RightHandFlat")
+        {
+          return c;
+        }
+      }
+      mc_rtc::log::error_and_throw("Unreachable");
+    }();
+
+    mc_rbdyn::Contact contactLH = [this, &ctl]() {
+      for(const auto & c : ctl.solver().contacts())
+      {
+        if(c.r1Surface()->name() == "LeftHandFlat")
+        {
+          return c;
+        }
+      }
+      mc_rtc::log::error_and_throw("Unreachable");
+    }();
+
+  ctl.gui()->addElement(
+      {"Force Contacts"},
+      mc_rtc::gui::NumberInput(
+          "right weight", [this]() { return rightHandForceConstPtr_->weight(); }, [this](double w) { rightHandForceConstPtr_->weight(w); }),
+      mc_rtc::gui::NumberInput(
+          "left weight", [this]() { return leftHandForceConstPtr_->weight(); }, [this](double w) { leftHandForceConstPtr_->weight(w); }),
+      mc_rtc::gui::ArrayInput(
+          "Right Target wrench", [this]() { return RHwrench_; },
+          [this](const sva::ForceVecd & fv) {
+            RHwrench_ = fv;
+            rightHandForceConstPtr_->setTargetWrench(fv);
+          }),
+      mc_rtc::gui::ArrayInput(
+          "Left Target wrench", [this]() { return LHwrench_; },
+          [this](const sva::ForceVecd & fv) {
+            LHwrench_ = fv;
+            leftHandForceConstPtr_->setTargetWrench(fv);
+          }),
+      mc_rtc::gui::ArrayLabel("QP wrench RH", [this, contactRH, &ctl]() { return ctl.solver().desiredContactForce(contactRH); }),
+      mc_rtc::gui::ArrayLabel("QP wrench LH", [this, contactLH, &ctl]() { return ctl.solver().desiredContactForce(contactLH); }));
 }
 
 EXPORT_SINGLE_STATE("RobotHolding", RobotHolding)

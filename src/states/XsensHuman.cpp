@@ -60,7 +60,6 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
   }
   
 
-  auto & grounding_offset = ctl.datastore().make<sva::PTransformd>("XsensHuman::GetGroundOffset");
 
   auto robotConfig = static_cast<std::map<std::string, mc_rtc::Configuration>>(ctl.config()("Xsens")(robot.name()));
   for(const auto & bodyConfig : robotConfig)
@@ -128,7 +127,7 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
   auto & robot = ctl.robot(robot_);
 
   auto & realRobot = ctl.realRobot(robot_);
-  auto & grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GetGroundOffset");
+  auto & grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GroundOffset");
 
   // getting transform from foot to ground (to apply everywhere)
   auto X_ground_foot = realRobot.surfacePose("RightSole").inv();

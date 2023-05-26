@@ -17,18 +17,19 @@ StatesFiles:
 # If true, state factory will be more verbose
 VerboseStateFactory: false
 
-# Initial position of HRP4
+# Initial position of main robot
 init_pos: 
-  translation: [-0.20, -0.3, 0.75] # hrp4 :y = -0.4 z = 0.75 e2dr: y = -0.4 z = 0.8
+  translation: [-0.30, -0.4, 0.77] # e2dr
+  # translation: [-0.20, -0.3, 0.75] # hrp4
   rotation: [0.0, 0.0, 1.6]
 
 
 # Additional robots to load
 robots:
-  # chair:
-  #   module: env/chair
-  #   init_pos:
-  #     translation: [-0.47, 0.22, -0.04] #0.0
+  chair:
+    module: env/chair
+    init_pos:
+      translation: [-0.37, 0.22, 0.0] #0.0
   human:
     module: human
     init_pos:
@@ -42,7 +43,7 @@ robots:
 constraints:
 - type: contact
 - type:  dynamics 
-  robot: hrp4 #e2dr
+  robot: e2dr #e2dr hrp4
   damper: [0.1, 0.01, 0.5]
 - type:  dynamics 
   robot: human  
@@ -55,90 +56,88 @@ collisions:
 - type: collision
   useMinimal: true
 # - type: collision
-#   r1: human
+#   r1: hrp4 #e2dr
 #   r2: human
-#  useMinimal: true
-- type: collision
-  r1: hrp4 #e2dr
-  r2: human
-  collisions:
-    # robot left arm collision with human torso important links are L_ELBOW_P_LINK L_WRIST_Y_LINK l_wrist
-    - body1: L_ELBOW_P_LINK
-      body2: TorsoLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: L_WRIST_Y_LINK
-      body2: TorsoLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: l_wrist
-      body2: TorsoLink
-      iDist: 0.003
-      sDist: 0.0001
-      damping: 0
-    # robot right wrist collision with human torso and right arm
-    - body1: r_wrist
-      body2: TorsoLink
-      iDist: 0.003
-      sDist: 0.0001
-      damping: 0
-    - body1: r_wrist
-      body2: RArmLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: r_wrist
-      body2: RForearmLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    # robot right forearm collision with human torso and right arm
-    - body1: R_WRIST_Y_LINK
-      body2: TorsoLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: R_WRIST_Y_LINK
-      body2: RArmLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: R_WRIST_Y_LINK
-      body2: RForearmLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: R_ELBOW_P_LINK
-      body2: TorsoLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: R_ELBOW_P_LINK
-      body2: RArmLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
-    - body1: R_ELBOW_P_LINK
-      body2: RForearmLink
-      iDist: 0.03
-      sDist: 0.001
-      damping: 0
+#   collisions:
+#     # robot left arm collision with human torso important links are L_ELBOW_P_LINK L_WRIST_Y_LINK l_wrist
+#     - body1: L_ELBOW_P_LINK
+#       body2: TorsoLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: L_WRIST_Y_LINK
+#       body2: TorsoLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: l_wrist
+#       body2: TorsoLink
+#       iDist: 0.003
+#       sDist: 0.0001
+#       damping: 0
+#     # robot right wrist collision with human torso and right arm
+#     - body1: r_wrist
+#       body2: TorsoLink
+#       iDist: 0.003
+#       sDist: 0.0001
+#       damping: 0
+#     - body1: r_wrist
+#       body2: RArmLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: r_wrist
+#       body2: RForearmLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     # robot right forearm collision with human torso and right arm
+#     - body1: R_WRIST_Y_LINK
+#       body2: TorsoLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: R_WRIST_Y_LINK
+#       body2: RArmLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: R_WRIST_Y_LINK
+#       body2: RForearmLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: R_ELBOW_P_LINK
+#       body2: TorsoLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: R_ELBOW_P_LINK
+#       body2: RArmLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: R_ELBOW_P_LINK
+#       body2: RForearmLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
 
 
 
 
 # Initial set of contacts
 contacts:
-- r1: hrp4 #e2dr
+- r1: e2dr #e2dr hrp4
   r2: ground
   r1Surface: LeftFoot
   r2Surface: AllGround
-- r1: hrp4 #e2dr
+  dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+- r1: e2dr #e2dr hrp4
   r2: ground
   r1Surface: RightFoot
   r2Surface: AllGround
+  dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
 - r1: human
   r2: ground
   r1Surface: LeftSole
@@ -197,8 +196,8 @@ hrp4:
 # Force limit on contacts (if not here, considered support contact and max force is m*g)
 # todo : differenciate human and robot
 surfacesMaxForces:
-  LeftFoot: 500
-  RightFoot: 500
+  LeftFoot: 900
+  RightFoot: 900
   LeftHandFlat: 15
   RightHandFlat: 15
   LeftHand: 15
@@ -218,13 +217,13 @@ states:
     base: Pause
     duration: 10.0
 
-  TakePosition:
+  TakePositionE2DR:
     base: MetaTasks
     tasks:
       RHandTrajectory:
         type: bspline_trajectory
-        robot: hrp4 #e2dr
-        frame: RightHandFlat #Flat
+        robot: e2dr #e2dr hrp4
+        frame: RightHand #Flat
         weight: 500.0
         stiffness: 1000.0
         duration: 3.0
@@ -236,8 +235,63 @@ states:
             - [-0.2, 0.2, 0.2]
       LHandTrajectory:
         type: bspline_trajectory
-        robot: hrp4 #e2dr
-        frame: LeftHandFlat #Flat
+        robot: e2dr #e2dr hrp4
+        frame: LeftHand #Flat
+        weight: 500.0
+        stiffness: 1000.0
+        duration: 3.0
+        targetFrame:
+          robot: human
+          frame: Back
+          translation: [0.0, 0.0, 0.05]
+          controlPoints: # in target frame !
+            - [-0.2, -0.2, 0.2]
+    # RemoveCollisionsAfter:
+    #   - r1: e2dr
+    #     r2: human
+    #     collisions:
+    #       - body1: l_wrist
+    #         body2: TorsoLink
+    #         iDist: 0.003
+    #         sDist: 0.0001
+    #         damping: 0
+    #       - body1: r_wrist
+    #         body2: TorsoLink
+    #         iDist: 0.003
+    #         sDist: 0.0001
+    #         damping: 0
+    AddContactsAfter: # here the contact constraint added is on the x and y axis to keep position
+      - r1: e2dr #e2dr hrp4
+        r2: human
+        r1Surface: RightHand #Flat
+        r2Surface: RightShoulder #Chest 
+        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0] # last one is z axis
+      - r1: e2dr #e2dr hrp4
+        r2: human
+        r1Surface: LeftHand #Flat
+        r2Surface: Back 
+        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
+
+  TakePositionHRP4:
+    base: MetaTasks
+    tasks:
+      RHandTrajectory:
+        type: bspline_trajectory
+        robot: hrp4
+        frame: RightHandFlat
+        weight: 500.0
+        stiffness: 1000.0
+        duration: 3.0
+        targetFrame:
+          robot: human
+          frame:  RightShoulder
+          translation: [0.0, 0.0, 0.05]
+          controlPoints:
+            - [-0.2, 0.2, 0.2]
+      LHandTrajectory:
+        type: bspline_trajectory
+        robot: hrp4
+        frame: LeftHandFlat
         weight: 500.0
         stiffness: 1000.0
         duration: 3.0
@@ -247,33 +301,104 @@ states:
           translation: [0.0, 0.23, 0.05]
           controlPoints: # in target frame !
             - [-0.2, -0.2, 0.2]
-    RemoveCollisionsAfter:
-      - r1: hrp4 #e2dr
-        r2: human
-        collisions:
-          - body1: l_wrist
-            body2: TorsoLink
-            iDist: 0.003
-            sDist: 0.0001
-            damping: 0
-          - body1: r_wrist
-            body2: TorsoLink
-            iDist: 0.003
-            sDist: 0.0001
-            damping: 0
+    # RemoveCollisionsAfter:
+    #   - r1: e2dr #e2dr hrp4
+    #     r2: human
+    #     collisions:
+    #       - body1: l_wrist
+    #         body2: TorsoLink
+    #         iDist: 0.003
+    #         sDist: 0.0001
+    #         damping: 0
+    #       - body1: r_wrist
+    #         body2: TorsoLink
+    #         iDist: 0.003
+    #         sDist: 0.0001
+    #         damping: 0
     AddContactsAfter: # here the contact constraint added is on the x and y axis to keep position
-      - r1: hrp4 #e2dr
+      - r1: hrp4
         r2: human
-        r1Surface: RightHandFlat #Flat
-        r2Surface: RightShoulder #Chest 
+        r1Surface: RightHand
+        r2Surface: RightShoulder 
         dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0] # last one is z axis
-      - r1: hrp4 #e2dr
+      - r1: hrp4
         r2: human
-        r1Surface: LeftHandFlat #Flat
+        r1Surface: LeftHand
         r2Surface: Back 
         dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
 
-  MakeHandContacts:
+  MakeHandContactsE2DR:
+    base: MetaTasks
+    tasks: 
+      RHCoP:
+        type: cop
+        frame: RightHand
+        targetFrame:
+          robot: human
+          frame: RightShoulder
+        force: [0.0, 0.0, 10.0]
+        admittance:
+          couple: [0.005, 0.005, 0.0]
+          force: [0.0, 0.0, 0.005]
+      RHAdmi:
+        type: admittance
+        frame: RightHand
+        stiffness: [10, 10, 10, 10, 10, 1]
+        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+        targetFrame:
+          robot: human
+          frame: RightShoulder
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 10.0]
+        admittance:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.001]
+        completion:
+            wrench:
+              couple: [0.0, 0.0, 0.0]
+              force: [0.0, 0.0, 5.0]
+      LHCoP:
+        type: cop
+        frame: LeftHand
+        targetFrame:
+          robot: human
+          frame: Back
+        force: [0.0, 0.0, 10.0]
+        admittance:
+          couple: [0.005, 0.005, 0.0]
+          force: [0.0, 0.0, 0.005]
+      LHAdmi:
+        type: admittance
+        frame: LeftHand
+        stiffness: [10, 10, 10, 10, 10, 1]
+        damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+        targetFrame:
+          robot: human
+          frame: Back
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 10.0]
+        admittance:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.001]
+        completion:
+            wrench:
+              couple: [0.0, 0.0, 0.0]
+              force: [0.0, 0.0, 5.0]
+    AddContactsAfter: # here the contact constraint is added on the first 3 dofs as well after adapting with CoP task
+      - r1: e2dr
+        r2: human
+        r1Surface: RightHand
+        r2Surface: RightShoulder
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] 
+      - r1: e2dr
+        r2: human
+        r1Surface: LeftHand
+        r2Surface: Back 
+        dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+  MakeHandContactsHRP4:
     base: MetaTasks
     tasks: 
       RHCoP:
@@ -335,14 +460,16 @@ states:
     AddContactsAfter: # here the contact constraint is added on the first 3 dofs as well after adapting with CoP task
       - r1: hrp4 #e2dr
         r2: human
-        r1Surface: RightHandFlat #Flat
-        r2Surface: RightShoulder #Chest 
+        r1Surface: RightHandFlat
+        r2Surface: RightShoulder
         dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] 
       - r1: hrp4 #e2dr
         r2: human
-        r1Surface: LeftHandFlat #Flat
+        r1Surface: LeftHandFlat
         r2Surface: Back 
         dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+  
     
 
   KeepPosition:
@@ -364,19 +491,36 @@ states:
       wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
     
 
-  KeepPositionCompli:
+  KeepPositionCompliE2DR:
     # base:
     base: MetaTasks
     tasks:
       RHandCompli:
         type: compliance
-        body: r_wrist #RArm_6AF
+        body: RArm_6AF
         wrench:
           couple: [0.0, 0.0, 0.0]
           force: [0.0, 0.0, 0.0]
       LHandCompli:
         type: compliance
-        body: l_wrist #LArm_6AF
+        body: LArm_6AF
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.0]
+
+  KeepPositionCompliHRP4:
+    # base:
+    base: MetaTasks
+    tasks:
+      RHandCompli:
+        type: compliance
+        body: r_wrist
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.0]
+      LHandCompli:
+        type: compliance
+        body: l_wrist
         wrench:
           couple: [0.0, 0.0, 0.0]
           force: [0.0, 0.0, 0.0]
@@ -524,11 +668,11 @@ states:
   HelpFSM:
     base: Meta
     transitions:
-    - [Pause_2s, OK, TakePosition, Strict]
+    - [Pause_2s, OK, TakePositionE2DR, Strict]
     # - [TakePosition, OK, HoldingBothHands, Strict]
-    - [TakePosition, OK, MakeHandContacts, Strict] #KeepPosition
+    - [TakePositionE2DR, OK, MakeHandContactsE2DR, Strict] #KeepPosition
     # - [HoldingBothHands, OK, GoBackInitHrp4, Strict]
-    - [MakeHandContacts, OK, KeepPosition, Strict]
+    - [MakeHandContactsE2DR, OK, KeepPosition, Strict]
     - [KeepPosition, OK, GoBackInitHrp4, Strict]
     - [GoBackInitHrp4, OK, HRP4pos, Strict]
 
@@ -554,14 +698,14 @@ init: HelpDemo
 
 
 ObserverPipelines:
-- name: HRP4Pipeline                    # - Create a new pipeline
+- name: MainRobPipeline                    # - Create a new pipeline
   gui: true                              #   diplay the pipeline in the GUI (default = false)
   log: true                              #   log observers (default)
   observers:                             #   declare which observers to use
   - type: Encoder                        # - Use an EncoderObserver
     config:    
-      robot: hrp4 #e2dr
-      updateRobot: hrp4 #e2dr                    
+      robot: e2dr #e2dr hrp4
+      updateRobot: e2dr #e2dr hrp4                   
       position: encoderValues            #    - Sets joint position from encoder sensor values (default)
       velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
       computeFV: true                    # We now have the estimation of each joint position and velocity and the corresponding body positions and velocities, but we are still missing the floating base
@@ -572,8 +716,8 @@ ObserverPipelines:
     update: true                         #   update the real robot instance from its results
     gui: true                            #   Displays the estimated velocity as an arrow (default)
     config:
-      robot: hrp4 #e2dr
-      updateRobot: hrp4 #e2dr
+      robot: e2dr #e2dr hrp4
+      updateRobot: e2dr #e2dr hrp4
       bodySensor: Accelerometer          # This observer only uses roll and pitch rotation information from this sensor along with a kinematic anchor point and the robot kinematics between the anchor frame and the floating base frame. The anchor frame is expected to be provided through a datastore callback (see below for details)
 - name: HumanPipeline
   gui: true
@@ -611,7 +755,7 @@ ObserverPipelines:
 Plugins: [XsensPlugin, Replay]
 # configuration for Replay plugin
 Replay:
-  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin
+  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin #@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin /home/hugo/logs/healthy_stands/log2.bin
   with-inputs: false
   with-outputs: false
   with-gui-inputs: false
@@ -619,7 +763,7 @@ Replay:
 
 # configuration for XsensHuman state
 Xsens:
-  liveMode: true
+  liveMode: false
   human:
     HipsLink:
       segment: "Pelvis"

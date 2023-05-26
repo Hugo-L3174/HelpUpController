@@ -54,17 +54,17 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
           );
 
   stabTask_->reset();
-  stabConf.comHeight = 0.7;
-  stabConf.torsoWeight = 10;
-  stabConf.pelvisWeight = 100;
-  stabConf.comStiffness[2]=1000;
+  // stabConf.comHeight = 0.7; // We let it depend on the robot configuration
+  // stabConf.torsoWeight = 10;
+  // stabConf.pelvisWeight = 100;
+  // stabConf.comStiffness[2]=1000;
   // stabConf.comHeight = 0.75;
   // stabConf.pelvisWeight = 1000;
   // stabConf.comStiffness[0]=1000;
   // stabConf.comStiffness[1]=2000;
   // stabConf.comStiffness[2]=2000;
   stabTask_->configure(stabConf);
-  stabTask_->staticTarget(robot().com());
+  stabTask_->staticTarget(robot().com()); // be careful that the controller will not update the objective if the com is not currently in the balance region
 
   // surfaces pointers for live contact sets
   const auto & human_surfaces = robot("human").surfaces();
@@ -75,20 +75,20 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   RightShoulderSurf = human_surfaces.at("RightShoulder");
   BackSurf = human_surfaces.at("Back");
 
-  // TopSurf = realRobot("chair").surfaces().at("Top");
+  TopSurf = realRobot("chair").surfaces().at("Top");
   GroundSurf = realRobot("ground").surfaces().at("AllGround");
 
   // RHandSurf = realRobot("e2dr").surfaces().at("RightHand");
   // LHandSurf = realRobot("e2dr").surfaces().at("LeftHand");
-  RHandSurf = realRobot("hrp4").surfaces().at("RightHandFlat");
-  LHandSurf = realRobot("hrp4").surfaces().at("LeftHandFlat");
+  // RHandSurf = realRobot().surfaces().at("RightHand");
+  // LHandSurf = realRobot().surfaces().at("LeftHand");
 
-  // RCheekChair = std::make_shared<mc_control::SimulationContactPair> (RCheekSurf, TopSurf);
-  // LCheekChair = std::make_shared<mc_control::SimulationContactPair>(LCheekSurf, TopSurf);
+  RCheekChair = std::make_shared<mc_control::SimulationContactPair> (RCheekSurf, TopSurf);
+  LCheekChair = std::make_shared<mc_control::SimulationContactPair>(LCheekSurf, TopSurf);
   RFootGround = std::make_shared<mc_control::SimulationContactPair>(RFootSurf, GroundSurf);
   LFootGround = std::make_shared<mc_control::SimulationContactPair>(LFootSurf, GroundSurf);
-  RHandShoulder = std::make_shared<mc_control::SimulationContactPair>(RHandSurf, RightShoulderSurf);
-  LHandBack = std::make_shared<mc_control::SimulationContactPair>(LHandSurf, BackSurf);
+  // RHandShoulder = std::make_shared<mc_control::SimulationContactPair>(RHandSurf, RightShoulderSurf);
+  // LHandBack = std::make_shared<mc_control::SimulationContactPair>(LHandSurf, BackSurf);
 
 
   addLogEntries();
@@ -155,7 +155,7 @@ bool HelpUpController::run()
     {
       computedHum_ = false;
       updateRealHumContacts();
-      updateContactSet(robots().robotIndex("human"), human); // todo: update internal contacts from estimation
+      // updateContactSet(robots().robotIndex("human"), human); // todo: update internal contacts from estimation
       updateContactForces();
       readyForCompHum_ = true;
     }
@@ -481,6 +481,16 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("Control torques main robot", controlTorquesHRP4);
 
+  auto logDCMhum = [this](){
+    return humanXsensDCM();
+  };
+  logger().addLogEntry("XsensDCM", logDCMhum);
+
+  auto logVRPhum = [this](){
+    return humanXsensVRP();
+  };
+  logger().addLogEntry("XsensVRP", logVRPhum);
+
   
   // logging CoM Task weight
   // auto comTaskWeight = [this](){
@@ -533,10 +543,11 @@ void HelpUpController::addGuiElements()
       // mc_rtc::gui::Point3D("CoMcombined", CoMconfig2, [this]() { return combinedCoM_; })
   );
 
-  gui()->addElement({"DCM"},
+  gui()->addElement({"DCM dynamics"},
       mc_rtc::gui::Point3D("mainDCM", mc_rtc::gui::PointConfig(COLORS.at('b'), DCM_POINT_SIZE), [this]() { return mainCtlDCM(); }),
       mc_rtc::gui::Point3D("mainDCMreal", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return mainRealDCM(); }),
-      mc_rtc::gui::Point3D("humanDCMXsens", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return humanXsensDCM(); })
+      mc_rtc::gui::Point3D("humanDCMXsens", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return humanXsensDCM(); }),
+      mc_rtc::gui::Point3D("humanVRPXsens", mc_rtc::gui::PointConfig(COLORS.at('r'), DCM_POINT_SIZE), [this]() { return humanXsensVRP(); })
   
   );
 
@@ -580,13 +591,14 @@ void HelpUpController::addGuiElements()
   //                         return res; })                    
   // );
 
-  gui()->addPlot(
-    "Applied force",
-    mc_rtc::gui::plot::X("t", [this]() { return t_; }),
-    mc_rtc::gui::plot::Y("RH Force", [this]() { return realRobot().forceSensor("RightHandForceSensor").force().z(); }, mc_rtc::gui::Color::Red),
-    mc_rtc::gui::plot::Y("LH Force", [this]() { return realRobot().forceSensor("LeftHandForceSensor").force().z(); }, mc_rtc::gui::Color::Green)
-
-  );
+  // gui()->addPlot(
+  //   "Applied force",
+  //   mc_rtc::gui::plot::X("t", [this]() { return t_; }),
+  //   // mc_rtc::gui::plot::Y("RH Force", [this]() { return realRobot().forceSensor("RightHandForceSensor").force().z(); }, mc_rtc::gui::Color::Red),
+  //   // mc_rtc::gui::plot::Y("LH Force", [this]() { return realRobot().forceSensor("LeftHandForceSensor").force().z(); }, mc_rtc::gui::Color::Green)
+  //   mc_rtc::gui::plot::Y("RH Force", [this]() { return realRobot().forceSensor("RArm_6AF").force().z(); }, mc_rtc::gui::Color::Red),
+  //   mc_rtc::gui::plot::Y("LH Force", [this]() { return realRobot().forceSensor("LArm_6AF").force().z(); }, mc_rtc::gui::Color::Green)
+  // );
   
 
 
@@ -740,13 +752,13 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
     // acceleration << robots().robot("")
     // accelerations_.push_back()
 
-    acceleration << 0.8, 0, -9.81;
+    acceleration << 1.2, 0, -9.81;
     contactSet_->addCoMAcc(acceleration);
 
     acceleration << 0, 0.8, -9.81;
     contactSet_->addCoMAcc(acceleration);
 
-    acceleration << -0.8, 0, -9.81;
+    acceleration << -1.2, 0, -9.81;
     contactSet_->addCoMAcc(acceleration);
 
     acceleration << 0, -0.8, -9.81;
@@ -902,7 +914,7 @@ void HelpUpController::setNextToCurrent(whatRobot rob)
       planes(currentCompPoint_->constraintPlanes(), rob);
       if (planes_.size()>0)
       {
-        newCoM = currentCompPoint_->objectiveCoM(1, robot().com()); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
+        newCoM = currentCompPoint_->objectiveCoM(0, robot().com()); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
         desiredCoM(newCoM, rob); 
       }
       break;
@@ -944,9 +956,9 @@ void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
   {
     case hrp4 : 
       // setting com height manually, scaled as human stands up
-      // hrp4 half sitting com: 0.78, human standing com: 0.87
-      desiredCoM[2] = std::max((0.78*robot("human").com().z())/0.87 , 0.7);
-      // desiredCoM[2] = std::max((0.96*robot("human").com().z())/0.87 , 0.9);
+      // hrp4 half sitting com: 0.78, human standing com: 0.87, e2dr half sitting com: 0.97
+      // desiredCoM[2] = std::max((0.78*robot("human").com().z())/0.87 , 0.7);
+      desiredCoM[2] = std::max((0.95*robot("human").com().z())/0.87 , 0.9);
       prevCoM = comDesired_;
       comDesired_ = (1-coef)*prevCoM + coef * desiredCoM;
       // comTask_->com(comDesired_); 
@@ -1060,10 +1072,10 @@ void HelpUpController::updateRealHumContacts()
   
   RFootGround->update(robot("human"), robot("ground"));
   LFootGround->update(robot("human"), robot("ground"));
-  // RCheekChair->update(robot("human"), robot("chair"));
-  // LCheekChair->update(robot("human"), robot("chair"));
-  RHandShoulder->update(robot(), robot("human"));
-  LHandBack->update(robot(), robot("human"));
+  RCheekChair->update(robot("human"), robot("chair"));
+  LCheekChair->update(robot("human"), robot("chair"));
+  // RHandShoulder->update(robot(), robot("human"));
+  // LHandBack->update(robot(), robot("human"));
 
   double distThreshold = 0.005;
   double speedThreshold = 1e-4;
@@ -1094,37 +1106,37 @@ void HelpUpController::updateRealHumContacts()
 
   if (RFootGround->pair.getDistance()<=distThreshold)   // Distance is low enough to consider contact
   {
-    addRealHumContact("RightSole", 0, 200, ContactType::support);
+    addRealHumContact("RightSole", 0, 500, ContactType::support);
     // std::cout<<"adding right sole"<<std::endl;
   }
 
   if (LFootGround->pair.getDistance()<=distThreshold)
   {
-    addRealHumContact("LeftSole", 0, 200, ContactType::support);
+    addRealHumContact("LeftSole", 0, 500, ContactType::support);
     // std::cout<<"adding left sole"<<std::endl;
   }
 
-  // if (RCheekChair->pair.getDistance()<=distThreshold)
-  // {
-  //   addRealHumContact("RCheek", 0, 200, ContactType::support);
-  //   // std::cout<<"adding right cheek"<<std::endl;
-  // }
-
-  // if (LCheekChair->pair.getDistance()<=distThreshold)
-  // {
-  //   addRealHumContact("LCheek", 0, 200, ContactType::support);
-  //   // std::cout<<"adding left cheek"<<std::endl;
-  // }
-
-  if (LHandBack->pair.getDistance()<=distThreshold)
+  if (RCheekChair->pair.getDistance()<=distThreshold)
   {
-    addRealHumContact("Back", 0, 200, ContactType::support);
+    addRealHumContact("RCheek", 0, 500, ContactType::support);
+    // std::cout<<"adding right cheek"<<std::endl;
   }
 
-  if (RHandShoulder->pair.getDistance()<=distThreshold)
+  if (LCheekChair->pair.getDistance()<=distThreshold)
   {
-    addRealHumContact("RightShoulder", 0, 200, ContactType::support);
+    addRealHumContact("LCheek", 0, 500, ContactType::support);
+    // std::cout<<"adding left cheek"<<std::endl;
   }
+
+  // if (LHandBack->pair.getDistance()<=distThreshold)
+  // {
+  //   addRealHumContact("Back", 0, 200, ContactType::support);
+  // }
+
+  // if (RHandShoulder->pair.getDistance()<=distThreshold)
+  // {
+  //   addRealHumContact("RightShoulder", 0, 200, ContactType::support);
+  // }
 
   // Adding the accelerations
   Eigen::Vector3d acceleration;  
@@ -1135,13 +1147,13 @@ void HelpUpController::updateRealHumContacts()
   acceleration << 0.8, 0, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << 0, 0.6, -9.81;
+  acceleration << 0, 0.8, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
   acceleration << -0.8, 0, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << 0, -0.6, -9.81;
+  acceleration << 0, -0.8, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
   computedHum_ = false;

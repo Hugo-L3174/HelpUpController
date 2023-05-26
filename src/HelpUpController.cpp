@@ -524,6 +524,10 @@ void HelpUpController::addGuiElements()
 {
   constexpr double DCM_POINT_SIZE = 0.015;
   constexpr double COM_POINT_SIZE = 0.02;
+  constexpr double ARROW_HEAD_DIAM = 0.015;
+  constexpr double ARROW_HEAD_LEN = 0.05;
+  constexpr double ARROW_SHAFT_DIAM = 0.015;
+  constexpr double FORCE_SCALE = 0.0015;
 
   const std::map<char, mc_rtc::gui::Color> COLORS =
     {
@@ -534,6 +538,22 @@ void HelpUpController::addGuiElements()
       {'c', mc_rtc::gui::Color{0.0, 0.5, 1.0}},
       {'m', mc_rtc::gui::Color{1.0, 0.0, 0.5}}
     };
+
+  mc_rtc::gui::ArrowConfig forceArrowConfig;
+  forceArrowConfig.shaft_diam = 1 * ARROW_SHAFT_DIAM;
+  forceArrowConfig.head_diam = 1 * ARROW_HEAD_DIAM;
+  forceArrowConfig.head_len = 1 * ARROW_HEAD_LEN;
+  forceArrowConfig.scale = 1.;
+  forceArrowConfig.start_point_scale = 0.02;
+  forceArrowConfig.end_point_scale = 0.;
+
+  mc_rtc::gui::ArrowConfig VRPforceArrowConfig = forceArrowConfig;
+  VRPforceArrowConfig.color = COLORS.at('r');
+
+  mc_rtc::gui::ArrowConfig DCMforceArrowConfig = forceArrowConfig;
+  DCMforceArrowConfig.color = COLORS.at('c');
+
+  
 
   gui()->addElement({"CoM"},
       mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot().com(); }),
@@ -547,7 +567,8 @@ void HelpUpController::addGuiElements()
       mc_rtc::gui::Point3D("mainDCM", mc_rtc::gui::PointConfig(COLORS.at('b'), DCM_POINT_SIZE), [this]() { return mainCtlDCM(); }),
       mc_rtc::gui::Point3D("mainDCMreal", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return mainRealDCM(); }),
       mc_rtc::gui::Point3D("humanDCMXsens", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return humanXsensDCM(); }),
-      mc_rtc::gui::Point3D("humanVRPXsens", mc_rtc::gui::PointConfig(COLORS.at('r'), DCM_POINT_SIZE), [this]() { return humanXsensVRP(); })
+      mc_rtc::gui::Point3D("humanVRPXsens", mc_rtc::gui::PointConfig(COLORS.at('r'), DCM_POINT_SIZE), [this]() { return humanXsensVRP(); }),
+      mc_rtc::gui::Arrow("DCM-VRP", VRPforceArrowConfig, [this]() -> Eigen::Vector3d { return humanXsensVRP(); }, [this]() -> Eigen::Vector3d { return humanXsensDCM(); })
   
   );
 

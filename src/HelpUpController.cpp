@@ -247,6 +247,10 @@ bool HelpUpController::run()
   // }
 
   t_ += solver().dt();
+  computeDCMerror();
+  prevOmega_ = humanOmega();
+  prevDCMerror_ = DCMerror_;
+  computeCommandVRP();
   bool ok = mc_control::fsm::Controller::run();
   return ok;
 }
@@ -491,6 +495,26 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("XsensVRP", logVRPhum);
 
+  auto logOmega = [this](){
+    return humanOmega();
+  };
+  logger().addLogEntry("human omega", logOmega);
+
+  auto logOmegaSquared = [this](){
+    return humanOmega()*humanOmega();
+  };
+  logger().addLogEntry("human omega square", logOmegaSquared);
+
+  auto logDotOmega = [this](){
+    return (humanOmega()-prevOmega_)/solver().dt();
+  };
+  logger().addLogEntry("human dot omega", logDotOmega);
+
+  auto commandVRP = [this](){
+    return desiredVRP();
+  };
+  logger().addLogEntry("desired VRP command", commandVRP);
+
   
   // logging CoM Task weight
   // auto comTaskWeight = [this](){
@@ -526,7 +550,7 @@ void HelpUpController::addGuiElements()
   constexpr double COM_POINT_SIZE = 0.02;
   constexpr double ARROW_HEAD_DIAM = 0.015;
   constexpr double ARROW_HEAD_LEN = 0.05;
-  constexpr double ARROW_SHAFT_DIAM = 0.015;
+  constexpr double ARROW_SHAFT_DIAM = 0.01;
   constexpr double FORCE_SCALE = 0.0015;
 
   const std::map<char, mc_rtc::gui::Color> COLORS =
@@ -568,7 +592,9 @@ void HelpUpController::addGuiElements()
       mc_rtc::gui::Point3D("mainDCMreal", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return mainRealDCM(); }),
       mc_rtc::gui::Point3D("humanDCMXsens", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return humanXsensDCM(); }),
       mc_rtc::gui::Point3D("humanVRPXsens", mc_rtc::gui::PointConfig(COLORS.at('r'), DCM_POINT_SIZE), [this]() { return humanXsensVRP(); }),
-      mc_rtc::gui::Arrow("DCM-VRP", VRPforceArrowConfig, [this]() -> Eigen::Vector3d { return humanXsensVRP(); }, [this]() -> Eigen::Vector3d { return humanXsensDCM(); })
+      mc_rtc::gui::Point3D("humanVRPmodel", mc_rtc::gui::PointConfig(COLORS.at('y'), DCM_POINT_SIZE), [this]() { return humanVRPmodel(); }),
+      mc_rtc::gui::Point3D("computedVRPcommand", mc_rtc::gui::PointConfig(COLORS.at('g'), DCM_POINT_SIZE), [this]() { return desiredVRP(); }),
+      mc_rtc::gui::Arrow("DCM-VRP", VRPforceArrowConfig, [this]() -> Eigen::Vector3d { return /*humanXsensVRP()*/ humanVRPmodel(); }, [this]() -> Eigen::Vector3d { return humanXsensDCM(); })
   
   );
 
@@ -944,7 +970,7 @@ void HelpUpController::setNextToCurrent(whatRobot rob)
       planes(currentHumCompPoint_->constraintPlanes(), rob);
       if (planesHum_.size()>0)
       {
-        newCoM = currentHumCompPoint_->objectiveCoM(1, robot("human").com());
+        newCoM = currentHumCompPoint_->objectiveCoM(0, robot("human").com());
         if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
         {
           newCoM[2] = *override_CoMz;
@@ -988,6 +1014,7 @@ void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
       break;
     case human :
       // this is now deprecated and shouldn't be used since human com is managed by custom state
+      desiredCoM[2] = 0.87;
       prevCoM = comDesiredHum_;
       comDesiredHum_ = (1-coef)*prevCoM + coef * desiredCoM;
       comTaskHum_->com(comDesiredHum_);

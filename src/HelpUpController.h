@@ -190,7 +190,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     double dotHumanOmega()
     {
-      return 0;
+      return (humanOmega() - prevOmega_)/timeStep;
     };
 
     double mainOmega()
@@ -219,6 +219,27 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       return humanXsensDCM() - humanb() * dotHumanXsensDCM();
     };
 
+    Eigen::Vector3d humanVRPmodel()
+    {
+      return xsensCoMpos_ - (1/(humanOmega()*humanOmega()-dotHumanOmega())*xsensCoMacc_);
+    }
+
+    void computeDCMerror()
+    {
+      DCMerror_ = xsensFinalpos_ - humanXsensDCM();
+    }
+
+    void computeCommandVRP()
+    {
+      commandVRP_ = humanXsensDCM() - (1/(humanOmega()-(dotHumanOmega()/humanOmega())))*(/*DCMdyn?*/ VRPpropgain_*(DCMerror_) + VRPinteggain_ * ((DCMerror_ - prevDCMerror_)/timeStep));
+    }
+
+    Eigen::Vector3d desiredVRP()
+    {
+      return commandVRP_;
+    }
+
+
     Eigen::Vector3d mainCtlDCM()
     {
       return robot().com() + robot().comVelocity() / mainOmega();
@@ -240,9 +261,20 @@ private:
     Eigen::Vector3d comDesired_;
     Eigen::Vector3d comDesiredHum_;
 
+    Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.007,0.229,0.92);
+
     Eigen::Vector3d xsensCoMpos_;
     Eigen::Vector3d xsensCoMvel_;
     Eigen::Vector3d xsensCoMacc_;
+
+    double prevOmega_ = std::sqrt(9.81);
+
+    Eigen::Vector3d DCMerror_ = Eigen::Vector3d::Identity();
+    Eigen::Vector3d prevDCMerror_ = Eigen::Vector3d::Identity();
+
+    Eigen::Vector3d commandVRP_ = humanVRPmodel();
+    double VRPpropgain_ = 3.0;
+    double VRPinteggain_ = 0.3;
 
     std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask> stabTask_;
 

@@ -18,6 +18,7 @@
 
 #include <mc_control/SimulationContactPair.h>
 
+#include <mc_tasks/lipm_stabilizer/Contact.h>
 #include <thread>
 #include <atomic>
 
@@ -239,6 +240,8 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       return commandVRP_;
     }
 
+    void distributeHandsWrench(const sva::ForceVecd & desiredWrench);
+
 
     Eigen::Vector3d mainCtlDCM()
     {
@@ -277,6 +280,10 @@ private:
     double VRPinteggain_ = 0.3;
 
     std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask> stabTask_;
+    std::shared_ptr<mc_tasks::lipm_stabilizer::internal::Contact> leftHandContact_;
+    std::shared_ptr<mc_tasks::lipm_stabilizer::internal::Contact>  rightHandContact_;
+
+    Eigen::QuadProgDense vrpSolver_;
 
     std::shared_ptr<mc_solver::CoMIncPlaneConstr> comIncPlaneConstraintPtr_;
     std::shared_ptr<mc_solver::CoMIncPlaneConstr> comIncPlaneConstraintHumPtr_;
@@ -379,6 +386,8 @@ private:
 
     bool transitionningHum_;
 
+    std::vector<sva::ForceVecd> LFShoe_, RFShoe_, LBShoe_, RBShoe_;
+    
     // storing desired max and min forces if they differ from the value given in the config file
     std::map<std::string, double> contactFMax_;
     std::map<std::string, double> contactFMin_;

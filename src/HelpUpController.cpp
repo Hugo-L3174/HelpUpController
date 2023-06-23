@@ -1,4 +1,5 @@
 #include "HelpUpController.h"
+#include "config.h"
 
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
 : mc_control::fsm::Controller(rm, dt, config), polytopeIndex_(0), polytopeHumIndex_(0), computed_(false), computedHum_(false), computing_(false), 
@@ -19,8 +20,8 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   // });
   
 
-
-  comIncPlaneConstraintPtr_ = std::make_shared<mc_solver::CoMIncPlaneConstr> (robots(), robots().robotIndex(), dt);
+  // comIncPlaneConstraintPtr_ = std::make_shared<mc_solver::CoMIncPlaneConstr> (robots(), robots().robotIndex(), dt);*
+  comIncPlaneConstraintPtr_ = std::make_shared<mc_solver::CoMIncPlaneConstr> (realRobots(), realRobots().robotIndex(), dt);
   comIncPlaneConstraintHumPtr_ = std::make_shared<mc_solver::CoMIncPlaneConstr> (robots(), robots().robotIndex("human"), dt);
 
 
@@ -89,6 +90,42 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   LFootGround = std::make_shared<mc_control::SimulationContactPair>(LFootSurf, GroundSurf);
   // RHandShoulder = std::make_shared<mc_control::SimulationContactPair>(RHandSurf, RightShoulderSurf);
   // LHandBack = std::make_shared<mc_control::SimulationContactPair>(LHandSurf, BackSurf);
+
+  mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F1.yaml");
+  mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F2.yaml");
+  mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F3.yaml");
+  mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F4.yaml");
+  auto data1 = dataIn1.operator std::map<std::string, std::vector<double>>();
+  auto data2 = dataIn2.operator std::map<std::string, std::vector<double>>();
+  auto data3 = dataIn3.operator std::map<std::string, std::vector<double>>();
+  auto data4 = dataIn4.operator std::map<std::string, std::vector<double>>();
+
+
+  // auto forceVect = sva::ForceVecd(Eigen::Vector3d(data1["Tx"][0], data1["Ty"][0], data1["Tz"][0]), Eigen::Vector3d(data1["Fx"][0], data1["Fy"][0], data1["Fz"][0]));
+  // mc_rtc::log::info("first force vec is : {}", forceVect);
+  for (auto i = 0; i < data1["Counter"].size(); i++)
+  {
+    auto forceVect = sva::ForceVecd(Eigen::Vector3d(data1["Tx"][i], data1["Ty"][i], data1["Tz"][i]), Eigen::Vector3d(data1["Fx"][i], data1["Fy"][i], data1["Fz"][i]));
+    LBShoe_.push_back(forceVect);
+  }
+
+  for (auto i = 0; i < data2["Counter"].size(); i++)
+  {
+    auto forceVect = sva::ForceVecd(Eigen::Vector3d(data2["Tx"][i], data2["Ty"][i], data2["Tz"][i]), Eigen::Vector3d(data2["Fx"][i], data2["Fy"][i], data2["Fz"][i]));
+    LFShoe_.push_back(forceVect);
+  }
+
+  for (auto i = 0; i < data3["Counter"].size(); i++)
+  {
+    auto forceVect = sva::ForceVecd(Eigen::Vector3d(data3["Tx"][i], data3["Ty"][i], data3["Tz"][i]), Eigen::Vector3d(data3["Fx"][i], data3["Fy"][i], data3["Fz"][i]));
+    RBShoe_.push_back(forceVect);
+  }
+
+  for (auto i = 0; i < data4["Counter"].size(); i++)
+  {
+    auto forceVect = sva::ForceVecd(Eigen::Vector3d(data4["Tx"][i], data4["Ty"][i], data4["Tz"][i]), Eigen::Vector3d(data4["Fx"][i], data4["Fy"][i], data4["Fz"][i]));
+    RFShoe_.push_back(forceVect);
+  }
 
 
   addLogEntries();
@@ -327,7 +364,7 @@ bool HelpUpController::addTasksToSolver()
 
   solver().addTask(stabTask_); 
 
-  solver().addConstraintSet(*comIncPlaneConstraintPtr_);
+  // solver().addConstraintSet(*comIncPlaneConstraintPtr_);
   planes_ = {};
   planes(planes_, hrp4); //todo update planes
   
@@ -488,34 +525,82 @@ void HelpUpController::addLogEntries()
   auto logDCMhum = [this](){
     return humanXsensDCM();
   };
-  logger().addLogEntry("XsensDCM", logDCMhum);
+  logger().addLogEntry("DCM_XsensDCM", logDCMhum);
 
   auto logVRPhum = [this](){
     return humanXsensVRP();
   };
-  logger().addLogEntry("XsensVRP", logVRPhum);
+  logger().addLogEntry("DCM_XsensVRP", logVRPhum);
 
   auto logOmega = [this](){
     return humanOmega();
   };
-  logger().addLogEntry("human omega", logOmega);
+  logger().addLogEntry("DCM_human omega", logOmega);
 
   auto logOmegaSquared = [this](){
     return humanOmega()*humanOmega();
   };
-  logger().addLogEntry("human omega square", logOmegaSquared);
+  logger().addLogEntry("DCM_human omega square", logOmegaSquared);
 
   auto logDotOmega = [this](){
     return (humanOmega()-prevOmega_)/solver().dt();
   };
-  logger().addLogEntry("human dot omega", logDotOmega);
+  logger().addLogEntry("DCM_human dot omega", logDotOmega);
 
   auto commandVRP = [this](){
     return desiredVRP();
   };
-  logger().addLogEntry("desired VRP command", commandVRP);
+  logger().addLogEntry("DCM_desired VRP command", commandVRP);
 
-  
+  auto LFshoe = [this](){
+    if (int(t_/timeStep) < LFShoe_.size())
+    {
+      return LFShoe_[int(t_/timeStep)];
+    }
+    else
+    {
+      return LFShoe_.back();
+    }
+  };
+  logger().addLogEntry("ForceShoes_LFShoeMeasure", LFshoe);
+
+  auto LBshoe = [this](){
+    if (int(t_/timeStep) < LBShoe_.size())
+    {
+      return LBShoe_[int(t_/timeStep)];
+    }
+    else
+    {
+      return LBShoe_.back();
+    }
+  };
+  logger().addLogEntry("ForceShoes_LBShoeMeasure", LBshoe);
+
+  auto RFshoe = [this](){
+    if (int(t_/timeStep) < RFShoe_.size())
+    {
+      return RFShoe_[int(t_/timeStep)];
+    }
+    else
+    {
+      return RFShoe_.back();
+    }
+  };
+  logger().addLogEntry("ForceShoes_RFShoeMeasure", RFshoe);
+
+  auto RBshoe = [this](){
+    if (int(t_/timeStep) < RBShoe_.size())
+    {
+      return RBShoe_[int(t_/timeStep)];
+    }
+    else
+    {
+      return RBShoe_.back();
+    }
+  };
+  logger().addLogEntry("ForceShoes_RBShoeMeasure", RBshoe);
+
+
   // logging CoM Task weight
   // auto comTaskWeight = [this](){
   //   return this->comTask_->weight();
@@ -582,7 +667,7 @@ void HelpUpController::addGuiElements()
   gui()->addElement({"CoM"},
       mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot().com(); }),
       mc_rtc::gui::Point3D("mainCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return realRobot().com(); }), // Note that this is the control robot com and not the real robot com 
-      mc_rtc::gui::Point3D("humanCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot("human").com(); }),
+      // mc_rtc::gui::Point3D("humanCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot("human").com(); }),
       mc_rtc::gui::Point3D("humanCoMXsens", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return xsensCoMpos_; })
       // mc_rtc::gui::Point3D("CoMcombined", CoMconfig2, [this]() { return combinedCoM_; })
   );
@@ -1005,7 +1090,8 @@ void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
       // setting com height manually, scaled as human stands up
       // hrp4 half sitting com: 0.78, human standing com: 0.87, e2dr half sitting com: 0.97
       // desiredCoM[2] = std::max((0.78*robot("human").com().z())/0.87 , 0.7);
-      desiredCoM[2] = std::max((0.95*robot("human").com().z())/0.87 , 0.9);
+      // desiredCoM[2] = std::max((0.95*robot("human").com().z())/0.87 , 0.9);
+      desiredCoM[2] = 0.95;
       prevCoM = comDesired_;
       comDesired_ = (1-coef)*prevCoM + coef * desiredCoM;
       // comTask_->com(comDesired_); 
@@ -1235,3 +1321,5 @@ void HelpUpController::addRealHumContact(std::string humanSurfName, double fmin,
     ptCpt++;
   }
 }
+
+

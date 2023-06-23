@@ -3,6 +3,7 @@ set(controller_SRC
   utils/ComputationPoint.cpp
   utils/PointProjector.cpp
   utils/CoMQP.cpp
+  # utils/DCM_VRP.cpp
   # states/PostAdd.cpp
   # utils/TrajectoryModel.cpp
   # Tasks/BoundCoMAcceleration.cpp
@@ -14,6 +15,7 @@ set(controller_HDR
   utils/ComputationPoint.h
   utils/PointProjector.h
   utils/CoMQP.h
+  # utils/DCM_VRP.h
   Tasks/TrackDesiredForceTask.h
   # states/PostAdd.h
   # utils/TrajectoryModel.h
@@ -45,4 +47,7 @@ add_controller(${PROJECT_NAME}_controller lib.cpp "")
 set_target_properties(${PROJECT_NAME}_controller PROPERTIES OUTPUT_NAME "${PROJECT_NAME}")
 target_link_libraries(${PROJECT_NAME}_controller PUBLIC ${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME}_controller PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+configure_file(../etc/force_shoes/config.in.h "${CMAKE_CURRENT_BINARY_DIR}/include/config.h")
+target_include_directories(HelpUpController PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/include")
+
 add_subdirectory(states)

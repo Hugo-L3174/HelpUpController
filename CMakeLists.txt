@@ -24,4 +24,6 @@ configure_file(etc/trajectories/log-to-datastore.in.yaml "${CMAKE_CURRENT_BINARY
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/HelpUpController.yaml" DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/etc/trajectories/log-to-datastore.yaml" DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories")
 install(FILES etc/trajectories/standup.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories")
-
+install(FILES etc/trajectories/perturbed_stands_no_suit/log1.bin etc/trajectories/perturbed_stands_no_suit/log2.bin etc/trajectories/perturbed_stands_no_suit/log3.bin etc/trajectories/perturbed_stands_no_suit/log4.bin etc/trajectories/perturbed_stands_no_suit/log5.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/perturbed_stands_no_suit")
+install(FILES etc/force_shoes/forceshoes1.bin etc/force_shoes/forceshoes2.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories")
+install(FILES etc/force_shoes/F1.yaml etc/force_shoes/F2.yaml etc/force_shoes/F3.yaml etc/force_shoes/F4.yaml DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/forces")

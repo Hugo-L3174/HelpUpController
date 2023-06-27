@@ -91,10 +91,18 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   // RHandShoulder = std::make_shared<mc_control::SimulationContactPair>(RHandSurf, RightShoulderSurf);
   // LHandBack = std::make_shared<mc_control::SimulationContactPair>(LHandSurf, BackSurf);
 
-  mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F1.yaml");
-  mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F2.yaml");
-  mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F3.yaml");
-  mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F4.yaml");
+  // First log: standing alone ok
+  // mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F1.yaml");
+  // mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F2.yaml");
+  // mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F3.yaml");
+  // mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F4.yaml");
+
+  // Second log: standing with help
+  mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F5.yaml");
+  mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F6.yaml");
+  mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F7.yaml");
+  mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F8.yaml");
+
   auto data1 = dataIn1.operator std::map<std::string, std::vector<double>>();
   auto data2 = dataIn2.operator std::map<std::string, std::vector<double>>();
   auto data3 = dataIn3.operator std::map<std::string, std::vector<double>>();
@@ -106,25 +114,25 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   for (auto i = 0; i < data1["Counter"].size(); i++)
   {
     auto forceVect = sva::ForceVecd(Eigen::Vector3d(data1["Tx"][i], data1["Ty"][i], data1["Tz"][i]), Eigen::Vector3d(data1["Fx"][i], data1["Fy"][i], data1["Fz"][i]));
-    LBShoe_.push_back(forceVect);
+    LBShoeVec_.push_back(forceVect);
   }
 
   for (auto i = 0; i < data2["Counter"].size(); i++)
   {
     auto forceVect = sva::ForceVecd(Eigen::Vector3d(data2["Tx"][i], data2["Ty"][i], data2["Tz"][i]), Eigen::Vector3d(data2["Fx"][i], data2["Fy"][i], data2["Fz"][i]));
-    LFShoe_.push_back(forceVect);
+    LFShoeVec_.push_back(forceVect);
   }
 
   for (auto i = 0; i < data3["Counter"].size(); i++)
   {
     auto forceVect = sva::ForceVecd(Eigen::Vector3d(data3["Tx"][i], data3["Ty"][i], data3["Tz"][i]), Eigen::Vector3d(data3["Fx"][i], data3["Fy"][i], data3["Fz"][i]));
-    RBShoe_.push_back(forceVect);
+    RBShoeVec_.push_back(forceVect);
   }
 
   for (auto i = 0; i < data4["Counter"].size(); i++)
   {
     auto forceVect = sva::ForceVecd(Eigen::Vector3d(data4["Tx"][i], data4["Ty"][i], data4["Tz"][i]), Eigen::Vector3d(data4["Fx"][i], data4["Fy"][i], data4["Fz"][i]));
-    RFShoe_.push_back(forceVect);
+    RFShoeVec_.push_back(forceVect);
   }
 
 
@@ -139,6 +147,17 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
 
 bool HelpUpController::run()
 {
+  // First log: offset at 6.92 to sync with xsens log
+  // LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.92, 50);
+  // LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.92, 50);
+  // RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.92, 50);
+  // RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.92, 50);
+
+  // Second log: offset at 6.24
+  LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.24, 50);
+  LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.24, 50);
+  RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.24, 50);
+  RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.24, 50);
   // updateCombinedCoM(); // todo: update with human com estimation
   if (!computing_)
   {
@@ -532,6 +551,16 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("DCM_XsensVRP", logVRPhum);
 
+  auto logVRPhumModel = [this](){
+    return humanVRPmodel();
+  };
+  logger().addLogEntry("DCM_VRPmodel", logVRPhumModel);
+
+  auto logVRPhumMeasured = [this](){
+    return humanVRPmeasured();
+  };
+  logger().addLogEntry("DCM_VRPmeasured", logVRPhumMeasured);
+
   auto logOmega = [this](){
     return humanOmega();
   };
@@ -553,79 +582,44 @@ void HelpUpController::addLogEntries()
   logger().addLogEntry("DCM_desired VRP command", commandVRP);
 
   auto LFshoe = [this](){
-    if (int(t_/timeStep) < LFShoe_.size())
-    {
-      return LFShoe_[int(t_/timeStep)];
-    }
-    else
-    {
-      return LFShoe_.back();
-    }
+    return LFShoe_;
   };
   logger().addLogEntry("ForceShoes_LFShoeMeasure", LFshoe);
 
   auto LBshoe = [this](){
-    if (int(t_/timeStep) < LBShoe_.size())
-    {
-      return LBShoe_[int(t_/timeStep)];
-    }
-    else
-    {
-      return LBShoe_.back();
-    }
+    return LBShoe_;
   };
   logger().addLogEntry("ForceShoes_LBShoeMeasure", LBshoe);
 
   auto RFshoe = [this](){
-    if (int(t_/timeStep) < RFShoe_.size())
-    {
-      return RFShoe_[int(t_/timeStep)];
-    }
-    else
-    {
-      return RFShoe_.back();
-    }
+    return RFShoe_;
   };
   logger().addLogEntry("ForceShoes_RFShoeMeasure", RFshoe);
 
   auto RBshoe = [this](){
-    if (int(t_/timeStep) < RBShoe_.size())
-    {
-      return RBShoe_[int(t_/timeStep)];
-    }
-    else
-    {
-      return RBShoe_.back();
-    }
+    return RBShoe_;
   };
   logger().addLogEntry("ForceShoes_RBShoeMeasure", RBshoe);
 
+  auto CoMforces = [this](){
+    return humanVRPforces();
+  };
+  logger().addLogEntry("ForceShoes_MeasuredSum", CoMforces);
 
-  // logging CoM Task weight
-  // auto comTaskWeight = [this](){
-  //   return this->comTask_->weight();
-  // };
-  // logger().addLogEntry("com_taskWeight", comTaskWeight);
+  auto Missingforces = [this](){
+    return missingForces();
+  };
+  logger().addLogEntry("DCM_MissingForces", Missingforces);
 
-  // logging the potential and the gradient of the potential:
-  // auto potential = [this](){
-  //   return this->currentCompPoint_->computePotential(this->robot("hrp4").com());
+  // auto frontToBackL = [this](){
+  //   auto X_LF_0 = robot("human").surfacePose("LFsensor").inv();
+  //   auto X_0_LB = robot("human").surfacePose("LBsensor");
+  //   // missing transform LF->world
+  //   auto LFwrenchinWorld = X_LF_0.dualMul(LFShoe_);
+  //   auto LFwrenchinLB = X_0_LB.dualMul(LFwrenchinWorld);
+  //   return LFwrenchinLB;
   // };
-  // logger().addLogEntry("potential_potential", potential);
-  
-  // auto gradPotential = [this](){
-  //   return this->currentCompPoint_->computeGradient(this->robot("hrp4").com());
-  // };
-  // logger().addLogEntry("potential_gradient", gradPotential);
-  
-  //add the comAccelerationTask in the logger
-  // comAccelerationTaskKinematicPtr_->addToLogger(logger());
-  // comAccelerationTaskDynamicPtr_->addToLogger(logger());
-  // also log the target com acc in another place:
-//   auto targetCoMAcc = [this](){
-//     return targetCoMAcceleration_;
-//   };
-//   logger().addLogEntry("comAcc_target", targetCoMAcc);
+  // logger().addLogEntry("ForceShoes_LBfromfront", frontToBackL);
 
 }
 
@@ -662,6 +656,8 @@ void HelpUpController::addGuiElements()
   mc_rtc::gui::ArrowConfig DCMforceArrowConfig = forceArrowConfig;
   DCMforceArrowConfig.color = COLORS.at('c');
 
+  mc_rtc::gui::ArrowConfig ShoesforceArrowConfig = forceArrowConfig;
+  ShoesforceArrowConfig.color = COLORS.at('y');
   
 
   gui()->addElement({"CoM"},
@@ -678,12 +674,24 @@ void HelpUpController::addGuiElements()
       mc_rtc::gui::Point3D("humanDCMXsens", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return humanXsensDCM(); }),
       mc_rtc::gui::Point3D("humanVRPXsens", mc_rtc::gui::PointConfig(COLORS.at('r'), DCM_POINT_SIZE), [this]() { return humanXsensVRP(); }),
       mc_rtc::gui::Point3D("humanVRPmodel", mc_rtc::gui::PointConfig(COLORS.at('y'), DCM_POINT_SIZE), [this]() { return humanVRPmodel(); }),
+      mc_rtc::gui::Point3D("humanVRPmeasured", mc_rtc::gui::PointConfig(COLORS.at('r'), DCM_POINT_SIZE), [this]() { return humanVRPmodel(); }),
       mc_rtc::gui::Point3D("computedVRPcommand", mc_rtc::gui::PointConfig(COLORS.at('g'), DCM_POINT_SIZE), [this]() { return desiredVRP(); }),
       mc_rtc::gui::Arrow("DCM-VRP", VRPforceArrowConfig, [this]() -> Eigen::Vector3d { return /*humanXsensVRP()*/ humanVRPmodel(); }, [this]() -> Eigen::Vector3d { return humanXsensDCM(); })
   
   );
 
-
+  gui()->addElement({"Force Shoes"},
+      mc_rtc::gui::Arrow("LFShoe", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LFsensor").translation(); },
+          [this, FORCE_SCALE]() -> Eigen::Vector3d {return robot("human").surfacePose("LFsensor").translation() + FORCE_SCALE * LFShoe_.force(); }),
+      mc_rtc::gui::Arrow("LBShoe", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LBsensor").translation(); },
+          [this, FORCE_SCALE]() -> Eigen::Vector3d {return robot("human").surfacePose("LBsensor").translation() + FORCE_SCALE * LBShoe_.force(); }), 
+      mc_rtc::gui::Arrow("RFShoe", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RFsensor").translation(); },
+          [this, FORCE_SCALE]() -> Eigen::Vector3d {return robot("human").surfacePose("RFsensor").translation() + FORCE_SCALE * RFShoe_.force(); }),
+      mc_rtc::gui::Arrow("RBShoe", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RBsensor").translation(); },
+          [this, FORCE_SCALE]() -> Eigen::Vector3d {return robot("human").surfacePose("RBsensor").translation() + FORCE_SCALE * RBShoe_.force(); }),
+      mc_rtc::gui::Arrow("CoMForce", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return xsensCoMpos_; },
+          [this, FORCE_SCALE]() -> Eigen::Vector3d {return xsensCoMpos_ + FORCE_SCALE * humanVRPforces().force(); })
+  );
   // gui()->addElement({"Trajectories"},
   //     mc_rtc::gui::Trajectory("Front trajectory", [this]() { return trajectories_->Front_Traj_; })
   //     // mc_rtc::gui::Trajectory("Back trajectory", [this]() { return trajectories_->Back_Traj_; })
@@ -1321,5 +1329,25 @@ void HelpUpController::addRealHumContact(std::string humanSurfName, double fmin,
     ptCpt++;
   }
 }
+
+sva::ForceVecd HelpUpController::getCurrentForceVec(std::vector<sva::ForceVecd> log , double startOffset, double freq)
+  {
+    double acqTimeStep = 1/freq;
+    if (t_ < startOffset)
+    {
+      return log[0];
+    }
+    else if (t_ >= startOffset && int(t_/acqTimeStep) - int(startOffset/acqTimeStep) < log.size())
+    {
+      // mc_rtc::log::info("acq timestep is {}, so t_/acq = {} and t/acq - start/step = {}", acqTimeStep, int(t_/acqTimeStep), int(t_/acqTimeStep) - int(startOffset/acqTimeStep));
+      return log[int(t_/acqTimeStep) - int(startOffset/acqTimeStep)];
+    }
+    else
+    {
+      // mc_rtc::log::info(" else: acq timestep is {}, so t_/acq = {} and t/acq - start/step = {}", acqTimeStep, int(t_/acqTimeStep), int(t_/acqTimeStep) - int(startOffset/acqTimeStep));
+      return log.back();
+    }
+    
+  }
 
 

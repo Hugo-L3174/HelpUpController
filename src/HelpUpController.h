@@ -179,6 +179,12 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       xsensCoMacc_ = acc;
     };
 
+    // CAREFUL is this the right way or should it be -9.81?
+    Eigen::Vector3d gravityVec()
+    {
+      return Eigen::Vector3d(0.0, 0.0, 9.81);
+    }
+
     double humanOmega()
     {
       return std::sqrt(9.81/xsensCoMpos_.z());
@@ -222,7 +228,36 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     Eigen::Vector3d humanVRPmodel()
     {
-      return xsensCoMpos_ - (1/(humanOmega()*humanOmega()-dotHumanOmega())*xsensCoMacc_);
+      return xsensCoMpos_ - xsensCoMacc_*(1/(humanOmega()*humanOmega()-dotHumanOmega()));
+    }
+
+    // This is equivalent to the model except we replace the acceleration with the sum of forces applied to the CoM, divided by the human mass (Newton: SumF = m*acc)
+    Eigen::Vector3d humanVRPmeasured()
+    {
+      return xsensCoMpos_ - (humanVRPforces().force() - humanMass_*gravityVec() )/(humanMass_ * (humanOmega()*humanOmega()-dotHumanOmega()));
+    }
+
+    // required missing forces on the hands to achieve desired VRP command
+    Eigen::Vector3d missingForces()
+    {
+      return humanMass_ * (humanOmega()*humanOmega()-dotHumanOmega()) * (xsensCoMpos_ - desiredVRP()) + humanMass_ * gravityVec() - humanVRPforces().force() ; 
+    }
+
+    sva::ForceVecd humanVRPforces()
+    {
+      auto X_0_C = sva::PTransformd(xsensCoMpos_);
+      auto X_LF_0 = robot("human").surfacePose("LFsensor").inv();
+      auto X_LB_0 = robot("human").surfacePose("LBsensor").inv();
+      auto X_RF_0 = robot("human").surfacePose("RFsensor").inv();
+      auto X_RB_0 = robot("human").surfacePose("RBsensor").inv();
+
+      auto w_LF_0 = X_LF_0.dualMul(LFShoe_);
+      auto w_LB_0 = X_LB_0.dualMul(LBShoe_);
+      auto w_RF_0 = X_RF_0.dualMul(RFShoe_);
+      auto w_RB_0 = X_RB_0.dualMul(RBShoe_);
+      auto Fc = X_0_C.dualMul(w_LF_0) + X_0_C.dualMul(w_LB_0) + X_0_C.dualMul(w_RF_0) + X_0_C.dualMul(w_RB_0);
+      
+      return Fc;
     }
 
     void computeDCMerror()
@@ -253,6 +288,9 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       return realRobot().com() + realRobot().comVelocity() / mainRealOmega();
     };
 
+    // Parametrized start offset of the log to sychronize
+    sva::ForceVecd getCurrentForceVec(std::vector<sva::ForceVecd> log, double startOffset = 0, double freq = 100);
+
 
 private:
     mc_rtc::Configuration config_;
@@ -264,7 +302,7 @@ private:
     Eigen::Vector3d comDesired_;
     Eigen::Vector3d comDesiredHum_;
 
-    Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.007,0.229,0.92);
+    Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.0054,0.351,0.951); // standup.bin : Eigen::Vector3d(0.007,0.229,0.92);
 
     Eigen::Vector3d xsensCoMpos_;
     Eigen::Vector3d xsensCoMvel_;
@@ -296,7 +334,7 @@ private:
     std::shared_ptr<TrajectoryModel> trajectories_; 
     std::vector<Eigen::Vector3d> traj_;
 
-    double humanMass_ = 65;
+    double humanMass_ = 42 + 2*1.1; // Wanchen is 42, each force shoe 1.1kg
 
 
     /* Non normalized vector representing the plane (todo: normalize or implement a gui func to represent the polytopes)
@@ -386,7 +424,8 @@ private:
 
     bool transitionningHum_;
 
-    std::vector<sva::ForceVecd> LFShoe_, RFShoe_, LBShoe_, RBShoe_;
+    std::vector<sva::ForceVecd> LFShoeVec_, RFShoeVec_, LBShoeVec_, RBShoeVec_;
+    sva::ForceVecd LFShoe_, RFShoe_, LBShoe_, RBShoe_;
     
     // storing desired max and min forces if they differ from the value given in the config file
     std::map<std::string, double> contactFMax_;

@@ -92,16 +92,16 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   // LHandBack = std::make_shared<mc_control::SimulationContactPair>(LHandSurf, BackSurf);
 
   // First log: standing alone ok
-  // mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F1.yaml");
-  // mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F2.yaml");
-  // mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F3.yaml");
-  // mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F4.yaml");
+  mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F1.yaml");
+  mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F2.yaml");
+  mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F3.yaml");
+  mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F4.yaml");
 
   // Second log: standing with help
-  mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F5.yaml");
-  mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F6.yaml");
-  mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F7.yaml");
-  mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F8.yaml");
+  // mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F5.yaml");
+  // mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F6.yaml");
+  // mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F7.yaml");
+  // mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F8.yaml");
 
   auto data1 = dataIn1.operator std::map<std::string, std::vector<double>>();
   auto data2 = dataIn2.operator std::map<std::string, std::vector<double>>();
@@ -148,16 +148,16 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
 bool HelpUpController::run()
 {
   // First log: offset at 6.92 to sync with xsens log
-  // LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.92, 50);
-  // LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.92, 50);
-  // RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.92, 50);
-  // RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.92, 50);
+  LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.92, 50);
+  LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.92, 50);
+  RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.92, 50);
+  RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.92, 50);
 
   // Second log: offset at 6.24
-  LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.24, 50);
-  LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.24, 50);
-  RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.24, 50);
-  RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.24, 50);
+  // LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.24, 50);
+  // LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.24, 50);
+  // RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.24, 50);
+  // RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.24, 50);
   // updateCombinedCoM(); // todo: update with human com estimation
   if (!computing_)
   {
@@ -307,6 +307,9 @@ bool HelpUpController::run()
   prevOmega_ = humanOmega();
   prevDCMerror_ = DCMerror_;
   computeCommandVRP();
+  sva::ForceVecd desiredCoMWrench;
+  desiredCoMWrench.force() = missingForces();
+  distributeHandsWrench(desiredCoMWrench);
   bool ok = mc_control::fsm::Controller::run();
   return ok;
 }
@@ -610,6 +613,20 @@ void HelpUpController::addLogEntries()
     return missingForces();
   };
   logger().addLogEntry("DCM_MissingForces", Missingforces);
+
+  auto QPLH = [this](){
+    return LHwrench_;
+  };
+  auto QPRH = [this](){
+    return RHwrench_;
+  };
+  logger().addLogEntry("DCM_ComputedLHwrench", QPLH);
+  logger().addLogEntry("DCM_ComputedRHwrench", QPRH);
+
+  auto QPforces = [this](){
+    return RedistribWrench_;
+  };
+  logger().addLogEntry("DCM_ComputedAssistanceForces", QPforces);
 
   // auto frontToBackL = [this](){
   //   auto X_LF_0 = robot("human").surfacePose("LFsensor").inv();
@@ -1350,4 +1367,167 @@ sva::ForceVecd HelpUpController::getCurrentForceVec(std::vector<sva::ForceVecd> 
     
   }
 
+void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrench)
+  {
+    // Variables
+    // ---------
+    // x = [w_lh_lhc w_rh_rhc] where
+    // w_lh_lhc: spatial force vector of robot left hand contact in left hand contact frame: world frame and centroidal frame share the same orientation (should it be inertial frame, ie at contact instead of world?)
+    // w_rh_rhc: spatial force vector of robot right hand contact in right hand contact frame
 
+    // Objective
+    // ---------
+    // Weighted minimization of the following tasks:
+    // w_lh_C + w_rh_C == desiredWrench  -- realize desired wrench at human CoM
+    // (X_0_lhc* w_lh_0).z() == 0 -- minimize left hand force applied on human
+    // (X_0_rhc* w_rh_0).z() == 0 -- minimize right hand force applied on human
+    
+    // maybe add minimization of arm torques?
+
+
+    // w_l_lankle == 0 -- minimize left foot ankle torque (anisotropic weight) (=smallest value possible?)
+    // w_r_rankle == 0 -- minimize right foot ankle torque (anisotropic weight)
+    // Constraints
+    // -----------
+    // CWC X_0_lhc* w_lh_0 <= 0  -- left hand wrench within contact wrench cone
+    // CWC X_0_rhc* w_rh_0 <= 0  -- right hand wrench within contact wrench cone
+    // (X_0_lhc* w_lh_0).z() > minPressure  -- minimum left hand contact pressure to maintain contact
+    // (X_0_rhc* w_rh_0).z() > minPressure  -- minimum right hand contact pressure
+    // (X_0_lhc* w_lh_0).z() + (X_0_rhc* w_rh_0).z() < maxPressure -- maximum pressure on the human
+   
+
+    // const auto & leftHandContact = contacts_.at(ContactState::Left);
+    // Create hand contacts 
+    leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "LeftHand", 0.7);
+    rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "RightHand", 0.7);
+
+    // leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot("human"), "Back", 0.7);
+    // rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot("human"), "RightShoulder", 0.7);
+
+    
+    const auto & leftHandContact = *leftHandContact_;
+    const auto & rightHandContact = *rightHandContact_;
+    const sva::PTransformd & X_0_lhc = leftHandContact.surfacePose();
+    const sva::PTransformd & X_0_rhc = rightHandContact.surfacePose();
+    // sva::PTransformd X_0_vrp(desiredVRP()); // getting vrp transform
+    sva::PTransformd X_0_C(xsensCoMpos_); // getting CoM transform
+    sva::PTransformd X_lhc_c = X_0_lhc.inv() * X_0_C;
+    sva::PTransformd X_rhc_c = X_0_rhc.inv() * X_0_C;
+  
+
+    constexpr unsigned NB_VAR = 6 + 6; // 6d wrench * 2 contacts
+    constexpr unsigned COST_DIM = 6 + NB_VAR; // 6 for desired wrench, nb_var to minimize our variables individually
+    Eigen::MatrixXd A;
+    Eigen::VectorXd b;
+    A.setZero(COST_DIM, NB_VAR);
+    b.setZero(COST_DIM);
+
+
+    // |w_lh_c + w_rh_c - desiredWrench|^2
+    // We handle moments around the ZMP instead of the world origin to avoid numerical errors due to large moment values.
+    // https://github.com/jrl-umi3218/mc_rtc/pull/285
+    // Why zmp and not CoM ? In our case CoM seems more appropriate: desired wrench is the result of the various contacts on the CoM
+    // Thus minimize difference between result of hand contact wrenches on the CoM and missing forces to apply (desired wrench)
+    
+    auto A_net = A.block<6, 12>(0, 0); 
+    auto b_net = b.segment<6>(0);
+    A_net.block<6, 6>(0, 0) = X_lhc_c.dualMatrix(); // matrix transform for wrench from hand contact to com (since variable is hand contact wrench)
+    A_net.block<6, 6>(0, 6) = X_rhc_c.dualMatrix();
+    // b_net = X_0_vrp.dualMul(desiredWrench).vector(); ? since desired wrench is on the com maybe just this?
+    b_net = desiredWrench.vector();
+
+    // |wrench_lh|^2 
+    auto A_lhwrench = A.block<6, 6>(6, 0);
+    // |wrench_rh|^2 
+    auto A_rhwrench = A.block<6, 6>(12, 6);
+    // anisotropic weights:  taux, tauy, tauz,   fx,   fy,   fz;
+    A_lhwrench.diagonal() <<     1.,   1.,   1.,   1.,   1.,   1.; // 1.,   1., 1e-4, 1e-3, 1e-3, 1e-4;
+    A_rhwrench.diagonal() <<     1.,   1.,   1.,   1.,   1.,   1.;
+    // A_lhwrench *= X_0_lhc.dualMatrix(); I don't think transforms are needed since variables are in contact frame and those are the ones we want to minimize
+    // A_rhwrench *= X_0_rhc.dualMatrix();
+    // corresponding b vector is zero since we want to minimize (closest to zero)
+
+
+    // |(1 - lfr) * w_l_lc.force().z() - lfr * w_r_rc.force().z()|^2
+    // this is to be sure to have an equal repartition
+
+    // double lfr = leftFootRatio_;
+    // auto A_pressure = A.block<1, 12>(18, 0);
+    // A_pressure.block<1, 6>(0, 0) = (1 - lfr) * X_0_lc.dualMatrix().bottomRows<1>();
+    // A_pressure.block<1, 6>(0, 6) = -lfr * X_0_rc.dualMatrix().bottomRows<1>();
+
+
+    // Apply weights
+    double valueWeight = std::sqrt(10000);
+    double wrenchWeight = std::sqrt(100);
+    A_net *= valueWeight;
+    b_net *= valueWeight;
+    A_lhwrench *= wrenchWeight;
+    A_rhwrench *= wrenchWeight;
+
+    // transformation to a least squares problem
+    Eigen::MatrixXd Q = A.transpose() * A; 
+    Eigen::VectorXd c = -A.transpose() * b;
+
+    // The CoP constraint represent 4 linear constraints for each contact
+    const int cwc_const = 12 + 4;
+    // Two contacts with cwc constraints + two min pressure constraints + one max pressure constraint
+    const int nb_const = 2 * cwc_const + 2 + 1;
+    Eigen::Matrix<double, -1, NB_VAR> A_ineq;
+    Eigen::VectorXd b_ineq;
+    A_ineq.setZero(nb_const, NB_VAR);
+    b_ineq.setZero(nb_const);
+
+    auto A_lh_cwc = A_ineq.block<cwc_const, 6>(0, 0);
+    auto A_rh_cwc = A_ineq.block<cwc_const, 6>(cwc_const, 6);
+
+    // CWC * w_lh_lc <= 0
+    A_lh_cwc = leftHandContact.wrenchFaceMatrix().block(0, 0, cwc_const, 6); // * X_0_lhc.dualMatrix();
+    // b_ineq.segment(0,cwc_const) is already zero
+
+    // CWC * w_rh_rc <= 0
+    A_rh_cwc = rightHandContact.wrenchFaceMatrix().block(0, 0, cwc_const, 6); // * X_0_rhc.dualMatrix();
+    // b_ineq.segment(cwc_const,cwc_const) is already zero
+
+    // w_l_lc.force().z() >= min_pressure
+    double minHandsPressure = 10.; // minimal contact force in Newtons
+    A_ineq.block(nb_const - 3, 0, 1, 6) = -Eigen::Matrix6d::Identity().bottomRows<1>();  // selecting force only, identity bc va(riable is already in contact frame //-X_0_lhc.dualMatrix().bottomRows<1>();
+    b_ineq(nb_const - 3) = -minHandsPressure;
+    // w_r_rc.force().z() >= min_pressure
+    A_ineq.block(nb_const - 2, 6, 1, 6) = -Eigen::Matrix6d::Identity().bottomRows<1>(); //-X_0_rhc.dualMatrix().bottomRows<1>();
+    b_ineq(nb_const - 2) = -minHandsPressure;
+    // (X_0_lhc* w_lh_0).z() + (X_0_rhc* w_rh_0).z() < maxPressure
+    double maxCompression = 200.; // max pressure applied total on torso
+    A_ineq.block(nb_const - 1, 0, 1, 6) = Eigen::Matrix6d::Identity().bottomRows<1>(); // first 6 elements are lh
+    A_ineq.block(nb_const - 1, 6, 1, 6) = Eigen::Matrix6d::Identity().bottomRows<1>(); // second 6 are rh
+    b_ineq(nb_const - 1) = maxCompression;
+
+    vrpSolver_.problem(NB_VAR, 0, nb_const);
+    Eigen::MatrixXd A_eq(0, 0);
+    Eigen::VectorXd b_eq;
+    b_eq.resize(0);
+    bool solutionFound = vrpSolver_.solve(Q, c, A_eq, b_eq, A_ineq, b_ineq, /* isDecomp = */ false);
+    if(!solutionFound)
+    {
+      mc_rtc::log::error("Hands force distribution QP: solver found no solution");
+      return;
+    }
+
+    Eigen::VectorXd x = vrpSolver_.result();
+    sva::ForceVecd w_lh_lhc(x.segment<3>(0), x.segment<3>(3)); // wrench value at contact frame
+    sva::ForceVecd w_rh_rhc(x.segment<3>(6), x.segment<3>(9));
+
+    LHwrench_ = w_lh_lhc;
+    RHwrench_ = w_rh_rhc;
+
+    RedistribWrench_ = X_lhc_c.dualMul(w_lh_lhc) + X_rhc_c.dualMul(w_rh_rhc); // Verify coherent solution at CoM
+
+    // sva::ForceVecd w_lh_lhc = X_0_lhc.dualMul(w_lh_0); // wrench value at contact pose
+    // sva::ForceVecd w_rh_rhc = X_0_rhc.dualMul(w_rh_0);
+    // Eigen::Vector2d leftCoP = (constants::vertical.cross(w_lh_lhc.couple()) / w_lh_lhc.force()(2)).head<2>();
+    // Eigen::Vector2d rightCoP = (constants::vertical.cross(w_rh_rhc.couple()) / w_rh_rhc.force()(2)).head<2>();
+    // footTasks[ContactState::Left]->targetCoP(leftCoP);
+    // footTasks[ContactState::Left]->targetForce(w_lh_lhc.force());
+    // footTasks[ContactState::Right]->targetCoP(rightCoP);
+    // footTasks[ContactState::Right]->targetForce(w_rh_rhc.force());
+  }

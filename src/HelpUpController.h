@@ -237,11 +237,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       return xsensCoMpos_ - (humanVRPforces().force() - humanMass_*gravityVec() )/(humanMass_ * (humanOmega()*humanOmega()-dotHumanOmega()));
     }
 
-    // required missing forces on the hands to achieve desired VRP command
-    Eigen::Vector3d missingForces()
-    {
-      return humanMass_ * (humanOmega()*humanOmega()-dotHumanOmega()) * (xsensCoMpos_ - desiredVRP()) + humanMass_ * gravityVec() - humanVRPforces().force() ; 
-    }
 
     sva::ForceVecd humanVRPforces()
     {
@@ -257,7 +252,14 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       auto w_RB_0 = X_RB_0.dualMul(RBShoe_);
       auto Fc = X_0_C.dualMul(w_LF_0) + X_0_C.dualMul(w_LB_0) + X_0_C.dualMul(w_RF_0) + X_0_C.dualMul(w_RB_0);
       
+      // Do this with transforms directly to the com instead of world origin: high moments can lead to numerical errors
       return Fc;
+    }
+
+    // required missing forces on the hands to achieve desired VRP command
+    Eigen::Vector3d missingForces()
+    {
+      return humanMass_ * (humanOmega()*humanOmega()-dotHumanOmega()) * (xsensCoMpos_ - desiredVRP()) + humanMass_ * gravityVec() - humanVRPforces().force() ; 
     }
 
     void computeDCMerror()
@@ -288,7 +290,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       return realRobot().com() + realRobot().comVelocity() / mainRealOmega();
     };
 
-    // Parametrized start offset of the log to sychronize
+    // Parametrized start offset of the log to sychronize. Default: start offset at 0, acquisition frequency of force shoes at 100Hz
     sva::ForceVecd getCurrentForceVec(std::vector<sva::ForceVecd> log, double startOffset = 0, double freq = 100);
 
 
@@ -426,6 +428,8 @@ private:
 
     std::vector<sva::ForceVecd> LFShoeVec_, RFShoeVec_, LBShoeVec_, RBShoeVec_;
     sva::ForceVecd LFShoe_, RFShoe_, LBShoe_, RBShoe_;
+    sva::ForceVecd LHwrench_, RHwrench_;
+    sva::ForceVecd RedistribWrench_;
     
     // storing desired max and min forces if they differ from the value given in the config file
     std::map<std::string, double> contactFMax_;

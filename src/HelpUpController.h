@@ -187,6 +187,11 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     double humanOmega()
     {
+      return std::sqrt((9.81 + xsensCoMacc_.z())/xsensCoMpos_.z());
+    };
+
+    double humanOmegaOld()
+    {
       return std::sqrt(9.81/xsensCoMpos_.z());
     };
 

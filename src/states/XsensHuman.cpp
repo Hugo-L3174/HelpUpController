@@ -127,15 +127,15 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
   auto & robot = ctl.robot(robot_);
 
   auto & realRobot = ctl.realRobot(robot_);
-  auto & grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GroundOffset");
+  // auto & grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GroundOffset");
 
-  // getting transform from foot to ground (to apply everywhere)
-  auto X_ground_foot = realRobot.surfacePose("RightSole").inv();
-  X_ground_foot.translation().x() = 0;
-  X_ground_foot.translation().y() = 0;
-  X_ground_foot.translation().z() *= 3; // *3 otherwise is too small
-  // writing offset in datastore, to be applied by XsensPlugin (applying on positions read by mujoco and others)
-  grounding_offset = X_ground_foot;
+  // // getting transform from foot to ground (to apply everywhere)
+  // auto X_ground_foot = realRobot.surfacePose("RightSole").inv();
+  // X_ground_foot.translation().x() = 0;
+  // X_ground_foot.translation().y() = 0;
+  // X_ground_foot.translation().z() *= 3; // *3 otherwise is too small
+  // // writing offset in datastore, to be applied by XsensPlugin (applying on positions read by mujoco and others)
+  // grounding_offset = X_ground_foot;
 
   // // Debug:
   // mc_rtc::log::info("offset is {}", X_ground_foot.translation());
@@ -168,6 +168,10 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
       {
         const auto segmentPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName); 
         auto poseTarget = body.second.offset * segmentPose * offset_;
+        if (bodyName.compare("RAnkleLink") == 0 || bodyName.compare("LAnkleLink") == 0)
+        {
+          poseTarget.rotation() = sva::PTransformd::Identity().rotation();
+        }
         tasks_[bodyName]->target(poseTarget);
   
       }

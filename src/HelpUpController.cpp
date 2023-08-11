@@ -136,6 +136,14 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   }
 
 
+  // mc_rtc::log::info("Human pos is {}", robots().robot("human").posW().translation().transpose());
+  
+  // robots().robot("chair").posW(robots().robot("human").posW() * sva::PTransformd(Eigen::Vector3d(0.05, 0.12, -0.65)));
+  // mc_rtc::log::info("Chair pos is {}", robots().robot("chair").posW().translation().transpose());
+
+  // robots().robot().posW(robots().robot("chair").posW() * sva::PTransformd(sva::RotZ(M_PI/2.0), Eigen::Vector3d(-0.17, -0.3, 0.75))); 
+  // mc_rtc::log::info("Robot pos is {}", robots().robot().posW().translation().transpose());
+
   addLogEntries();
   addGuiElements();
   addTasksToSolver();
@@ -148,24 +156,30 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
 bool HelpUpController::run()
 {
   // First log: offset at 6.92 to sync with xsens log
-  LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.92, 50);
-  LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.92, 50);
-  RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.92, 50);
-  RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.92, 50);
+  // LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.92, 50);
+  // LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.92, 50);
+  // RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.92, 50);
+  // RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.92, 50);
 
   // Second log: offset at 6.24
   // LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.24, 50);
   // LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.24, 50);
   // RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.24, 50);
   // RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.24, 50);
-  // updateCombinedCoM(); // todo: update with human com estimation
+
+  LFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLFForce");
+  LBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLBForce");
+  RFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRFForce");
+  RBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRBForce");
+
+  // ------------------------------------- Computation polytope robot
   if (!computing_)
   {
     // update the contact set model 
     if (!readyForComp_)
     {
       computed_ = false;
-      updateContactSet(robot().robotIndex(), hrp4); //robots().robotIndex("hrp4")
+      updateContactSet(robot().robotIndex()); //robots().robotIndex("hrp4")
       // Instead of keeping the max forces as given in the config we update them as the current applied force on the contact ?
       // Not a good idea, only limiting. It is better to change the max force as what we allow the robot to exert (to stay safe for the human),
       // and the min force (necessary to help the human stand?)
@@ -203,7 +217,9 @@ bool HelpUpController::run()
       transitionning_ = true;
     }
   }
+
   
+  // ------------------------------------- Computation polytope human
   if (!computingHum_)
   {
     // update the contact set model 
@@ -256,52 +272,44 @@ bool HelpUpController::run()
   // gradientPotential = currentCompPoint_->computeGradient(comPos);
 
 
-  double dt = timeStep;
-  Eigen::Vector3d gravity;
-  gravity << 0.0, 0.0, 9.81;
-  double mass = robot().mass();
+  // double dt = timeStep;
+  // Eigen::Vector3d gravity;
+  // gravity << 0.0, 0.0, 9.81;
+  // double mass = robot().mass();
 
-  Eigen::Vector3d newVel = Eigen::Vector3d::Zero();
+  // Eigen::Vector3d newVel = Eigen::Vector3d::Zero();
 
 
-  // transition
+  // ------------------------------------------- transition robot
   if (transitionning_)
+  {
+    // if we are not in next
+    Eigen::Vector3d currentCoM = robot().com(); 
+    nextCompPoint_->constraintPlanes(); 
+    // update display regardless of com in or out
+    balanceCompPoint_ = nextCompPoint_;
+    if (isVertexInPlanes(currentCoM, nextCompPoint_->constraintPlanes(), 0.03))
     {
-      // if we are not in next
-      Eigen::Vector3d currentCoM = robot().com(); 
-      nextCompPoint_->constraintPlanes(); 
-      // update display regardless of com in or out
-      balanceCompPoint_ = nextCompPoint_;
-      if (isVertexInPlanes(currentCoM, nextCompPoint_->constraintPlanes(), 0.03))
-      {
-        setNextToCurrent(hrp4);
-        transitionning_ = false;
-      }
+      setNextToCurrent(hrp4);
+      transitionning_ = false;
     }
+  }
 
-  // transition
+  // ------------------------------------------- transition human
   if (transitionningHum_)
+  {
+    // if we are not in next
+    Eigen::Vector3d currentHumCoM = robot("human").com(); 
+    nextHumCompPoint_->constraintPlanes();
+    // update display regardless of com in or out
+    balanceHumCompPoint_ = nextHumCompPoint_;
+    if (isVertexInPlanes(currentHumCoM, nextHumCompPoint_->constraintPlanes(), 0.03))
     {
-      // if we are not in next
-      Eigen::Vector3d currentHumCoM = robot("human").com(); 
-      nextHumCompPoint_->constraintPlanes();
-      // update display regardless of com in or out
-      balanceHumCompPoint_ = nextHumCompPoint_;
-      if (isVertexInPlanes(currentHumCoM, nextHumCompPoint_->constraintPlanes(), 0.03))
-      {
-        setNextToCurrent(human);
-        transitionningHum_ = false;
-      }
+      setNextToCurrent(human);
+      transitionningHum_ = false;
     }
+  }
   
-  
-  
-  // std::cout<<"human contact set: "<<std::endl;
-  // for (auto name:contactSetHum_->get_contactNames())
-  // {
-  //   std::cout<<name<<std::endl;
-  // }
-
   t_ += solver().dt();
   computeDCMerror();
   prevOmega_ = humanOmega();
@@ -316,6 +324,7 @@ bool HelpUpController::run()
 
 void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
 {
+  mc_control::fsm::Controller::reset(reset_data);
   // Update dynamics constraints
   // dynamicsConstraint = mc_solver::DynamicsConstraint(robots(),
   //                                                    robot().robotIndex(),
@@ -323,7 +332,7 @@ void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
   // // Must be added to the solver before controller reset
   // solver().addConstraintSet(dynamicsConstraint);
 
-  // Add human dynamics constraints
+  // // Add human dynamics constraints
   // if(robots().hasRobot("human")){
   //   humanDynamicsConstraint_ = mc_solver::DynamicsConstraint(robots(),
   //                                                      robots().robot("human").robotIndex(),
@@ -340,15 +349,22 @@ void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
   //       }
   //     }
   //   }
-  //   // Adjust chair position relative to human model
-  //   // if(robots().hasRobot("chair")){
-  //   //   robots().robot("chair").posW(robots().robot("human").posW() * sva::PTransformd(Eigen::Vector3d(0.05, 0.0, -0.65)));
-  //   // }
+  mc_rtc::log::success("running reset");
+  // Adjust chair position relative to human model
+  // if(robots().hasRobot("chair")){
+  // mc_rtc::log::info("Human pos is {}", robots().robot("human").posW().translation().transpose());
+  // mc_rtc::log::info("Human pos is {}", datastore().get<sva::PTransformd>("ReplayPlugin::GetSegmentPose::HipsLink").translation().transpose());
+  // robots().robot("chair").posW(robots().robot("human").posW() * sva::PTransformd(Eigen::Vector3d(0.05, 0.12, -0.65)));
+  // mc_rtc::log::info("Chair pos is {}", robots().robot("chair").posW().translation().transpose());
+
+  // robots().robot().posW(robots().robot("chair").posW() * sva::PTransformd(sva::RotZ(M_PI/2.0), Eigen::Vector3d(-0.17, -0.3, 0.75))); 
+  // mc_rtc::log::info("Robot pos is {}", robots().robot().posW().translation().transpose());
+  // }
 
   // }
   // Update constraints and resets posture tasks
   // solver().updateConstrSize();
-  mc_control::fsm::Controller::reset(reset_data);
+  
 }
 
 void HelpUpController::computeStabilityRegion(std::shared_ptr<ContactSet> contactset, whatRobot rob, bool save, int polIndex, std::string suffix)
@@ -569,6 +585,11 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("DCM_human omega", logOmega);
 
+  auto logOmegaOld = [this](){
+    return humanOmegaOld();
+  };
+  logger().addLogEntry("DCM_human omega no vertical com acc", logOmegaOld);
+
   auto logOmegaSquared = [this](){
     return humanOmega()*humanOmega();
   };
@@ -680,8 +701,9 @@ void HelpUpController::addGuiElements()
   gui()->addElement({"CoM"},
       mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot().com(); }),
       mc_rtc::gui::Point3D("mainCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return realRobot().com(); }), // Note that this is the control robot com and not the real robot com 
-      // mc_rtc::gui::Point3D("humanCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot("human").com(); }),
-      mc_rtc::gui::Point3D("humanCoMXsens", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return xsensCoMpos_; })
+      mc_rtc::gui::Point3D("humanCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot("human").com(); }),
+      mc_rtc::gui::Point3D("humanCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return realRobot("human").com(); }),
+      mc_rtc::gui::Point3D("humanCoMXsens", mc_rtc::gui::PointConfig(COLORS.at('b'), COM_POINT_SIZE), [this]() { return xsensCoMpos_; })
       // mc_rtc::gui::Point3D("CoMcombined", CoMconfig2, [this]() { return combinedCoM_; })
   );
 
@@ -811,221 +833,120 @@ int HelpUpController::getPolytopeIndex(int polyIndex)
   return polyIndex;
 }
 
-void HelpUpController::updateContactSet(unsigned int robotIndex, whatRobot rob) // todo update human outside of qp if too heavy to be under 5ms
+void HelpUpController::updateContactSet(unsigned int robotIndex) // todo update human outside of qp if too heavy to be under 5ms
 {
   // updateRealHumContacts();
   auto contacts = solver().contacts();
-  updateContactSet(contacts, robotIndex, rob);
+  updateContactSet(contacts, robotIndex);
 }
 
-void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex, whatRobot rob)
+void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex)
 {
   auto maxForces = config_("surfacesMaxForces");
   Eigen::Vector3d acceleration;
   const auto & robot = robots().robot(robotIndex);
-  switch (rob)
-  {
-  case hrp4:
-    // accelerations_.resize(0);
-    contactSet_ = std::make_shared<ContactSet> (false);
-    contactSet_->mass(robots().robot(robotIndex).mass());
-    contactSet_->setFrictionSides(6);
-    
 
-    for (auto contact: contacts)
-      {
-        if (contact.r1Index() == robotIndex || contact.r2Index() == robotIndex)
-        {
-          auto surface_name = (contact.r1Index() == robotIndex) ? contact.r1Surface()->name() : contact.r2Surface()->name();
-          const auto & surface = robot.surface(surface_name);
-          
-          std::string bodyName = surface.bodyName();
-          auto body_PT = robot.bodyPosW(bodyName);
-
-          auto points = surface.points();
-          int ptCpt = 0; // point counter
-          std::string ptName;
-          double mu = contact.friction(); // get the friction coef h
-          
-          double fmax;
-          if (maxForces.has(surface_name))
-            {
-              fmax = maxForces(surface_name);
-            }
-          else
-            {
-              mc_rtc::log::warning( "Surface " + surface_name + " NOT found in the config for max force");
-              fmax = robot.mass()*10;
-            }
-          // std::cout << "force value on "<< surface_name << realRobots().robot(robotIndex).forceSensor(surface_name+"ForceSensor").force(); // in hrp4 there are RightFootForceSensor LeftFootForceSensor RightHandForceSensor LeftHandForceSensor
-
-          double fmin = 0; // todo set the same for min forces?
-          ContactType type;
-          if (config_.has("constrainedSurfaces"))
-            {
-              auto constrainedSurfaces = config_("constrainedSurfaces");
-              if (constrainedSurfaces.has(surface_name))
-                {
-                  type = ContactType::constrained;
-                }
-              else
-                {
-                  type = ContactType::support;
-                }
-            }
-          else
-            {
-              type = ContactType::support;
-            }
-
-          for (auto point: points)
-            {
-              auto pos = body_PT.rotation().transpose()*point.translation() + body_PT.translation();
-
-              Eigen::Matrix4d homTrans = Eigen::Matrix4d::Identity();
-              homTrans.block<3,3>(0,0) = body_PT.rotation().transpose()*point.rotation().transpose();
-              homTrans.block<3,1>(0,3) = pos;
-
-              ptName = surface.name() + "_" + std::to_string(ptCpt);
-              contactSet_->addContact(ptName, homTrans, mu, fmax, fmin, type);
-
-              ptCpt++;
-            }
-        }
-      }
-    
-    // // Adding hand contacts to polytope contact set even if it is not a contact control wise ()
-    // RHandShoulder->update(realRobot("hrp4"), robot("human"));
-    // LHandBack->update(robot("hrp4"), robot("human"));
-
-
-
-
-    // Adding the accelerations
-    
-
-    acceleration << 0.0, 0.0, -9.81;
-    contactSet_->addCoMAcc(acceleration);
-    // acceleration << robots().robot("")
-    // accelerations_.push_back()
-
-    acceleration << 1.2, 0, -9.81;
-    contactSet_->addCoMAcc(acceleration);
-
-    acceleration << 0, 0.8, -9.81;
-    contactSet_->addCoMAcc(acceleration);
-
-    acceleration << -1.2, 0, -9.81;
-    contactSet_->addCoMAcc(acceleration);
-
-    acceleration << 0, -0.8, -9.81;
-    contactSet_->addCoMAcc(acceleration);
-
-    // std::cout << "#-----------------------------------------" << std::endl;
-    // std::cout << "Displaying current contact Set" << std::endl;
-    // contactSet_->showContactSet();
-
-    readyForComp_ = false;
-    computed_ = false;
-    break;
+  // accelerations_.resize(0);
+  contactSet_ = std::make_shared<ContactSet> (false);
+  contactSet_->mass(robots().robot(robotIndex).mass());
+  contactSet_->setFrictionSides(6);
   
-  case human:
-    contactSetHum_ = std::make_shared<ContactSet> (false);
-    contactSetHum_->mass(robots().robot(robotIndex).mass());
-    contactSetHum_->setFrictionSides(6);
-    
 
-    for (auto contact: contacts)
+  for (auto contact: contacts)
+    {
+      if (contact.r1Index() == robotIndex || contact.r2Index() == robotIndex)
       {
-        if (contact.r1Index() == robotIndex || contact.r2Index() == robotIndex)
-        {
-          auto surface_name = (contact.r1Index() == robotIndex) ? contact.r1Surface()->name() : contact.r2Surface()->name();
-          const auto & surface = robot.surface(surface_name);
-          
-          std::string bodyName = surface.bodyName();
-          auto body_PT = robot.bodyPosW(bodyName);
+        auto surface_name = (contact.r1Index() == robotIndex) ? contact.r1Surface()->name() : contact.r2Surface()->name();
+        const auto & surface = robot.surface(surface_name);
+        
+        std::string bodyName = surface.bodyName();
+        auto body_PT = robot.bodyPosW(bodyName);
 
-          auto points = surface.points();
-          int ptCpt = 0; // point counter
-          std::string ptName;
-          double mu = contact.friction(); // get the friction coef h
-          
-          double fmax;
-          if (maxForces.has(surface_name))
-            {
-              fmax = maxForces(surface_name);
-            }
-          else
-            {
-              mc_rtc::log::warning( "Surface " + surface_name + " NOT found in the config for max force");
-              fmax = robot.mass()*10;
-            }
-          // std::cout << "force value on "<< surface_name << realRobots().robot(robotIndex).forceSensor(surface_name+"ForceSensor").force(); // in hrp4 there are RightFootForceSensor LeftFootForceSensor RightHandForceSensor LeftHandForceSensor
+        auto points = surface.points();
+        int ptCpt = 0; // point counter
+        std::string ptName;
+        double mu = contact.friction(); // get the friction coef h
+        
+        double fmax;
+        if (maxForces.has(surface_name))
+          {
+            fmax = maxForces(surface_name);
+          }
+        else
+          {
+            mc_rtc::log::warning( "Surface " + surface_name + " NOT found in the config for max force");
+            fmax = robot.mass()*10;
+          }
+        // std::cout << "force value on "<< surface_name << realRobots().robot(robotIndex).forceSensor(surface_name+"ForceSensor").force(); // in hrp4 there are RightFootForceSensor LeftFootForceSensor RightHandForceSensor LeftHandForceSensor
 
-          double fmin = 0; // todo set the same for min forces?
-          ContactType type;
-          if (config_.has("constrainedSurfaces"))
-            {
-              auto constrainedSurfaces = config_("constrainedSurfaces");
-              if (constrainedSurfaces.has(surface_name))
-                {
-                  type = ContactType::constrained;
-                }
-              else
-                {
-                  type = ContactType::support;
-                }
-            }
-          else
-            {
-              type = ContactType::support;
-            }
+        double fmin = 0; // todo set the same for min forces?
+        ContactType type;
+        if (config_.has("constrainedSurfaces"))
+          {
+            auto constrainedSurfaces = config_("constrainedSurfaces");
+            if (constrainedSurfaces.has(surface_name))
+              {
+                type = ContactType::constrained;
+              }
+            else
+              {
+                type = ContactType::support;
+              }
+          }
+        else
+          {
+            type = ContactType::support;
+          }
 
-          for (auto point: points)
-            {
-              auto pos = body_PT.rotation().transpose()*point.translation() + body_PT.translation();
+        for (auto point: points)
+          {
+            auto pos = body_PT.rotation().transpose()*point.translation() + body_PT.translation();
 
-              Eigen::Matrix4d homTrans = Eigen::Matrix4d::Identity();
-              homTrans.block<3,3>(0,0) = body_PT.rotation().transpose()*point.rotation().transpose();
-              homTrans.block<3,1>(0,3) = pos;
+            Eigen::Matrix4d homTrans = Eigen::Matrix4d::Identity();
+            homTrans.block<3,3>(0,0) = body_PT.rotation().transpose()*point.rotation().transpose();
+            homTrans.block<3,1>(0,3) = pos;
 
-              ptName = surface.name() + "_" + std::to_string(ptCpt);
-              contactSetHum_->addContact(ptName, homTrans, mu, fmax, fmin, type);
+            ptName = surface.name() + "_" + std::to_string(ptCpt);
+            contactSet_->addContact(ptName, homTrans, mu, fmax, fmin, type);
 
-              ptCpt++;
-            }
-        }
+            ptCpt++;
+          }
       }
-
-    // Adding the accelerations
-    
-
-    acceleration << 0.0, 0.0, -9.81;
-    contactSetHum_->addCoMAcc(acceleration);
-
-    acceleration << 0.8, 0, -9.81;
-    contactSetHum_->addCoMAcc(acceleration);
-
-    acceleration << 0, 0.8, -9.81;
-    contactSetHum_->addCoMAcc(acceleration);
-
-    acceleration << -0.8, 0, -9.81;
-    contactSetHum_->addCoMAcc(acceleration);
-
-    acceleration << 0, -0.8, -9.81;
-    contactSetHum_->addCoMAcc(acceleration);
-
-    // std::cout << "#-----------------------------------------" << std::endl;
-    // std::cout << "Displaying current contact Set" << std::endl;
-    // contactSet_->showContactSet();
-
-    readyForCompHum_ = false;
-    computedHum_ = false;
-    break;
+    }
   
-  case combined:
-    break;
-  }
+  // // Adding hand contacts to polytope contact set even if it is not a contact control wise ()
+  // RHandShoulder->update(realRobot("hrp4"), robot("human"));
+  // LHandBack->update(robot("hrp4"), robot("human"));
+
+
+
+
+  // Adding the accelerations
+  
+
+  acceleration << 0.0, 0.0, -9.81;
+  contactSet_->addCoMAcc(acceleration);
+  // acceleration << robots().robot("")
+  // accelerations_.push_back()
+
+  acceleration << 0.6, 0, -9.81;
+  contactSet_->addCoMAcc(acceleration);
+
+  acceleration << 0, 0.6, -9.81;
+  contactSet_->addCoMAcc(acceleration);
+
+  acceleration << -0.6, 0, -9.81;
+  contactSet_->addCoMAcc(acceleration);
+
+  acceleration << 0, -0.6, -9.81;
+  contactSet_->addCoMAcc(acceleration);
+
+  // std::cout << "#-----------------------------------------" << std::endl;
+  // std::cout << "Displaying current contact Set" << std::endl;
+  // contactSet_->showContactSet();
+
+  readyForComp_ = false;
+  computed_ = false;
   
   
 }
@@ -1075,6 +996,7 @@ void HelpUpController::setNextToCurrent(whatRobot rob)
         desiredCoM(newCoM, rob); 
       }
       break;
+      
     case human :
       currentHumCompPoint_ = nextHumCompPoint_;
       planes(currentHumCompPoint_->constraintPlanes(), rob);
@@ -1089,9 +1011,6 @@ void HelpUpController::setNextToCurrent(whatRobot rob)
         desiredCoM(newCoM, rob);
       }
       
-      break;
-    case combined :
-
       break;
   }
   
@@ -1116,7 +1035,8 @@ void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
       // hrp4 half sitting com: 0.78, human standing com: 0.87, e2dr half sitting com: 0.97
       // desiredCoM[2] = std::max((0.78*robot("human").com().z())/0.87 , 0.7);
       // desiredCoM[2] = std::max((0.95*robot("human").com().z())/0.87 , 0.9);
-      desiredCoM[2] = 0.95;
+      // desiredCoM[2] = 0.95;
+      desiredCoM[2] = 0.78;
       prevCoM = comDesired_;
       comDesired_ = (1-coef)*prevCoM + coef * desiredCoM;
       // comTask_->com(comDesired_); 
@@ -1265,25 +1185,25 @@ void HelpUpController::updateRealHumContacts()
 
   if (RFootGround->pair.getDistance()<=distThreshold)   // Distance is low enough to consider contact
   {
-    addRealHumContact("RightSole", 0, 500, ContactType::support);
+    addRealHumContact("RightSole", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding right sole"<<std::endl;
   }
 
   if (LFootGround->pair.getDistance()<=distThreshold)
   {
-    addRealHumContact("LeftSole", 0, 500, ContactType::support);
+    addRealHumContact("LeftSole", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding left sole"<<std::endl;
   }
 
   if (RCheekChair->pair.getDistance()<=distThreshold)
   {
-    addRealHumContact("RCheek", 0, 500, ContactType::support);
+    addRealHumContact("RCheek", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding right cheek"<<std::endl;
   }
 
   if (LCheekChair->pair.getDistance()<=distThreshold)
   {
-    addRealHumContact("LCheek", 0, 500, ContactType::support);
+    addRealHumContact("LCheek", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding left cheek"<<std::endl;
   }
 
@@ -1303,16 +1223,16 @@ void HelpUpController::updateRealHumContacts()
   acceleration << 0.0, 0.0, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << 0.8, 0, -9.81;
+  acceleration << 0.5, 0, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << 0, 0.8, -9.81;
+  acceleration << 0, 0.5, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << -0.8, 0, -9.81;
+  acceleration << -0.5, 0, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << 0, -0.8, -9.81;
+  acceleration << 0, -0.5, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
   computedHum_ = false;
@@ -1348,24 +1268,24 @@ void HelpUpController::addRealHumContact(std::string humanSurfName, double fmin,
 }
 
 sva::ForceVecd HelpUpController::getCurrentForceVec(std::vector<sva::ForceVecd> log , double startOffset, double freq)
+{
+  double acqTimeStep = 1/freq;
+  if (t_ < startOffset)
   {
-    double acqTimeStep = 1/freq;
-    if (t_ < startOffset)
-    {
-      return log[0];
-    }
-    else if (t_ >= startOffset && int(t_/acqTimeStep) - int(startOffset/acqTimeStep) < log.size())
-    {
-      // mc_rtc::log::info("acq timestep is {}, so t_/acq = {} and t/acq - start/step = {}", acqTimeStep, int(t_/acqTimeStep), int(t_/acqTimeStep) - int(startOffset/acqTimeStep));
-      return log[int(t_/acqTimeStep) - int(startOffset/acqTimeStep)];
-    }
-    else
-    {
-      // mc_rtc::log::info(" else: acq timestep is {}, so t_/acq = {} and t/acq - start/step = {}", acqTimeStep, int(t_/acqTimeStep), int(t_/acqTimeStep) - int(startOffset/acqTimeStep));
-      return log.back();
-    }
-    
+    return log[0];
   }
+  else if (t_ >= startOffset && int(t_/acqTimeStep) - int(startOffset/acqTimeStep) < log.size())
+  {
+    // mc_rtc::log::info("acq timestep is {}, so t_/acq = {} and t/acq - start/step = {}", acqTimeStep, int(t_/acqTimeStep), int(t_/acqTimeStep) - int(startOffset/acqTimeStep));
+    return log[int(t_/acqTimeStep) - int(startOffset/acqTimeStep)];
+  }
+  else
+  {
+    // mc_rtc::log::info(" else: acq timestep is {}, so t_/acq = {} and t/acq - start/step = {}", acqTimeStep, int(t_/acqTimeStep), int(t_/acqTimeStep) - int(startOffset/acqTimeStep));
+    return log.back();
+  }
+  
+}
 
 void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrench)
   {
@@ -1398,11 +1318,11 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
 
     // const auto & leftHandContact = contacts_.at(ContactState::Left);
     // Create hand contacts 
-    leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "LeftHand", 0.7);
-    rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "RightHand", 0.7);
+    // leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "LeftHand", 0.7);
+    // rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "RightHand", 0.7);
 
-    // leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot("human"), "Back", 0.7);
-    // rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot("human"), "RightShoulder", 0.7);
+    leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot("human"), "Back", 0.7);
+    rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot("human"), "RightShoulder", 0.7);
 
     
     const auto & leftHandContact = *leftHandContact_;

@@ -106,11 +106,12 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     /*! \brief Update the contactSet with the current contacts of the rbdyn robot object
      */
-    void updateContactSet(unsigned int robotIndex, whatRobot rob);
+    void updateContactSet(unsigned int robotIndex);
 
     /*! \brief Update the contactSet with the given contacts
      */
-    void updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex, whatRobot rob);
+    // void updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex, whatRobot rob);
+    void updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex);
 
     /*! \brief Update the normal contact force upper and lower bound in the contactSetObject
      * \param contactFMax map of the names of the contacts to update with the corresponding upper bounds
@@ -187,6 +188,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     double humanOmega()
     {
+      // return std::sqrt(9.81/xsensCoMpos_.z());
       return std::sqrt((9.81 + xsensCoMacc_.z())/xsensCoMpos_.z());
     };
 
@@ -309,7 +311,11 @@ private:
     Eigen::Vector3d comDesired_;
     Eigen::Vector3d comDesiredHum_;
 
-    Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.0054,0.351,0.951); // standup.bin : Eigen::Vector3d(0.007,0.229,0.92);
+    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.0054,0.351,0.951); 
+    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.007,0.229,0.92); // standup.bin
+    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.0054,0.0738,0.9938); // celia_nosuit1.bin
+    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.2815,0.3911,0.9948); // celia_suit1.bin
+    Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.215,-0.156,0.7801); // celia_suit1.bin
 
     Eigen::Vector3d xsensCoMpos_;
     Eigen::Vector3d xsensCoMvel_;
@@ -341,7 +347,9 @@ private:
     std::shared_ptr<TrajectoryModel> trajectories_; 
     std::vector<Eigen::Vector3d> traj_;
 
-    double humanMass_ = 42 + 2*1.1; // Wanchen is 42, each force shoe 1.1kg
+    // double humanMass_ = 42 + 2*1.1; // Wanchen is 42, each force shoe 1.1kg
+    // double humanMass_ = 52 + 2*1.1; // Celia is 52, each force shoe 1.1kg
+    double humanMass_ = 52 + 2*1.1 + 10 + 2*2.3; // Celia is 52, each force shoe 1.1kg, body weight 10 kg, legs weights 2.3kg, wrists weights 1.5kg
 
 
     /* Non normalized vector representing the plane (todo: normalize or implement a gui func to represent the polytopes)

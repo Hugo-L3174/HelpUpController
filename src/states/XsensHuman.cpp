@@ -6,7 +6,6 @@ void XsensHuman::configure(const mc_rtc::Configuration & config)
 {
   config("stiffness", stiffness_);
   config("robot", robot_);
-  config("offset", offset_);
 }
 
 void XsensHuman::start(mc_control::fsm::Controller & ctl_)
@@ -59,8 +58,6 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
     mc_rtc::log::info("Running human state with live Xsens mode.");
   }
   
-
-
   auto robotConfig = static_cast<std::map<std::string, mc_rtc::Configuration>>(ctl.config()("Xsens")(robot.name()));
   for(const auto & bodyConfig : robotConfig)
   {
@@ -127,18 +124,19 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
   auto & robot = ctl.robot(robot_);
 
   auto & realRobot = ctl.realRobot(robot_);
-  // auto & grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GroundOffset");
+  // Should this be commented?
+  auto & grounding_offset = ctl.datastore().get<sva::PTransformd>("XsensHuman::GroundOffset");
 
   // // getting transform from foot to ground (to apply everywhere)
-  // auto X_ground_foot = realRobot.surfacePose("RightSole").inv();
-  // X_ground_foot.translation().x() = 0;
-  // X_ground_foot.translation().y() = 0;
-  // X_ground_foot.translation().z() *= 3; // *3 otherwise is too small
-  // // writing offset in datastore, to be applied by XsensPlugin (applying on positions read by mujoco and others)
-  // grounding_offset = X_ground_foot;
+  auto X_foot_0 = sva::interpolate(robot.surfacePose("LeftSole_ForceShoe"), robot.surfacePose("RightSole_ForceShoe"), 0.5).inv(); 
+  X_foot_0.translation().x() = 0; // (we only want the vertical offset)
+  X_foot_0.translation().y() = 0;
+  // writing offset in datastore, to be applied by XsensPlugin (applying on positions read by mujoco and others)
+  grounding_offset = X_foot_0;
 
   // // Debug:
-  // mc_rtc::log::info("offset is {}", X_ground_foot.translation());
+  // mc_rtc::log::info("pose is {}", X_foot_0.inv().translation().z());
+  // mc_rtc::log::info("offset to apply is {}", X_foot_0.translation().z());
   // mc_rtc::log::info("entries are: ");
   // for (const auto & entry:ctl.datastore().keys())
   // {
@@ -167,12 +165,8 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
       try
       {
         const auto segmentPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName); 
-        auto poseTarget = body.second.offset * segmentPose * offset_;
-        if (bodyName.compare("RAnkleLink") == 0 || bodyName.compare("LAnkleLink") == 0)
-        {
-          poseTarget.rotation() = sva::PTransformd::Identity().rotation();
-        }
-        tasks_[bodyName]->target(poseTarget);
+        // maybe add offset computations here if processing of log (livemode_ = false), otherwise done in xsensplugin
+        tasks_[bodyName]->target(segmentPose);
   
       }
       catch(...)

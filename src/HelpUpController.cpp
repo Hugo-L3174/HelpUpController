@@ -1183,15 +1183,28 @@ void HelpUpController::updateRealHumContacts()
   
 
 
-  if (RFootGround->pair.getDistance()<=distThreshold)   // Distance is low enough to consider contact
+  // if (RFootGround->pair.getDistance()<=distThreshold)   // Distance is low enough to consider contact
+  // {
+  //   addRealHumContact("RightSole", 0, humanMass_*9.81, ContactType::support);
+  //   // std::cout<<"adding right sole"<<std::endl;
+  // }
+
+  // if (LFootGround->pair.getDistance()<=distThreshold)
+  // {
+  //   addRealHumContact("LeftSole", 0, humanMass_*9.81, ContactType::support);
+  //   // std::cout<<"adding left sole"<<std::endl;
+  // }
+
+  // We switch to a force shoes condition
+  if (RFShoe_.force().z() + RBShoe_.force().z() >= 20.)   // Vertical force is high enough to consider contact
   {
-    addRealHumContact("RightSole", 0, humanMass_*9.81, ContactType::support);
+    addRealHumContact("RightSole_ForceShoe", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding right sole"<<std::endl;
   }
 
-  if (LFootGround->pair.getDistance()<=distThreshold)
+  if (LFShoe_.force().z() + LBShoe_.force().z() >= 20.)
   {
-    addRealHumContact("LeftSole", 0, humanMass_*9.81, ContactType::support);
+    addRealHumContact("LeftSole_ForceShoe", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding left sole"<<std::endl;
   }
 

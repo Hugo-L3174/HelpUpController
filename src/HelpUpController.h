@@ -311,6 +311,7 @@ private:
     Eigen::Vector3d comDesired_;
     Eigen::Vector3d comDesiredHum_;
 
+    // final position depending on log
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.0054,0.351,0.951); 
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.007,0.229,0.92); // standup.bin
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.0054,0.0738,0.9938); // celia_nosuit1.bin

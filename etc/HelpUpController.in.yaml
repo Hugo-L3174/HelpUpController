@@ -144,12 +144,12 @@ contacts:
   dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
 - r1: human
   r2: ground
-  r1Surface: LeftSole
+  r1Surface: LeftSole_ForceShoe
   r2Surface: AllGround
   dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 - r1: human
   r2: ground
-  r1Surface: RightSole
+  r1Surface: RightSole_ForceShoe
   r2Surface: AllGround
   dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 # - r1: human
@@ -759,13 +759,13 @@ ObserverPipelines:
   gui: true
   log: true
   observers:
-  # - type: Encoder                        # - Use an EncoderObserver
-  #   config: 
-  #     robot: human
-  #     updateRobot: human                             
-  #     position: encoderValues            #    - Sets joint position from encoder sensor values (default)
-  #     velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
-  #     computeFV: true 
+  - type: Encoder                        # - Use an EncoderObserver
+    config: 
+      robot: human
+      updateRobot: human                             
+      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
+      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
+      computeFV: true 
   - type: BodySensor                     # - Use a BodySensor observer
     update: true                        #   Do not update the real robot state
     gui: true                           #   Do not display in the gui
@@ -792,7 +792,8 @@ Plugins: [XsensPlugin, Replay, ForceShoePlugin] #ForceShoePlugin
 # configuration for Replay plugin
 Replay:
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_nosuit1.bin #  forceshoes1.bin  
-  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin
+  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin
+  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit2.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes_celia.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin
   with-inputs: false
@@ -805,90 +806,91 @@ ForceShoes:
 
 # configuration for XsensHuman state
 Xsens:
-  liveMode: false
+  liveMode: true
   human:
     HipsLink:
       segment: "Pelvis"
       offset:
-        translation: [0, 0, -0.05]
+        translation: [0, 0, 0]
     TorsoLink:
       segment: "T8" # Sternum
       offset:
-        translation: [0, 0, -0.45]
+        translation: [0, 0, -0.31] # torso is 31cm higher than pelvis for celia model, but urdf orig is same as pelvis
         rotation: [0, 0, 0]
     HeadLink:
       segment: "Head"
       offset:
-        translation: [0, 0, -0.05]
+        translation: [0, 0, 0]
         rotation: [0, 0, 0]
-    torso2rshoulder_2: #might be 2 instead of 1
-      segment: "Right Upper Arm"
-      offset:
-        translation: [0, -0.0, 0.0]
-        rotation: [0, 0, 0]
-    torso2rshoulder_1:
-      segment: "Right Upper Arm"
-      offset:
-        translation: [0, -0.0, 0.0]
-        rotation: [0, 0, 0]
+    # Getting rid of shoulder retargeting
+    # torso2rshoulder_2: #might be 2 instead of 1
+    #   segment: "Right Upper Arm"
+    #   offset:
+    #     translation: [0, 0.0, -0.05] # 5cm lower for celia model (whole arm)
+    #     rotation: [0, 0, 0]
+    # torso2rshoulder_1:
+    #   segment: "Right Upper Arm"
+    #   offset:
+    #     translation: [0, -0.0, -0.05]
+    #     rotation: [0, 0, 0]
     RForearmLink:
       segment: "Right Forearm"
       offset:
-        translation: [0, -0.0, 0.0]
+        translation: [0, -0.0, -0.00]
         rotation: [0, 0, 0]
     RHandLink:
       segment: "Right Hand"
       offset:
-        translation: [0, 0, 0.0]
+        translation: [0, 0, -0.00]
         rotation: [0, 0, 0]
-    torso2lshoulder_2:
-      segment: "Left Upper Arm"
-      offset:
-        translation: [0, 0.0, 0.0]
-        rotation: [0, 0, 0]
-    torso2lshoulder_1:
-      segment: "Left Upper Arm"
-      offset:
-        translation: [0, 0.0, 0.0]
-        rotation: [0, 0, 0]
+    # torso2lshoulder_2:
+    #   segment: "Left Upper Arm"
+    #   offset:
+    #     translation: [0, 0.0, -0.05] # 5cm lower for celia model (whole arm)
+    #     rotation: [0, 0, 0]
+    # torso2lshoulder_1:
+    #   segment: "Left Upper Arm"
+    #   offset:
+    #     translation: [0, 0.0, -0.05]
+    #     rotation: [0, 0, 0]
     LForearmLink:
       segment: "Left Forearm"
       offset:
-        translation: [0, 0.0, 0.0]
+        translation: [0, 0.0, -0.00]
         rotation: [0, 0, 0]
     LHandLink:
       segment: "Left Hand"
       offset:
-        translation: [0, 0, 0.0]
+        translation: [0, 0, -0.00]
         rotation: [0, 0, 0]
     RLegLink:
       segment: "Right Upper Leg"
       offset:
-        translation: [0, 0, -0.1]
+        translation: [0, 0, -0.12] # 10cm lower for celia
         rotation: [0, 0, 0]
     RShinLink:
       segment: "Right Lower Leg"
       offset:
-        translation: [0, 0, 0]
+        translation: [0, 0, 0.0] # 5cm higher for celia
         rotation: [0, 0, 0]
     RAnkleLink:
       segment: "Right Foot"
       offset:
-        translation: [0, 0, 0]
+        translation: [0, 0, 0.0]
         rotation: [0, 0, 0]
     LLegLink:
       segment: "Left Upper Leg"
       offset:
-        translation: [0, 0, -0.1]
+        translation: [0, 0, -0.12]
         rotation: [0, 0, 0]
     LShinLink:
       segment: "Left Lower Leg"
       offset:
-        translation: [0, 0, 0]
+        translation: [0, 0, 0.0] # 5cm higher for celia
         rotation: [0, 0, 0]
     LAnkleLink:
       segment: "Left Foot"
       offset:
-        translation: [0, 0, 0]
+        translation: [0, 0, 0.0]
         rotation: [0, 0, 0]
     

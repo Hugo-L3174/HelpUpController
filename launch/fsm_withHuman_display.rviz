@@ -22,7 +22,6 @@ Panels:
     Name: Views
     Splitter Ratio: 0.5
   - Class: rviz/Time
-    Experimental: false
     Name: Time
     SyncMode: 0
     SyncSource: ""
@@ -35,457 +34,6 @@ Toolbars:
 Visualization Manager:
   Class: ""
   Displays:
-    - Alpha: 1
-      Class: rviz/RobotModel
-      Collision Enabled: false
-      Enabled: true
-      Links:
-        All Links Enabled: true
-        Expand Joint Details: false
-        Expand Link Details: false
-        Expand Tree: false
-        Link Tree Style: Links in Alphabetic Order
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        ground:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-      Name: Ground
-      Robot Description: /control/env_2/robot_description
-      TF Prefix: control/env_2
-      Update Interval: 0
-      Value: true
-      Visual Enabled: true
-    - Alpha: 1
-      Class: rviz/RobotModel
-      Collision Enabled: false
-      Enabled: false
-      Links:
-        All Links Enabled: true
-        Expand Joint Details: false
-        Expand Link Details: false
-        Expand Tree: false
-        Link Tree Style: Links in Alphabetic Order
-      Name: ControlRobot
-      Robot Description: /control/robot_description
-      TF Prefix: control
-      Update Interval: 0
-      Value: false
-      Visual Enabled: true
-    - Alpha: 1
-      Class: rviz/RobotModel
-      Collision Enabled: false
-      Enabled: false
-      Links:
-        All Links Enabled: true
-        Expand Joint Details: false
-        Expand Link Details: false
-        Expand Tree: false
-        Link Tree Style: Links in Alphabetic Order
-      Name: Human
-      Robot Description: /control/env_3/robot_description
-      TF Prefix: control/env_3
-      Update Interval: 0
-      Value: false
-      Visual Enabled: true
-    - Alpha: 1
-      Class: rviz/RobotModel
-      Collision Enabled: false
-      Enabled: true
-      Links:
-        All Links Enabled: true
-        Expand Joint Details: false
-        Expand Link Details: false
-        Expand Tree: false
-        Link Tree Style: Links in Alphabetic Order
-        back_support:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        chair:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        left_handle:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        leg_fl:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        leg_fr:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        leg_rl:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        leg_rr:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        right_handle:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-      Name: Chair
-      Robot Description: /control/env_1/robot_description
-      TF Prefix: control/env_1
-      Update Interval: 0
-      Value: true
-      Visual Enabled: true
-    - Alpha: 1
-      Class: rviz/RobotModel
-      Collision Enabled: false
-      Enabled: true
-      Links:
-        Accelerometer:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        All Links Enabled: true
-        CHEST_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        Expand Joint Details: false
-        Expand Link Details: false
-        Expand Tree: false
-        Gyro:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        L_ANKLE_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_ANKLE_R_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_ELBOW_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_F22_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_F23_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_F32_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_F33_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_F42_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_F43_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_F52_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_F53_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_HAND_J0_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_HAND_J1_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_HIP_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_HIP_R_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_HIP_Y_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_KNEE_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_SHOULDER_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_SHOULDER_R_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_SHOULDER_Y_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_WRIST_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_WRIST_Y_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        LeftFootForceSensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LeftHandForceSensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        Link Tree Style: Links in Alphabetic Order
-        NECK_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        NECK_Y_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_ANKLE_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_ANKLE_R_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_ELBOW_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_F22_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_F23_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_F32_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_F33_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_F42_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_F43_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_F52_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_F53_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_HAND_J0_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_HAND_J1_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_HIP_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_HIP_R_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_HIP_Y_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_KNEE_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_SHOULDER_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_SHOULDER_R_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_SHOULDER_Y_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_WRIST_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        R_WRIST_Y_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        RightFootForceSensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RightHandForceSensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        body:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        gaze:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        l_ankle:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        l_gripper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        l_sole:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        l_wrist:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        r_ankle:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        r_gripper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        r_gripper_sensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        r_sole:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        r_wrist:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        rgbd_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        torso:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        xtion_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-      Name: RealRobot
-      Robot Description: /real/robot_description
-      TF Prefix: real
-      Update Interval: 0
-      Value: true
-      Visual Enabled: true
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -807,11 +355,362 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-      Name: RealHuman
-      Robot Description: /real/env_3/robot_description
-      TF Prefix: real/env_3
+      Name: ControlHuman
+      Robot Description: /control/env_2/robot_description
+      TF Prefix: control/env_2
       Update Interval: 0
       Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        Accelerometer:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        All Links Enabled: true
+        CHEST_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Gyro:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        L_ANKLE_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_ANKLE_R_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_ELBOW_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_HIP_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_HIP_R_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_HIP_Y_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_KNEE_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_SHOULDER_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_SHOULDER_R_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_SHOULDER_Y_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_WRIST_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_WRIST_Y_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        LeftFootForceSensor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        LeftHandForceSensor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        Link Tree Style: Links in Alphabetic Order
+        NECK_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        NECK_Y_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_ANKLE_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_ANKLE_R_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_ELBOW_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_HIP_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_HIP_R_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_HIP_Y_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_KNEE_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_SHOULDER_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_SHOULDER_R_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_SHOULDER_Y_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_WRIST_P_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_WRIST_Y_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        RightFootForceSensor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        RightHandForceSensor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        gaze:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_ankle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_gripper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_sole:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_wrist:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        r_ankle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        r_gripper:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_gripper_sensor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_sole:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_wrist:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rgbd_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        torso:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        xtion_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: ControlRobot
+      Robot Description: /control/robot_description
+      TF Prefix: control
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        ground:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: Ground
+      Robot Description: /control/env_3/robot_description
+      TF Prefix: control/env_3
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        back_support:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        chair:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_handle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        leg_fl:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        leg_fr:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        leg_rl:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        leg_rr:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_handle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: ControlChair
+      Robot Description: /control/env_1/robot_description
+      TF Prefix: control/env_1
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: false
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Name: RealRobot
+      Robot Description: /real/robot_description
+      TF Prefix: real
+      Update Interval: 0
+      Value: false
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: false
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Name: RealHuman
+      Robot Description: /real/env_2/robot_description
+      TF Prefix: real/env_2
+      Update Interval: 0
+      Value: false
       Visual Enabled: true
     - Alpha: 1
       Class: rviz/RobotModel
@@ -883,7 +782,8 @@ Visualization Manager:
       Marker Topic: /mc_rtc_rviz
       Name: mc_rtc GUI markers
       Namespaces:
-        {}
+        Polytopes/MainRobBalanceRegion: true
+        Tasks/lipm_stabilizer_hrp4/Markers/Contacts/SupportContacts: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -930,9 +830,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5150002241134644
+      Pitch: 0.6500002145767212
       Target Frame: <Fixed Frame>
-      Yaw: 6.1713032722473145
+      Yaw: 2.043117046356201
     Saved: ~
 Window Geometry:
   Displays:
@@ -940,7 +840,7 @@ Window Geometry:
   Height: 1043
   Hide Left Dock: false
   Hide Right Dock: true
-  QMainWindow State: 000000ff00000000fd000000040000000000000201000003b9fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000004bb000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb00000018006d0063005f007200740063002000700061006e0065006c010000003d000001f50000007100fffffffb000000100044006900730070006c0061007900730100000238000001be000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000013b000003b4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d000003b4000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000078000000058fc0100000002fb0000000800540069006d0065000000000000000780000004f300fffffffb0000000800540069006d0065010000000000000450000000000000000000000531000003b900000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000040000000000000201000003b9fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000004bb000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb00000018006d0063005f007200740063002000700061006e0065006c010000003d000001f50000007100fffffffb000000100044006900730070006c0061007900730100000238000001be000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000013b000003b4fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d000003b4000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000078000000058fc0100000002fb0000000800540069006d00650000000000000007800000041800fffffffb0000000800540069006d0065010000000000000450000000000000000000000531000003b900000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:

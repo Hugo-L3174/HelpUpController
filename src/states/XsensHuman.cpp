@@ -165,8 +165,22 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
       try
       {
         const auto segmentPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName); 
-        // maybe add offset computations here if processing of log (livemode_ = false), otherwise done in xsensplugin
-        tasks_[bodyName]->target(segmentPose);
+        // Offset computations here if processing of log (livemode_ = false), otherwise done in xsensplugin
+        auto targetPose = sva::PTransformd::Identity();
+        targetPose = segmentPose;
+        if (!liveMode_)
+        {
+          targetPose = segmentPose * grounding_offset;
+          if (bodyName.compare("RAnkleLink") == 0 || bodyName.compare("LAnkleLink") == 0)
+          {
+            auto footTarget = targetPose;
+            auto zRot = footTarget.rotation().bottomRightCorner<1,1>();
+            targetPose.rotation() = sva::PTransformd::Identity().rotation();
+            targetPose.rotation().diagonal() << 1., 1., zRot ;      
+          }
+        }
+        
+        tasks_[bodyName]->target(targetPose);
   
       }
       catch(...)

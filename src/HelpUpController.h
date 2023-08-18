@@ -22,6 +22,9 @@
 #include <thread>
 #include <atomic>
 
+#include <gram_savitzky_golay/gram_savitzky_golay.h>
+#include <boost/circular_buffer.hpp>
+
 #include "api.h"
 
 enum whatRobot
@@ -188,23 +191,24 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     double humanOmega()
     {
-      // return std::sqrt(9.81/xsensCoMpos_.z());
-      return std::sqrt((9.81 + xsensCoMacc_.z())/xsensCoMpos_.z());
-    };
-
-    double humanOmegaOld()
-    {
-      return std::sqrt(9.81/xsensCoMpos_.z());
-    };
-
-    double humanb()
-    {
-      return 1/humanOmega();
+      if (OmegaZAcc_)
+      {
+        return std::sqrt((9.81 + xsensCoMacc_.z())/xsensCoMpos_.z());
+      }
+      else
+      {
+        return std::sqrt(9.81/xsensCoMpos_.z());
+      }
+          
     };
 
     double dotHumanOmega()
     {
-      return (humanOmega() - prevOmega_)/timeStep;
+      // return ((humanOmega() - prevOmega_)/timeStep);
+
+      // config: m = 9 (Window size is 2*m+1), t = m = 9 (evaluate polynomial at first point in the [-m;m] window) , n = 4 (Polynomial Order), s = 1 (first order derivative), dt = timestep 
+      gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
+      return filter.filter(humanOmegaBuffer_);
     };
 
     double mainOmega()
@@ -212,26 +216,23 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       return std::sqrt(9.81/robot().com().z());
     };
 
-    double mainRealOmega()
-    {
-      return std::sqrt(9.81/realRobot().com().z());
-    };
 
     Eigen::Vector3d humanXsensDCM()
     {
       return xsensCoMpos_ + xsensCoMvel_ / humanOmega();
     };
 
-    Eigen::Vector3d dotHumanXsensDCM()
-    {
-      return xsensCoMvel_ + xsensCoMacc_ / humanOmega();
-    };
+    // This is the previous assumption that omega is a constant
+    // Eigen::Vector3d dotHumanXsensDCM()
+    // {
+    //   return xsensCoMvel_ + xsensCoMacc_ / humanOmega();
+    // };
 
-    Eigen::Vector3d humanXsensVRP()
-    {
-      // return xsensCoMpos_ + xsensCoMacc_ / (humanOmega()*humanOmega() - dotHumanOmega());
-      return humanXsensDCM() - humanb() * dotHumanXsensDCM();
-    };
+    // Eigen::Vector3d humanXsensVRP()
+    // {
+    //   // return xsensCoMpos_ + xsensCoMacc_ / (humanOmega()*humanOmega() - dotHumanOmega());
+    //   return humanXsensDCM() - dotHumanXsensDCM() / humanOmega();
+    // };
 
     Eigen::Vector3d humanVRPmodel()
     {
@@ -274,9 +275,24 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       DCMerror_ = xsensFinalpos_ - humanXsensDCM();
     }
 
+    Eigen::Vector3d dotDCMerrorV1()
+    {
+      return ((DCMerror_ - prevDCMerror_)/timeStep);
+    }
+
+    Eigen::Vector3d dotDCMerror()
+    {
+      // return ((DCMerror_ - prevDCMerror_)/timeStep);
+
+      // config: m = 9 (Window size is 2*m+1), t = m = 9 (evaluate polynomial at first point in the [-m;m] window) , n = 4 (Polynomial Order), s = 1 (first order derivative), dt = timestep 
+      gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
+      return filter.filter(DCMerrorBuffer_);
+    }
+
+
     void computeCommandVRP()
     {
-      commandVRP_ = humanXsensDCM() - (1/(humanOmega()-(dotHumanOmega()/humanOmega())))*(/*DCMdyn?*/ VRPpropgain_*(DCMerror_) + VRPinteggain_ * ((DCMerror_ - prevDCMerror_)/timeStep));
+      commandVRP_ = humanXsensDCM() - (1/(humanOmega()-(dotHumanOmega()/humanOmega())))*(/*DCMdyn?*/ VRPpropgain_*(DCMerror_) + VRPinteggain_ * dotDCMerror());
     }
 
     Eigen::Vector3d desiredVRP()
@@ -292,10 +308,10 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       return robot().com() + robot().comVelocity() / mainOmega();
     };
 
-    Eigen::Vector3d mainRealDCM()
-    {
-      return realRobot().com() + realRobot().comVelocity() / mainRealOmega();
-    };
+    // Eigen::Vector3d mainRealDCM()
+    // {
+    //   return realRobot().com() + realRobot().comVelocity() / mainRealOmega();
+    // };
 
     // Parametrized start offset of the log to sychronize. Default: start offset at 0, acquisition frequency of force shoes at 100Hz
     sva::ForceVecd getCurrentForceVec(std::vector<sva::ForceVecd> log, double startOffset = 0, double freq = 100);
@@ -315,8 +331,8 @@ private:
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.0054,0.351,0.951); 
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.007,0.229,0.92); // standup.bin
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.0054,0.0738,0.9938); // celia_nosuit1.bin
-    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.2815,0.3911,0.9948); // celia_suit1.bin
-    Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.215,-0.156,0.7801); // celia_suit1.bin
+    Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.2815,0.3911,0.9948); // celia_suit1.bin
+    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.215,-0.156,0.7801); // celia_suit1.bin
 
     Eigen::Vector3d xsensCoMpos_;
     Eigen::Vector3d xsensCoMvel_;
@@ -326,6 +342,12 @@ private:
 
     Eigen::Vector3d DCMerror_ = Eigen::Vector3d::Identity();
     Eigen::Vector3d prevDCMerror_ = Eigen::Vector3d::Identity();
+
+    // filter buffers for omega and dcm error derivatives
+    boost::circular_buffer<double> humanOmegaBuffer_;
+    boost::circular_buffer<Eigen::Vector3d> DCMerrorBuffer_;
+
+    bool OmegaZAcc_ = true;
 
     Eigen::Vector3d commandVRP_ = humanVRPmodel();
     double VRPpropgain_ = 3.0;

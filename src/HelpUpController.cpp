@@ -4,6 +4,7 @@
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
 : mc_control::fsm::Controller(rm, dt, config), polytopeIndex_(0), polytopeHumIndex_(0), computed_(false), computedHum_(false), computing_(false), 
 computingHum_(false), transitionning_(false), transitionningHum_(false), readyForComp_(false), readyForCompHum_(false)
+, DCMerrorBuffer_(19), humanOmegaBuffer_(19)
 {
   // Load entire controller configuration file
   config_.load(config);
@@ -133,6 +134,23 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   {
     auto forceVect = sva::ForceVecd(Eigen::Vector3d(data4["Tx"][i], data4["Ty"][i], data4["Tz"][i]), Eigen::Vector3d(data4["Fx"][i], data4["Fy"][i], data4["Fz"][i]));
     RFShoeVec_.push_back(forceVect);
+  }
+
+  if (config_.has("Omega"))
+  {
+    OmegaZAcc_ = config_("Omega")("WithVerticalAcc");
+  }
+  
+
+  // initializing filter buffers for omega and dcm error derivatives
+  for (int i = 0; i < DCMerrorBuffer_.capacity(); i++)
+  {
+    DCMerrorBuffer_.push_back(DCMerror_);
+  }
+  
+  for (int i = 0; i < humanOmegaBuffer_.capacity(); i++)
+  {
+    humanOmegaBuffer_.push_back(humanOmega());
   }
 
 
@@ -310,14 +328,16 @@ bool HelpUpController::run()
     }
   }
   
-  t_ += solver().dt();
-  computeDCMerror();
-  prevOmega_ = humanOmega();
   prevDCMerror_ = DCMerror_;
+  prevOmega_ = humanOmega();
+  humanOmegaBuffer_.push_back(humanOmega());
+  DCMerrorBuffer_.push_back(DCMerror_);
+  computeDCMerror();
   computeCommandVRP();
   sva::ForceVecd desiredCoMWrench;
   desiredCoMWrench.force() = missingForces();
   distributeHandsWrench(desiredCoMWrench);
+  t_ += solver().dt();
   bool ok = mc_control::fsm::Controller::run();
   return ok;
 }
@@ -565,10 +585,20 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("DCM_XsensDCM", logDCMhum);
 
-  auto logVRPhum = [this](){
-    return humanXsensVRP();
+  auto logdotDCMerror = [this](){
+    return dotDCMerror();
   };
-  logger().addLogEntry("DCM_XsensVRP", logVRPhum);
+  logger().addLogEntry("DCM_human dot DCM error", logdotDCMerror);
+
+  auto logdotDCMerrorv1 = [this](){
+    return dotDCMerrorV1();
+  };
+  logger().addLogEntry("DCM_human dot DCM error V1", logdotDCMerrorv1);
+
+  // auto logVRPhum = [this](){
+  //   return humanXsensVRP();
+  // };
+  // logger().addLogEntry("DCM_XsensVRP", logVRPhum);
 
   auto logVRPhumModel = [this](){
     return humanVRPmodel();
@@ -585,18 +615,13 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("DCM_human omega", logOmega);
 
-  auto logOmegaOld = [this](){
-    return humanOmegaOld();
-  };
-  logger().addLogEntry("DCM_human omega no vertical com acc", logOmegaOld);
-
   auto logOmegaSquared = [this](){
     return humanOmega()*humanOmega();
   };
   logger().addLogEntry("DCM_human omega square", logOmegaSquared);
 
   auto logDotOmega = [this](){
-    return (humanOmega()-prevOmega_)/solver().dt();
+    return dotHumanOmega();
   };
   logger().addLogEntry("DCM_human dot omega", logDotOmega);
 
@@ -696,6 +721,9 @@ void HelpUpController::addGuiElements()
 
   mc_rtc::gui::ArrowConfig ShoesforceArrowConfig = forceArrowConfig;
   ShoesforceArrowConfig.color = COLORS.at('y');
+
+  mc_rtc::gui::ArrowConfig MissingforceArrowConfig = forceArrowConfig;
+  MissingforceArrowConfig.color = COLORS.at('g');
   
 
   gui()->addElement({"CoM"},
@@ -708,13 +736,12 @@ void HelpUpController::addGuiElements()
   );
 
   gui()->addElement({"DCM dynamics"},
-      mc_rtc::gui::Point3D("mainDCM", mc_rtc::gui::PointConfig(COLORS.at('b'), DCM_POINT_SIZE), [this]() { return mainCtlDCM(); }),
-      mc_rtc::gui::Point3D("mainDCMreal", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return mainRealDCM(); }),
+      // mc_rtc::gui::Point3D("mainDCM", mc_rtc::gui::PointConfig(COLORS.at('b'), DCM_POINT_SIZE), [this]() { return mainCtlDCM(); }),
       mc_rtc::gui::Point3D("humanDCMXsens", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return humanXsensDCM(); }),
-      mc_rtc::gui::Point3D("humanVRPXsens", mc_rtc::gui::PointConfig(COLORS.at('r'), DCM_POINT_SIZE), [this]() { return humanXsensVRP(); }),
       mc_rtc::gui::Point3D("humanVRPmodel", mc_rtc::gui::PointConfig(COLORS.at('y'), DCM_POINT_SIZE), [this]() { return humanVRPmodel(); }),
       mc_rtc::gui::Point3D("humanVRPmeasured", mc_rtc::gui::PointConfig(COLORS.at('r'), DCM_POINT_SIZE), [this]() { return humanVRPmodel(); }),
-      mc_rtc::gui::Point3D("computedVRPcommand", mc_rtc::gui::PointConfig(COLORS.at('g'), DCM_POINT_SIZE), [this]() { return desiredVRP(); }),
+      // this is the computed vrp to achieve the desired xsensFinalpos_ (not sure)
+      // mc_rtc::gui::Arrow("missingForces", MissingforceArrowConfig, [this]() -> Eigen::Vector3d { return desiredVRP(); }, [this]() -> Eigen::Vector3d { return xsensCoMpos_; }),
       mc_rtc::gui::Arrow("DCM-VRP", VRPforceArrowConfig, [this]() -> Eigen::Vector3d { return /*humanXsensVRP()*/ humanVRPmodel(); }, [this]() -> Eigen::Vector3d { return humanXsensDCM(); })
   
   );

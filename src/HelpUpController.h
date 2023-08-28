@@ -334,9 +334,9 @@ private:
     Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.2815,0.3911,0.9948); // celia_suit1.bin
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.215,-0.156,0.7801); // celia_suit1.bin
 
-    Eigen::Vector3d xsensCoMpos_;
-    Eigen::Vector3d xsensCoMvel_;
-    Eigen::Vector3d xsensCoMacc_;
+    Eigen::Vector3d xsensCoMpos_ = Eigen::Vector3d::Identity();
+    Eigen::Vector3d xsensCoMvel_ = Eigen::Vector3d::Identity();
+    Eigen::Vector3d xsensCoMacc_ = Eigen::Vector3d::Identity();
 
     double prevOmega_ = std::sqrt(9.81);
 

@@ -17,8 +17,8 @@ StatesFiles:
 # If true, state factory will be more verbose
 VerboseStateFactory: false
 
-# Initial position of main robot
-# We update it in the controller reset to place robot and chair depending on the human
+# Initial position of main robot (still needed for mujoco)
+# We update it in the reset state to place robot and chair depending on the human
 init_pos: 
   # translation: [-0.2, -0.4, 0.77] # e2dr
   translation: [-0.20, -0.2, 0.75] # hrp4
@@ -131,27 +131,27 @@ collisions:
 
 
 # Initial set of contacts hrp4
-contacts:
-- r1: hrp4
-  r2: ground
-  r1Surface: LeftFoot
-  r2Surface: AllGround
-  dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
-- r1: hrp4
-  r2: ground
-  r1Surface: RightFoot
-  r2Surface: AllGround
-  dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
-- r1: human
-  r2: ground
-  r1Surface: LeftSole_ForceShoe
-  r2Surface: AllGround
-  dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-- r1: human
-  r2: ground
-  r1Surface: RightSole_ForceShoe
-  r2Surface: AllGround
-  dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+# contacts:
+# - r1: hrp4
+#   r2: ground
+#   r1Surface: LeftFoot
+#   r2Surface: AllGround
+#   dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+# - r1: hrp4
+#   r2: ground
+#   r1Surface: RightFoot
+#   r2Surface: AllGround
+#   dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+# - r1: human
+#   r2: ground
+#   r1Surface: LeftSole_ForceShoe
+#   r2Surface: AllGround
+#   dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+# - r1: human
+#   r2: ground
+#   r1Surface: RightSole_ForceShoe
+#   r2Surface: AllGround
+#   dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 # - r1: human
 #   r2: chair
 #   r1Surface: RCheek
@@ -251,9 +251,27 @@ surfacesMaxForces:
 
 # FSM states
 states:
-  Wait:
-    base: Pause
-    duration: 10.0
+
+  ResetStateHRP4:
+    base: ResetPoses
+    chairOffset: 
+      translation: [0.1, 0.0, -0.6]
+      rotation: [0.0, 0.0, 0.0]
+    robotOffset:
+      translation: [0.3, 0.1, 0.75]
+      rotation: [0.0, 0.0, 1.6] 
+    AddContactsAfter:
+      - r1: hrp4
+        r2: ground
+        r1Surface: LeftFoot
+        r2Surface: AllGround
+        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+      - r1: hrp4
+        r2: ground
+        r1Surface: RightFoot
+        r2Surface: AllGround
+        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+
 
   TakePositionE2DR:
     base: MetaTasks
@@ -719,6 +737,7 @@ states:
 
 # Transitions map for human tracking
 transitions:  
+- [ResetStateHRP4, OK, HelpDemoHRP4, Auto]
 - [HelpDemoHRP4, OK, HelpDemoHRP4, Strict]
 
 
@@ -730,7 +749,7 @@ transitions:
 
 
 # Initial state
-init: HelpDemoHRP4
+init: ResetStateHRP4
 
 
 ObserverPipelines:
@@ -792,8 +811,8 @@ Plugins: [XsensPlugin, Replay, ForceShoePlugin] #ForceShoePlugin
 # configuration for Replay plugin
 Replay:
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_nosuit1.bin #  forceshoes1.bin  
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin
-  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit2.bin
+  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin
+  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit2.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes_celia.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin
   with-inputs: false
@@ -801,12 +820,15 @@ Replay:
   with-gui-inputs: false
   with-datastore-config: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/log-to-datastore.yaml
 
+Omega:
+  WithVerticalAcc: true
+
 ForceShoes:
   liveMode: false
 
 # configuration for XsensHuman state
 Xsens:
-  liveMode: true
+  liveMode: false
   human:
     HipsLink:
       segment: "Pelvis"

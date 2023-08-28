@@ -32,7 +32,7 @@ target_link_libraries(${PROJECT_NAME}
   Stabiliplus::StabilityPolytope
   eigen-quadprog::eigen-quadprog
   sch-core::sch-core
-  gram_savitzky_golay::gram_savitzky_golay_sva
+  gram_savitzky_golay::gram_savitzky_golay
   )
 target_include_directories(${PROJECT_NAME}
   PUBLIC

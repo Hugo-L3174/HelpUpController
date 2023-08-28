@@ -142,78 +142,84 @@ bool XsensHuman::run(mc_control::fsm::Controller & ctl_)
   // {
   //   mc_rtc::log::info("{}", entry);
   // }
-    
-  try
-  {
-    const auto CoMpos = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos"); 
-    const auto CoMvel = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel"); 
-    const auto CoMacc = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc"); 
-    ctl.setxsensCoM(CoMpos, CoMvel, CoMacc);
-  }
-  catch(...)
-  {
-    mc_rtc::log::error("No datastore value for human CoM");
-  }
-  
 
-  for(const auto & body: bodyConfigurations_)
+  // Checking that xsens plugin is advertising data
+  if (ctl.datastore().has("XsensPlugin"))
   {
-    const auto & bodyName = body.first;
-    const auto & segmentName = body.second.segmentName;
-    if(robot.hasBody(bodyName))
+  
+    try
     {
-      try
+      const auto CoMpos = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos"); 
+      const auto CoMvel = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel"); 
+      const auto CoMacc = ctl.datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc"); 
+      ctl.setxsensCoM(CoMpos, CoMvel, CoMacc);
+    }
+    catch(...)
+    {
+      mc_rtc::log::error("No datastore value for human CoM");
+    }
+    
+
+    for(const auto & body: bodyConfigurations_)
+    {
+      const auto & bodyName = body.first;
+      const auto & segmentName = body.second.segmentName;
+      if(robot.hasBody(bodyName))
       {
-        const auto segmentPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName); 
-        // Offset computations here if processing of log (livemode_ = false), otherwise done in xsensplugin
-        auto targetPose = sva::PTransformd::Identity();
-        targetPose = segmentPose;
-        if (!liveMode_)
+        try
         {
-          targetPose = segmentPose * grounding_offset;
-          if (bodyName.compare("RAnkleLink") == 0 || bodyName.compare("LAnkleLink") == 0)
+          const auto segmentPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName); 
+          // Offset computations here if processing of log (livemode_ = false), otherwise done in xsensplugin
+          auto targetPose = sva::PTransformd::Identity();
+          targetPose = segmentPose;
+          if (!liveMode_)
           {
-            auto footTarget = targetPose;
-            auto zRot = footTarget.rotation().bottomRightCorner<1,1>();
-            targetPose.rotation() = sva::PTransformd::Identity().rotation();
-            targetPose.rotation().diagonal() << 1., 1., zRot ;      
+            targetPose = segmentPose * grounding_offset;
+            if (bodyName.compare("RAnkleLink") == 0 || bodyName.compare("LAnkleLink") == 0)
+            {
+              auto footTarget = targetPose;
+              auto zRot = footTarget.rotation().bottomRightCorner<1,1>();
+              targetPose.rotation() = sva::PTransformd::Identity().rotation();
+              targetPose.rotation().diagonal() << 1., 1., zRot ;      
+            }
           }
+          
+          tasks_[bodyName]->target(targetPose);
+    
+        }
+        catch(...)
+        {
+          mc_rtc::log::error("[{}] No pose for segment {}", name(), segmentName);
+        }
+
+        try
+        {
+          const auto segmentVel = ctl.datastore().call<sva::MotionVecd>("XsensPlugin::GetSegmentVel", segmentName);
+          tasks_[bodyName]->refVelB(segmentVel);
+        }
+        catch(...)
+        {
+          mc_rtc::log::error("[{}] No velocity for segment {}", name(), segmentName);
+        }
+
+        try
+        {
+          const auto segmentAcc = ctl.datastore().call<sva::MotionVecd>("XsensPlugin::GetSegmentAcc", segmentName);
+          tasks_[bodyName]->refAccel(segmentAcc);
+        }
+        catch(...)
+        {
+          mc_rtc::log::error("[{}] No acceleration for segment {}", name(), segmentName);
         }
         
-        tasks_[bodyName]->target(targetPose);
-  
+        
       }
-      catch(...)
+      else
       {
-        mc_rtc::log::error("[{}] No pose for segment {}", name(), segmentName);
+        mc_rtc::log::error("[{}] No body named {}", name(), bodyName);
       }
-
-      try
-      {
-        const auto segmentVel = ctl.datastore().call<sva::MotionVecd>("XsensPlugin::GetSegmentVel", segmentName);
-        tasks_[bodyName]->refVelB(segmentVel);
-      }
-      catch(...)
-      {
-        mc_rtc::log::error("[{}] No velocity for segment {}", name(), segmentName);
-      }
-
-      try
-      {
-        const auto segmentAcc = ctl.datastore().call<sva::MotionVecd>("XsensPlugin::GetSegmentAcc", segmentName);
-        tasks_[bodyName]->refAccel(segmentAcc);
-      }
-      catch(...)
-      {
-        mc_rtc::log::error("[{}] No acceleration for segment {}", name(), segmentName);
-      }
-      
-      
     }
-    else
-    {
-      mc_rtc::log::error("[{}] No body named {}", name(), bodyName);
-    }
+
   }
   output("OK");
   return true;

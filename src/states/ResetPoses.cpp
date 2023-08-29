@@ -22,11 +22,16 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
   if(ctl.datastore().has("XsensPlugin"))
   {
     HipsPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName);
+
+    // Keeping rotation yaw but setting roll and pitch to zero (basically keeping chair horizontal)
+    HipsPose.rotation() = stateObservation::kine::mergeRoll1Pitch1WithYaw2AxisAgnostic(sva::PTransformd::Identity().rotation(), HipsPose.rotation());
+    // Initializing at zero height (easier)
+    HipsPose.translation().z() = sva::PTransformd::Identity().translation().z();
     
     if(ctl.robots().hasRobot("chair")){
 
       // Adjust chair position relative to human model
-      ctl.robots().robot("chair").posW(ctl.robots().robot("human").posW() * chairOffset_);
+      ctl.robots().robot("chair").posW(HipsPose * chairOffset_);
 
       // Adjust main robot position relative to chair
       ctl.robots().robot().posW(ctl.robots().robot("chair").posW() * robotOffset_); 

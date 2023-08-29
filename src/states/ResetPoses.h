@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mc_control/fsm/State.h>
+#include <state-observation/tools/rigid-body-kinematics.hpp>
 
 struct ResetPoses : mc_control::fsm::State
 {

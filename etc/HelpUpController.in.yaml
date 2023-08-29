@@ -272,6 +272,11 @@ states:
         r2Surface: AllGround
         dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
 
+  
+  RobotStabilizerHRP4:
+    base: RobotStabilizer
+    
+
 
   TakePositionE2DR:
     base: MetaTasks
@@ -728,11 +733,11 @@ states:
 
   HelpDemoHRP4:
     base: Parallel
-    states: [XsensHumanPose,  HelpFSM_HRP4] #AddCollisionWithHuman,
+    states: [XsensHumanPose, RobotStabilizerHRP4, HelpFSM_HRP4] #AddCollisionWithHuman, 
 
   HelpDemoE2DR:
     base: Parallel
-    states: [XsensHumanPose,  HelpFSM_E2DR]
+    states: [XsensHumanPose, RobotStabilizerE2DR, HelpFSM_E2DR]
 
 
 # Transitions map for human tracking

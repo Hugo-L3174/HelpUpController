@@ -21,7 +21,7 @@ VerboseStateFactory: false
 # We update it in the reset state to place robot and chair depending on the human
 init_pos: 
   # translation: [-0.2, -0.4, 0.77] # e2dr
-  translation: [-0.20, -0.2, 0.75] # hrp4
+  translation: [-0.06, -0.19, 0.75] # hrp4 # orig pose of chair here is [-0.27, 0.36, 0.0], we apply offset of [0.3, 0.1, 0.8] (with rotation of 1.6) -> +y becomes +x, +x becomes -y
   rotation: [0.0, 0.0, 1.6]
 
 
@@ -30,11 +30,11 @@ robots:
   chair:
     module: env/chair
     init_pos:
-      translation: [-0.37, 0.35, 0.0] #0.0
+      translation: [-0.27, 0.36, 0.0] # orig pose of hips here is [-0.37, 0.36, 0.0], we apply offset of [0.1, 0.0, 0.0]
   human:
     module: human
     init_pos:
-      translation: [-0.37, 0.35, 0.6] #0.12 [-0.35, 0.22, 0.6]
+      translation: [-0.37, 0.36, 0.66] 
   ground:
     module: env/ground
     # init_pos:
@@ -255,7 +255,7 @@ states:
   ResetStateHRP4:
     base: ResetPoses
     chairOffset: 
-      translation: [0.1, 0.0, -0.6]
+      translation: [0.1, 0.0, 0.0]
       rotation: [0.0, 0.0, 0.0]
     robotOffset:
       translation: [0.3, 0.1, 0.75]
@@ -275,7 +275,11 @@ states:
   
   RobotStabilizerHRP4:
     base: RobotStabilizer
-    
+    ExternalWrenchConfig:
+      addExpectedCoMOffset: true
+      modifyCoMErr: true
+      modifyZMPErr: true
+      modifyZMPErrD: true
 
 
   TakePositionE2DR:
@@ -292,8 +296,8 @@ states:
           robot: human
           frame:  RightShoulder #Chest
           translation: [0.0, 0.0, 0.05]
-          controlPoints:
-            - [-0.2, 0.2, 0.2]
+          # controlPoints:
+          #   - [-0.2, 0.2, 0.2]
       LHandTrajectory:
         type: bspline_trajectory
         robot: e2dr #e2dr hrp4
@@ -305,8 +309,8 @@ states:
           robot: human
           frame: Back
           translation: [0.0, 0.0, 0.05]
-          controlPoints: # in target frame !
-            - [-0.2, -0.2, 0.2]
+          # controlPoints: # in target frame !
+          #   - [-0.2, -0.2, 0.2]
     # RemoveCollisionsAfter:
     #   - r1: e2dr
     #     r2: human
@@ -322,16 +326,16 @@ states:
     #         sDist: 0.0001
     #         damping: 0
     AddContactsAfter: # here the contact constraint added is on the x and y axis to keep position
+      - r1: e2dr 
+        r2: human
+        r1Surface: RightHand 
+        r2Surface: RightShoulder 
+        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
       - r1: e2dr #e2dr hrp4
         r2: human
-        r1Surface: RightHand #Flat
-        r2Surface: RightShoulder #Chest 
-        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0] # last one is z axis
-      - r1: e2dr #e2dr hrp4
-        r2: human
-        r1Surface: LeftHand #Flat
+        r1Surface: LeftHand 
         r2Surface: Back 
-        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
+        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
 
   TakePositionHRP4:
     base: MetaTasks
@@ -346,7 +350,7 @@ states:
         targetFrame:
           robot: human
           frame:  RightShoulder
-          translation: [0.0, 0.0, 0.05]
+          translation: [0.0, 0.0, 0.02]
           # controlPoints:
           #   - [-0.2, 0.2, 0.2]
       LHandTrajectory:
@@ -360,7 +364,7 @@ states:
           robot: human
           frame: Back
           # translation: [0.0, 0.23, 0.05]
-          translation: [0.0, 0.0, 0.05]
+          translation: [0.0, 0.0, 0.02]
           # controlPoints: # in target frame !
           #   - [-0.2, -0.2, 0.2]
     # RemoveCollisionsAfter:
@@ -380,14 +384,14 @@ states:
     AddContactsAfter: # here the contact constraint added is on the x and y axis to keep position
       - r1: hrp4
         r2: human
-        r1Surface: RightHand
+        r1Surface: RightHandFlat
         r2Surface: RightShoulder 
-        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0] # last one is z axis
+        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
       - r1: hrp4
         r2: human
-        r1Surface: LeftHand
+        r1Surface: LeftHandFlat
         r2Surface: Back 
-        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
+        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
 
   MakeHandContactsE2DR:
     base: MetaTasks
@@ -532,20 +536,25 @@ states:
         dof: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
 
-  KeepPosition:
+  KeepPositionHRP4:
     base: RobotHolding # add compliance mode to robot holding
     weight: 1000
     stiffness: 10
-    mode: forceConstrained
+    robot: hrp4
+    # mode: forceConstrained
     ForceRHand: 
-      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.005] # force control: low stiffness high damping; position control: high stiffness low damping
-      stiffness: [100, 100, 100, 100, 100, 10]
+      surface: RightHandFlat
+      target: RightShoulder
+      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01] # force control: low stiffness high damping; position control: high stiffness low damping
+      stiffness: [10, 10, 10, 10, 10, 1]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
       maxVel: [0.2, 0.2, 0.5]
       wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
     ForceLHand:
-      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.005]
-      stiffness: [100, 100, 100, 100, 100, 10]
+      surface: LeftHandFlat
+      target: Back
+      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01]
+      stiffness: [10, 10, 10, 10, 10, 1]
       damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
       maxVel: [0.2, 0.2, 0.5]
       wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
@@ -590,7 +599,7 @@ states:
 
 
 
-  GoBackInitHrp4:
+  GoBackInitHRP4:
     base: MetaTasks
     RemoveContacts:
       - r1: hrp4 #e2dr
@@ -714,19 +723,17 @@ states:
     base: Meta
     transitions:
     - [Pause_2s, OK, TakePositionHRP4, Strict]
-    # - [TakePosition, OK, HoldingBothHands, Strict]
-    - [TakePositionHRP4, OK, MakeHandContactsHRP4, Strict]
-    - [MakeHandContactsHRP4, OK, KeepPositionCompliHRP4, Strict]
-    - [KeepPositionCompliHRP4, OK, GoBackInitHRP4, Strict]
+    # - [TakePositionHRP4, OK, MakeHandContactsHRP4, Strict]
+    # - [MakeHandContactsHRP4, OK, KeepPositionHRP4, Strict]
+    - [TakePositionHRP4, OK, KeepPositionHRP4, Strict]
+    - [KeepPositionHRP4, OK, GoBackInitHRP4, Strict]
     - [GoBackInitHRP4, OK, HRP4pos, Strict]
 
   HelpFSM_E2DR:
     base: Meta
     transitions:
     - [Pause_2s, OK, TakePositionE2DR, Strict]
-    # - [TakePosition, OK, HoldingBothHands, Strict]
     - [TakePositionE2DR, OK, MakeHandContactsE2DR, Strict] #KeepPosition
-    # - [HoldingBothHands, OK, GoBackInitHrp4, Strict]
     - [MakeHandContactsE2DR, OK, KeepPositionCompliE2DR, Strict]
     - [KeepPositionCompliE2DR, OK, GoBackInitHRP4, Strict]
     - [GoBackInitHRP4, OK, HRP4pos, Strict]
@@ -739,6 +746,10 @@ states:
     base: Parallel
     states: [XsensHumanPose, RobotStabilizerE2DR, HelpFSM_E2DR]
 
+# OK between the states is the transition if the state output is OK -> I can branch with 
+# - [StateA, Output1, StateB]
+# - [StateA, Output2, StateC]
+# If I change the state output
 
 # Transitions map for human tracking
 transitions:  

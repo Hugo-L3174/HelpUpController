@@ -75,6 +75,9 @@ protected:
 protected:
   std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask> stabilizerTask_ = nullptr;
   mc_rtc::Configuration config_; /**< Full state configuration */
+
+  mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration ExternalWrenchConf_;
+
   bool hasCompletion_ = false; /**< If the latest definition of the state configuration has an empty "completion"
                                    element, no completion rule will be used */
 

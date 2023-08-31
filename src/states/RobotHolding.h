@@ -2,7 +2,10 @@
 
 #include <mc_control/fsm/State.h>
 #include <mc_tasks/AdmittanceTask.h>
+#include <mc_tasks/ComplianceTask.h>
+#include <mc_tasks/DampingTask.h>
 #include "Tasks/TrackDesiredForceTask.h"
+#include <mc_rbdyn/lipm_stabilizer/StabilizerConfiguration.h>
 
 enum holdMode
 {
@@ -27,6 +30,8 @@ struct RobotHolding : mc_control::fsm::State
 private:
 
     std::shared_ptr<mc_tasks::force::AdmittanceTask> rightHandAdmittancePtr_, leftHandAdmittancePtr_;
+    std::shared_ptr<mc_tasks::force::DampingTask> rightHandDampingPtr_, leftHandDampingPtr_;
+    std::shared_ptr<mc_tasks::force::ComplianceTask> rightHandCompliPtr_, leftHandCompliPtr_;
 
     std::shared_ptr<TrackDesiredForceTask> rightHandForceConstPtr_, leftHandForceConstPtr_;
     int mode_ = simpleAdmi;
@@ -38,12 +43,14 @@ private:
     Eigen::Vector6d RHdamping_;
     Eigen::Vector3d RHmaxVel_;
     sva::ForceVecd RHwrench_;
-    // std::string RHtargetSurf_;
+    std::string RHsurf_;
+    std::string RHtarget_;
 
     Eigen::Vector6d LHadmittance_;
     Eigen::Vector6d LHstiffness_;
     Eigen::Vector6d LHdamping_;
     Eigen::Vector3d LHmaxVel_;
     sva::ForceVecd LHwrench_;
-    // std::string LHtargetSurf_;
+    std::string LHsurf_;
+    std::string LHtarget_;
 };

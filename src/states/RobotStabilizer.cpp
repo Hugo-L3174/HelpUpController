@@ -45,6 +45,20 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
   // Reset linear inverted pendulum model, used here to compute stabilizer references
   double lambda = constants::GRAVITY / stabilizerTask_->config().comHeight;
   pendulum_.reset(lambda, robot.com(), robot.comVelocity(), robot.comAcceleration());
+
+  if (config_.has("ExternalWrenchConfig"))
+  {
+    config_("ExternalWrenchConfig")("addExpectedCoMOffset", ExternalWrenchConf_.addExpectedCoMOffset);
+    config_("ExternalWrenchConfig")("modifyCoMErr", ExternalWrenchConf_.modifyCoMErr);
+    config_("ExternalWrenchConfig")("modifyZMPErr", ExternalWrenchConf_.modifyZMPErr);
+    config_("ExternalWrenchConfig")("modifyZMPErrD", ExternalWrenchConf_.modifyZMPErr);
+  }
+
+  // Do we need to set this?
+  // ExternalWrenchConf_.subtractMeasuredValue = true;
+
+  stabilizerTask_->externalWrenchConfiguration(ExternalWrenchConf_);
+
   if(config_.has("above"))
   {
     const std::string above = config_("above");
@@ -174,6 +188,9 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
                                    const std::vector<sva::ForceVecd> & targetWrenches,
                                    const std::vector<sva::MotionVecd> & gains)
                             { stabilizerTask_->setExternalWrenches(surfaceNames, targetWrenches, gains); });
+  ctl.datastore().make_call("RobotStabilizer::setExternalWrenchConfiguration",
+                            [this](const mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration & extWrenchConfig)
+                            { stabilizerTask_->externalWrenchConfiguration(extWrenchConfig); });                          
   ctl.datastore().make_call("RobotStabilizer::getCoPAdmittance",
                             [this]() { return stabilizerTask_->config().copAdmittance; });
   ctl.datastore().make_call("RobotStabilizer::setCoPAdmittance", [this](const Eigen::Vector2d & copAdmittance)

@@ -69,6 +69,16 @@ class ComputationPoint
     return triangles_;
   }
 
+  std::shared_ptr<PointProjector> getProjector() const
+  {
+    return projector_;
+  }
+
+  std::shared_ptr<RobustStabilityPolytope> getPolytope() const
+  {
+    return polytope_;
+  }
+
   // std::vector<Eigen::Vector3d> getEdges() const
   // {
   //   return edgesPoly_;

@@ -33,40 +33,13 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   // init display regions
   balanceCompPoint_ = currentCompPoint_;
   balanceHumCompPoint_ = currentHumCompPoint_;
+
+  // init DCM objective
+  DCMobjective_ = robot("human").com(); 
+
   
-  comTask_ = std::make_shared<mc_tasks::CoMTask> (robots(), robots().robotIndex(), 5.0, 2e3); // Stiffness 5, weight 2000
-  comTask_->damping(10.0); 
-  // comTask_->com(realRobot().com());
   comDesired_ = robot().com();
-  comTask_->com(robot().com()); 
-
-  // human com task is created here but managed in custom state
-  comTaskHum_ = std::make_shared<mc_tasks::CoMTask> (robots(), robots().robotIndex("human"), 5.0, 2e3); // Stiffness 5, weight 1000
-  comTaskHum_->damping(10.0); 
   comDesiredHum_ = robot("human").com();
-  comTaskHum_->com(robot("human").com());
-
-  // Stabilizer task: check configuration?
-  auto stabConf = robot().module().defaultLIPMStabilizerConfiguration();
-  stabTask_ = std::make_shared<mc_tasks::lipm_stabilizer::StabilizerTask>(
-          solver().robots(),
-          solver().realRobots(),
-          robot().robotIndex(),
-          dt
-          );
-
-  stabTask_->reset();
-  // stabConf.comHeight = 0.7; // We let it depend on the robot configuration
-  // stabConf.torsoWeight = 10;
-  // stabConf.pelvisWeight = 100;
-  // stabConf.comStiffness[2]=1000;
-  // stabConf.comHeight = 0.75;
-  // stabConf.pelvisWeight = 1000;
-  // stabConf.comStiffness[0]=1000;
-  // stabConf.comStiffness[1]=2000;
-  // stabConf.comStiffness[2]=2000;
-  stabTask_->configure(stabConf);
-  stabTask_->staticTarget(robot().com()); // be careful that the controller will not update the objective if the com is not currently in the balance region
 
   // surfaces pointers for live contact sets
   const auto & human_surfaces = robot("human").surfaces();
@@ -246,26 +219,30 @@ bool HelpUpController::run()
       computedHum_ = false;
       updateRealHumContacts();
       // updateContactSet(robots().robotIndex("human"), human); // todo: update internal contacts from estimation
-      updateContactForces();
+      // updateContactForces();
       readyForCompHum_ = true;
     }
 
-    // start the computation
-    if (!computedHum_ and readyForCompHum_ )
+    // Check if there are any contacts (otherwise no computation)
+    if (contactSetHum_->numberOfContacts() > 0)
     {
-      polytopeHumIndex_++;
-      polytopeHumReady_ = false;
-
-      if (contactSetHum_->numberOfContacts()>1)
+      // start the computation
+      if (!computedHum_ and readyForCompHum_ )
       {
+        polytopeHumIndex_++;
+        polytopeHumReady_ = false;
+
         stabThreadHum_ = std::thread([this](int polIndex, std::shared_ptr<ContactSet> contactSetHum){
           this->computeStabilityRegion(contactSetHum, human, true, polIndex);
           polytopeHumReady_ = true;
         }, polytopeHumIndex_, std::make_shared<ContactSet>(*contactSetHum_));
         computingHum_ = true;
+        
+        readyForCompHum_ = false;
       }
-      readyForCompHum_ = false;
     }
+    
+    
 
   }
   else // computing_ == true => currently computing
@@ -316,7 +293,38 @@ bool HelpUpController::run()
   // ------------------------------------------- transition human
   if (transitionningHum_)
   {
-    // if we are not in next
+    // Now checking if DCM is in polytope instead of com
+
+    // getting newly computed polytope
+    nextHumCompPoint_->constraintPlanes();
+    // updating the polytope to be displayed
+    balanceHumCompPoint_ = nextHumCompPoint_;
+    // Checking if dcm is in polytope
+    if (isVertexInPlanes(humanXsensDCM(), nextHumCompPoint_->constraintPlanes(), 0.03))
+    {
+      // if ok then keep objective as current dcm
+      DCMobjective_ = humanXsensDCM();
+    }
+    else
+    {
+      // if not in polytope, project closest point from the DCM belonging to the polytope and give this as objective
+      try
+      {
+        auto projector = nextHumCompPoint_->getProjector();
+        projector->setPolytope(nextHumCompPoint_->getPolytope());
+        projector->setPoint(humanXsensDCM());
+        projector->project();
+        DCMobjective_ = projector->projectedPoint();
+      }
+      catch(...)
+      {
+        mc_rtc::log::error("failed to project");
+      }
+    }
+
+    transitionningHum_ = false;
+
+    /*// if we are not in next
     Eigen::Vector3d currentHumCoM = robot("human").com(); 
     nextHumCompPoint_->constraintPlanes();
     // update display regardless of com in or out
@@ -325,7 +333,7 @@ bool HelpUpController::run()
     {
       setNextToCurrent(human);
       transitionningHum_ = false;
-    }
+    }*/
   }
   
   prevDCMerror_ = DCMerror_;
@@ -404,7 +412,7 @@ void HelpUpController::computeStabilityRegion(std::shared_ptr<ContactSet> contac
   case human:
     futureHumCompPoint_ = std::make_shared<ComputationPoint> (polIndex, contactset);
     futureHumCompPoint_->computeEquilibriumRegion();
-    // futureCompPoint_->chebichevCenter();
+    // futureHumCompPoint_->chebichevCenter();
     if (save)
       {
         futureHumCompPoint_->save("");
@@ -420,7 +428,7 @@ bool HelpUpController::addTasksToSolver()
   // solver().addTask(comTask_); //We now use the stabilizer task to manage the com and not a simple com task 
   // human com is done in custom state
 
-  solver().addTask(stabTask_); 
+  // solver().addTask(stabTask_); 
 
   // solver().addConstraintSet(*comIncPlaneConstraintPtr_);
   planes_ = {};
@@ -595,6 +603,16 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("DCM_human dot DCM error V1", logdotDCMerrorv1);
 
+  auto logDCMobjhum = [this](){
+    return DCMobjective_;
+  };
+  logger().addLogEntry("DCM_objective", logDCMobjhum);
+
+  auto logDCMerror = [this](){
+    return DCMerror_;
+  };
+  logger().addLogEntry("DCM_error", logDCMerror);
+
   // auto logVRPhum = [this](){
   //   return humanXsensVRP();
   // };
@@ -731,7 +749,10 @@ void HelpUpController::addGuiElements()
       mc_rtc::gui::Point3D("mainCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return realRobot().com(); }), // Note that this is the control robot com and not the real robot com 
       mc_rtc::gui::Point3D("humanCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot("human").com(); }),
       mc_rtc::gui::Point3D("humanCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return realRobot("human").com(); }),
-      mc_rtc::gui::Point3D("humanCoMXsens", mc_rtc::gui::PointConfig(COLORS.at('b'), COM_POINT_SIZE), [this]() { return xsensCoMpos_; })
+      mc_rtc::gui::Point3D("humanCoMXsens", mc_rtc::gui::PointConfig(COLORS.at('b'), COM_POINT_SIZE), [this]() { return xsensCoMpos_; }),
+      mc_rtc::gui::Point3D("humanDCMobjective", mc_rtc::gui::PointConfig(COLORS.at('g'), DCM_POINT_SIZE), [this]() { return DCMobjective_; })/*,
+      mc_rtc::gui::Point3D("humanBaryCenter", mc_rtc::gui::PointConfig(COLORS.at('g'), COM_POINT_SIZE), [this]() { return comDesiredHum_; }),
+      mc_rtc::gui::Point3D("robotBaryCenter", mc_rtc::gui::PointConfig(COLORS.at('r'), COM_POINT_SIZE), [this]() { return comDesired_; })*/
       // mc_rtc::gui::Point3D("CoMcombined", CoMconfig2, [this]() { return combinedCoM_; })
   );
 
@@ -1053,7 +1074,8 @@ void HelpUpController::setNextToCurrent(whatRobot rob)
 
 void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
 {
-  double coef = 0.01;
+  // double coef = 0.01;
+  double coef = 0.1;
   Eigen::Vector3d prevCoM;
   switch(rob)
   {
@@ -1066,16 +1088,22 @@ void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
       desiredCoM[2] = 0.78;
       prevCoM = comDesired_;
       comDesired_ = (1-coef)*prevCoM + coef * desiredCoM;
-      // comTask_->com(comDesired_); 
+
       // Instead of the general com task we use the stabilizer task to manage the robot com 
-      stabTask_->staticTarget(comDesired_); 
+      if (datastore().has("RobotStabilizer::getTask"))
+      {
+        auto stabTask = datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
+        stabTask->staticTarget(comDesired_); 
+      }
+      
+      
       break;
     case human :
       // this is now deprecated and shouldn't be used since human com is managed by custom state
       desiredCoM[2] = 0.87;
       prevCoM = comDesiredHum_;
       comDesiredHum_ = (1-coef)*prevCoM + coef * desiredCoM;
-      comTaskHum_->com(comDesiredHum_);
+      // comTaskHum_->com(comDesiredHum_);
       break;
     case combined :
 
@@ -1351,9 +1379,9 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
     // -----------
     // CWC X_0_lhc* w_lh_0 <= 0  -- left hand wrench within contact wrench cone
     // CWC X_0_rhc* w_rh_0 <= 0  -- right hand wrench within contact wrench cone
-    // (X_0_lhc* w_lh_0).z() > minPressure  -- minimum left hand contact pressure to maintain contact
-    // (X_0_rhc* w_rh_0).z() > minPressure  -- minimum right hand contact pressure
-    // (X_0_lhc* w_lh_0).z() + (X_0_rhc* w_rh_0).z() < maxPressure -- maximum pressure on the human
+    // (X_0_lhc* w_lh_0).z() > minForce  -- minimum left hand contact force to maintain contact
+    // (X_0_rhc* w_rh_0).z() > minForce  -- minimum right hand contact force
+    // (X_0_lhc* w_lh_0).z() + (X_0_rhc* w_rh_0).z() < maxForce -- maximum force on the human
    
 
     // const auto & leftHandContact = contacts_.at(ContactState::Left);
@@ -1412,9 +1440,9 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
     // this is to be sure to have an equal repartition
 
     // double lfr = leftFootRatio_;
-    // auto A_pressure = A.block<1, 12>(18, 0);
-    // A_pressure.block<1, 6>(0, 0) = (1 - lfr) * X_0_lc.dualMatrix().bottomRows<1>();
-    // A_pressure.block<1, 6>(0, 6) = -lfr * X_0_rc.dualMatrix().bottomRows<1>();
+    // auto A_force = A.block<1, 12>(18, 0);
+    // A_force.block<1, 6>(0, 0) = (1 - lfr) * X_0_lc.dualMatrix().bottomRows<1>();
+    // A_force.block<1, 6>(0, 6) = -lfr * X_0_rc.dualMatrix().bottomRows<1>();
 
 
     // Apply weights
@@ -1431,7 +1459,7 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
 
     // The CoP constraint represent 4 linear constraints for each contact
     const int cwc_const = 12 + 4;
-    // Two contacts with cwc constraints + two min pressure constraints + one max pressure constraint
+    // Two contacts with cwc constraints + two min force constraints + one max force constraint
     const int nb_const = 2 * cwc_const + 2 + 1;
     Eigen::Matrix<double, -1, NB_VAR> A_ineq;
     Eigen::VectorXd b_ineq;
@@ -1449,15 +1477,15 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
     A_rh_cwc = rightHandContact.wrenchFaceMatrix().block(0, 0, cwc_const, 6); // * X_0_rhc.dualMatrix();
     // b_ineq.segment(cwc_const,cwc_const) is already zero
 
-    // w_l_lc.force().z() >= min_pressure
-    double minHandsPressure = 10.; // minimal contact force in Newtons
+    // w_l_lc.force().z() >= min_Force
+    double minHandsForce = 10.; // minimal contact force in Newtons
     A_ineq.block(nb_const - 3, 0, 1, 6) = -Eigen::Matrix6d::Identity().bottomRows<1>();  // selecting force only, identity bc va(riable is already in contact frame //-X_0_lhc.dualMatrix().bottomRows<1>();
-    b_ineq(nb_const - 3) = -minHandsPressure;
-    // w_r_rc.force().z() >= min_pressure
+    b_ineq(nb_const - 3) = -minHandsForce;
+    // w_r_rc.force().z() >= min_Force
     A_ineq.block(nb_const - 2, 6, 1, 6) = -Eigen::Matrix6d::Identity().bottomRows<1>(); //-X_0_rhc.dualMatrix().bottomRows<1>();
-    b_ineq(nb_const - 2) = -minHandsPressure;
-    // (X_0_lhc* w_lh_0).z() + (X_0_rhc* w_rh_0).z() < maxPressure
-    double maxCompression = 200.; // max pressure applied total on torso
+    b_ineq(nb_const - 2) = -minHandsForce;
+    // (X_0_lhc* w_lh_0).z() + (X_0_rhc* w_rh_0).z() < maxForce
+    double maxCompression = 200.; // max force applied total on torso
     A_ineq.block(nb_const - 1, 0, 1, 6) = Eigen::Matrix6d::Identity().bottomRows<1>(); // first 6 elements are lh
     A_ineq.block(nb_const - 1, 6, 1, 6) = Eigen::Matrix6d::Identity().bottomRows<1>(); // second 6 are rh
     b_ineq(nb_const - 1) = maxCompression;

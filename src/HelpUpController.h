@@ -163,11 +163,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     void addRightHandAdmittanceTask();
     void addLeftHandAdmittanceTask();
 
-    // security issue
-    std::shared_ptr<mc_tasks::CoMTask> getComTaskHum()
-    {
-      return comTaskHum_;
-    }
   
     std::optional<double> override_CoMz;
 
@@ -272,7 +267,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     void computeDCMerror()
     {
-      DCMerror_ = xsensFinalpos_ - humanXsensDCM();
+      DCMerror_ = DCMobjective_ - humanXsensDCM(); // DCMobjective formerly constant xsensFinalpos_
     }
 
     Eigen::Vector3d dotDCMerrorV1()
@@ -316,14 +311,22 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     // Parametrized start offset of the log to sychronize. Default: start offset at 0, acquisition frequency of force shoes at 100Hz
     sva::ForceVecd getCurrentForceVec(std::vector<sva::ForceVecd> log, double startOffset = 0, double freq = 100);
 
+    sva::ForceVecd getLHWrenchComputed()
+    {
+      return LHwrench_;
+    };
+
+    sva::ForceVecd getRHWrenchComputed()
+    {
+      return RHwrench_;
+    };
+
 
 private:
     mc_rtc::Configuration config_;
 
     double t_ = 0.0;
 
-    std::shared_ptr<mc_tasks::CoMTask> comTask_;
-    std::shared_ptr<mc_tasks::CoMTask> comTaskHum_;
     Eigen::Vector3d comDesired_;
     Eigen::Vector3d comDesiredHum_;
 
@@ -333,6 +336,8 @@ private:
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.0054,0.0738,0.9938); // celia_nosuit1.bin
     Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.2815,0.3911,0.9948); // celia_suit1.bin
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.215,-0.156,0.7801); // celia_suit1.bin
+
+    Eigen::Vector3d DCMobjective_; // formerly constant xsensFinalpos_
 
     Eigen::Vector3d xsensCoMpos_ = Eigen::Vector3d::Identity();
     Eigen::Vector3d xsensCoMvel_ = Eigen::Vector3d::Identity();

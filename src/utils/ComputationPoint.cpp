@@ -129,9 +129,9 @@ void ComputationPoint::save(std::string fileName)
   std::string suffix = "";
   // auto start = std::chrono::high_resolution_clock::now();
 
-  
-  system("mkdir -p /tmp/contactSets/");
-  system("mkdir -p /tmp/polytopes/");
+  int res;
+  res = system("mkdir -p /tmp/contactSets/");
+  res = system("mkdir -p /tmp/polytopes/");
   
   std::string contactSetFileName = "/tmp/contactSets/contactSet_" + std::to_string(index_) + suffix + ".xml";
   contactSet_->saveContactSet(contactSetFileName);
@@ -187,7 +187,7 @@ void ComputationPoint::save(std::string fileName)
   doc.InsertEndChild(xmlComputationPoint);
   
   // create the folder for the computation points
-  system("mkdir -p /tmp/computationPoints/");
+  res = system("mkdir -p /tmp/computationPoints/");
   
   std::string computationPointFileName;
   computationPointFileName = "/tmp/computationPoints/computationPoint_" + std::to_string(index_) + suffix + ".xml";
@@ -293,12 +293,22 @@ Eigen::Vector3d ComputationPoint::projectedOptimalCoM(Eigen::Vector3d comTarget)
 
 Eigen::Vector3d ComputationPoint::chebichevCenter()
 {
-  if (!chebichevComputed_)
+  if (polytope_->get_numberOfFaces() > 0)
+  {
+    if (!chebichevComputed_)
     {
       chebichevCenter_ = polytope_->chebichevCenter();
       chebichevComputed_ = true;
     }
-  return chebichevCenter_;
+    return chebichevCenter_;
+  }
+  else
+  {
+    return Eigen::Vector3d::Identity();
+  }
+  
+  
+  
 }
 
 double ComputationPoint::computeDistance(Eigen::Vector4d plane, Eigen::Vector3d pt) const

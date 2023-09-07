@@ -5,6 +5,7 @@
 void XsensHuman::configure(const mc_rtc::Configuration & config)
 {
   config("stiffness", stiffness_);
+  config("weight", weight_);
   config("robot", robot_);
 }
 

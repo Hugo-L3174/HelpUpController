@@ -9,6 +9,11 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   // Load entire controller configuration file
   config_.load(config);
   // trajectories_ = std::make_shared<TrajectoryModel> (/*path*/);
+  if (config_.has("handContactsForBalance"))
+  {
+    config_("handContactsForBalance", handContactsForBalance_);
+  }
+  
   
   /* Observers
   */
@@ -50,8 +55,8 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   RightShoulderSurf = human_surfaces.at("RightShoulder");
   BackSurf = human_surfaces.at("Back");
 
-  TopSurf = realRobot("chair").surfaces().at("Top");
-  GroundSurf = realRobot("ground").surfaces().at("AllGround");
+  TopSurf = robot("chair").surfaces().at("Top");
+  GroundSurf = robot("ground").surfaces().at("AllGround");
 
   // RHandSurf = realRobot("e2dr").surfaces().at("RightHand");
   // LHandSurf = realRobot("e2dr").surfaces().at("LeftHand");
@@ -223,23 +228,24 @@ bool HelpUpController::run()
       readyForCompHum_ = true;
     }
 
-    // Check if there are any contacts (otherwise no computation)
-    if (contactSetHum_->numberOfContacts() > 0)
+    // start the computation
+    if (!computedHum_ and readyForCompHum_ )
     {
-      // start the computation
-      if (!computedHum_ and readyForCompHum_ )
-      {
-        polytopeHumIndex_++;
-        polytopeHumReady_ = false;
+      polytopeHumIndex_++;
+      polytopeHumReady_ = false;
 
+      // Check if there are any contacts (otherwise no computation)
+      if (contactSetHum_->numberOfContacts() > 0)
+      {
         stabThreadHum_ = std::thread([this](int polIndex, std::shared_ptr<ContactSet> contactSetHum){
           this->computeStabilityRegion(contactSetHum, human, true, polIndex);
           polytopeHumReady_ = true;
         }, polytopeHumIndex_, std::make_shared<ContactSet>(*contactSetHum_));
         computingHum_ = true;
-        
-        readyForCompHum_ = false;
       }
+      
+      readyForCompHum_ = false;
+      
     }
     
     
@@ -955,7 +961,19 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
             homTrans.block<3,1>(0,3) = pos;
 
             ptName = surface.name() + "_" + std::to_string(ptCpt);
-            contactSet_->addContact(ptName, homTrans, mu, fmax, fmin, type);
+
+            // Not adding hand contacts to robot balance polytope (stabilizer issues)
+            if (handContactsForBalance_)
+            {
+              contactSet_->addContact(ptName, homTrans, mu, fmax, fmin, type);
+            }
+            else
+            {
+              if(!(surface_name == "LeftHandFlat" || surface_name == "RightHandFlat"))
+              {
+                contactSet_->addContact(ptName, homTrans, mu, fmax, fmin, type);
+              }
+            }
 
             ptCpt++;
           }
@@ -1203,7 +1221,7 @@ std::map<std::string, double> HelpUpController::getConfigFMin() const
 
 void HelpUpController::updateRealHumContacts()
 {
-  
+  // mc_rtc::log::info("Updating human contacts");
   RFootGround->update(robot("human"), robot("ground"));
   LFootGround->update(robot("human"), robot("ground"));
   RCheekChair->update(robot("human"), robot("chair"));
@@ -1211,7 +1229,7 @@ void HelpUpController::updateRealHumContacts()
   // RHandShoulder->update(robot(), robot("human"));
   // LHandBack->update(robot(), robot("human"));
 
-  double distThreshold = 0.005;
+  double distThreshold = 0.01;
   double speedThreshold = 1e-4;
 
   // for (auto contact:solver().contacts())
@@ -1251,13 +1269,13 @@ void HelpUpController::updateRealHumContacts()
   // }
 
   // We switch to a force shoes condition
-  if (RFShoe_.force().z() + RBShoe_.force().z() >= 20.)   // Vertical force is high enough to consider contact
+  if (RFShoe_.force().z() + RBShoe_.force().z() >= 10.)   // Vertical force is high enough to consider contact
   {
     addRealHumContact("RightSole_ForceShoe", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding right sole"<<std::endl;
   }
 
-  if (LFShoe_.force().z() + LBShoe_.force().z() >= 20.)
+  if (LFShoe_.force().z() + LBShoe_.force().z() >= 10.)
   {
     addRealHumContact("LeftSole_ForceShoe", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding left sole"<<std::endl;

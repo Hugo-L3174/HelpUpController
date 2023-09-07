@@ -52,10 +52,9 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
     config_("ExternalWrenchConfig")("modifyCoMErr", ExternalWrenchConf_.modifyCoMErr);
     config_("ExternalWrenchConfig")("modifyZMPErr", ExternalWrenchConf_.modifyZMPErr);
     config_("ExternalWrenchConfig")("modifyZMPErrD", ExternalWrenchConf_.modifyZMPErr);
+    config_("ExternalWrenchConfig")("substractMeasuredValue", ExternalWrenchConf_.subtractMeasuredValue);
   }
 
-  // Do we need to set this?
-  // ExternalWrenchConf_.subtractMeasuredValue = true;
 
   stabilizerTask_->externalWrenchConfiguration(ExternalWrenchConf_);
 
@@ -279,6 +278,8 @@ void RobotStabilizer::teardown(mc_control::fsm::Controller & ctl_)
   ctl.datastore().remove("RobotStabilizer::setExternalWrenches");
   ctl.datastore().remove("RobotStabilizer::getCoPAdmittance");
   ctl.datastore().remove("RobotStabilizer::setCoPAdmittance");
+  ctl.datastore().remove("RobotStabilizer::setExternalWrenchConfiguration");
+  ctl.datastore().remove("RobotStabilizer::getTask");
   if(ownsAnchorFrameCallback_) { ctl.datastore().remove(anchorFrameFunction_); }
 }
 

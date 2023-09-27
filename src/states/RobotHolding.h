@@ -4,6 +4,7 @@
 #include <mc_tasks/AdmittanceTask.h>
 #include <mc_tasks/ComplianceTask.h>
 #include <mc_tasks/DampingTask.h>
+#include <mc_tasks/ImpedanceTask.h>
 #include "Tasks/TrackDesiredForceTask.h"
 #include <mc_rbdyn/lipm_stabilizer/StabilizerConfiguration.h>
 
@@ -30,6 +31,7 @@ struct RobotHolding : mc_control::fsm::State
 private:
 
     std::shared_ptr<mc_tasks::force::AdmittanceTask> rightHandAdmittancePtr_, leftHandAdmittancePtr_;
+    std::shared_ptr<mc_tasks::force::ImpedanceTask> rightHandImpedancePtr_, leftHandImpedancePtr_;
     std::shared_ptr<mc_tasks::force::DampingTask> rightHandDampingPtr_, leftHandDampingPtr_;
     std::shared_ptr<mc_tasks::force::ComplianceTask> rightHandCompliPtr_, leftHandCompliPtr_;
 
@@ -45,6 +47,7 @@ private:
     sva::ForceVecd RHwrench_;
     std::string RHsurf_;
     std::string RHtarget_;
+    mc_tasks::force::ImpedanceGains RHimpGains_;
 
     Eigen::Vector6d LHadmittance_;
     Eigen::Vector6d LHstiffness_;
@@ -53,4 +56,5 @@ private:
     sva::ForceVecd LHwrench_;
     std::string LHsurf_;
     std::string LHtarget_;
+    mc_tasks::force::ImpedanceGains LHimpGains_;
 };

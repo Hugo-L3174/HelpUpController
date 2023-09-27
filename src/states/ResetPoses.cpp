@@ -55,15 +55,15 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
 
       // Adjust main robot position relative to chair
       mc_rtc::log::info("[ResetPoses state] Resetting main robot control position");
-      ctl.robots().robot().posW(ctl.robots().robot("chair").posW() * robotOffset_); 
+      ctl.robots().robot().posW(robotOffset_ * ctl.robots().robot("chair").posW()); 
 
       // Adjust observed main robot position relative to chair
       mc_rtc::log::info("[ResetPoses state] Resetting observed main robot control position");
-      ctl.realRobots().robot().posW(ctl.robots().robot("chair").posW() * robotOffset_);
+      ctl.realRobots().robot().posW(robotOffset_ * ctl.robots().robot("chair").posW());
 
       // adjust main robot position in mujoco
       mc_rtc::log::info("[ResetPoses state] Resetting main robot mujoco position");
-      ctl.datastore().call<void, const sva::PTransformd &>(fmt::format("{}::SetPosW", ctl.robots().robot().name()), ctl.robots().robot("chair").posW() * robotOffset_);
+      ctl.datastore().call<void, const sva::PTransformd &>(fmt::format("{}::SetPosW", ctl.robots().robot().name()), robotOffset_ * ctl.robots().robot("chair").posW());
 
     }
 

@@ -9,10 +9,20 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   // Load entire controller configuration file
   config_.load(config);
   // trajectories_ = std::make_shared<TrajectoryModel> (/*path*/);
-  if (config_.has("handContactsForBalance"))
-  {
-    config_("handContactsForBalance", handContactsForBalance_);
-  }
+  config_("handContactsForBalance", handContactsForBalance_);
+  auto measuredPerson = config_("measuredPerson");
+  measuredPerson("mass", humanMass_);
+  measuredPerson("withSuit", withSuit_);
+  measuredPerson("withShoes", withShoes_);
+  measuredPerson("withLegs", withLegs_);
+  measuredPerson("withWrists", withWrists_);
+
+  if (withSuit_) humanMass_ += vestMass_;
+  if (withLegs_) humanMass_ += (2*legsMass_);
+  if (withShoes_) humanMass_ += (2*shoesMass_);
+  if (withWrists_) humanMass_ += (2*wristsMass_);
+  
+  
   
   
   /* Observers
@@ -76,7 +86,7 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F3.yaml");
   mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F4.yaml");
 
-  // Second log: standing with help
+  // Second log: standing with perturbations
   // mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F5.yaml");
   // mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F6.yaml");
   // mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F7.yaml");
@@ -284,16 +294,44 @@ bool HelpUpController::run()
   // ------------------------------------------- transition robot
   if (transitionning_)
   {
-    // if we are not in next
     Eigen::Vector3d currentCoM = robot().com(); 
     nextCompPoint_->constraintPlanes(); 
     // update display regardless of com in or out
     balanceCompPoint_ = nextCompPoint_;
+    // checking if com is in robust balance polytope
     if (isVertexInPlanes(currentCoM, nextCompPoint_->constraintPlanes(), 0.03))
     {
-      setNextToCurrent(hrp4);
-      transitionning_ = false;
+      // setNextToCurrent(hrp4);
+      if (datastore().has("RobotStabilizer::getTask"))
+      {
+        auto stabTask = datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
+        // currentCoM.z() = 0.75;
+        stabTask->staticTarget(currentCoM); 
+      }
     }
+    else
+    {
+      // if not in polytope, project closest point from the DCM belonging to the polytope and give this as objective
+      try
+      {
+        auto projector = nextCompPoint_->getProjector();
+        projector->setPolytope(nextCompPoint_->getPolytope());
+        projector->setPoint(currentCoM);
+        projector->project();
+        if (datastore().has("RobotStabilizer::getTask"))
+        {
+          auto stabTask = datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
+          // currentCoM.z() = 0.75;
+          stabTask->staticTarget(projector->projectedPoint()); 
+        }
+      }
+      catch(...)
+      {
+        mc_rtc::log::error("failed to project");
+      }
+    }
+    
+    transitionning_ = false;
   }
 
   // ------------------------------------------- transition human

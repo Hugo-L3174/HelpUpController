@@ -249,20 +249,33 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       auto X_RF_0 = robot("human").surfacePose("RFsensor").inv();
       auto X_RB_0 = robot("human").surfacePose("RBsensor").inv();
 
+      auto X_LC_0 = robot("human").surfacePose("LCheek").inv();
+      auto X_RC_0 = robot("human").surfacePose("RCheek").inv();
+
       auto w_LF_0 = X_LF_0.dualMul(LFShoe_);
       auto w_LB_0 = X_LB_0.dualMul(LBShoe_);
       auto w_RF_0 = X_RF_0.dualMul(RFShoe_);
       auto w_RB_0 = X_RB_0.dualMul(RBShoe_);
-      auto Fc = X_0_C.dualMul(w_LF_0) + X_0_C.dualMul(w_LB_0) + X_0_C.dualMul(w_RF_0) + X_0_C.dualMul(w_RB_0);
+
+      auto w_LC_0 = X_RC_0.dualMul(LCheekForce_);
+      auto w_RC_0 = X_RC_0.dualMul(RCheekForce_);
+
+      auto Fc = X_0_C.dualMul(w_LF_0) + X_0_C.dualMul(w_LB_0) + X_0_C.dualMul(w_RF_0) + X_0_C.dualMul(w_RB_0) + X_0_C.dualMul(w_LC_0) + X_0_C.dualMul(w_RC_0);
       
       // Do this with transforms directly to the com instead of world origin: high moments can lead to numerical errors
       return Fc;
     }
 
+    // sva::ForceVecd estimatedChairForce()
+    // {
+    //   auto X_0_C = sva::PTransformd(xsensCoMpos_);
+      
+    // }
+
     // required missing forces on the hands to achieve desired VRP command
     Eigen::Vector3d missingForces()
     {
-      return humanMass_ * (humanOmega()*humanOmega()-dotHumanOmega()) * (xsensCoMpos_ - desiredVRP()) + humanMass_ * gravityVec() - humanVRPforces().force() ; 
+      return humanMass_ * (humanOmega()*humanOmega()-dotHumanOmega()) * (xsensCoMpos_ - desiredVRP()) + humanMass_ * gravityVec() - humanVRPforces().force() /*Missing butt contact force !*/; 
     }
 
     void computeDCMerror()
@@ -330,6 +343,8 @@ private:
     Eigen::Vector3d comDesired_;
     Eigen::Vector3d comDesiredHum_;
 
+    bool handContactsForBalance_ = false;
+
     // final position depending on log
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.0054,0.351,0.951); 
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.007,0.229,0.92); // standup.bin
@@ -375,9 +390,16 @@ private:
     std::shared_ptr<TrajectoryModel> trajectories_; 
     std::vector<Eigen::Vector3d> traj_;
 
-    // double humanMass_ = 42 + 2*1.1; // Wanchen is 42, each force shoe 1.1kg
-    // double humanMass_ = 52 + 2*1.1; // Celia is 52, each force shoe 1.1kg
-    double humanMass_ = 52 + 2*1.1 + 10 + 2*2.3; // Celia is 52, each force shoe 1.1kg, body weight 10 kg, legs weights 2.3kg, wrists weights 1.5kg
+    double humanMass_ = 50; //52 + 2*1.1 + 10 + 2*2.3; // Celia is 52, each force shoe 1.1kg, body weight 10 kg, legs weights 2.3kg, wrists weights 1.5kg
+    bool withSuit_ = false;
+    bool withLegs_ = false;
+    bool withWrists_ = false;
+    bool withShoes_ = true;
+
+    const double shoesMass_ = 1.1;
+    const double wristsMass_ = 1.5;
+    const double legsMass_ = 2.3;
+    const double vestMass_ =10;
 
 
     /* Non normalized vector representing the plane (todo: normalize or implement a gui func to represent the polytopes)
@@ -469,6 +491,7 @@ private:
 
     std::vector<sva::ForceVecd> LFShoeVec_, RFShoeVec_, LBShoeVec_, RBShoeVec_;
     sva::ForceVecd LFShoe_, RFShoe_, LBShoe_, RBShoe_;
+    sva::ForceVecd LCheekForce_, RCheekForce_ = sva::ForceVecd::Zero();
     sva::ForceVecd LHwrench_, RHwrench_;
     sva::ForceVecd RedistribWrench_;
     

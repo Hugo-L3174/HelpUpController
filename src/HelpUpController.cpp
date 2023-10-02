@@ -128,6 +128,12 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   {
     OmegaZAcc_ = config_("Omega")("WithVerticalAcc");
   }
+
+  if (config_.has("filteredDerivation"))
+  {
+    FilteredDerivation_ = config_("filteredDerivation");
+  }
+  
   
 
   // initializing filter buffers for omega and dcm error derivatives
@@ -138,7 +144,7 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
   
   for (int i = 0; i < humanOmegaBuffer_.capacity(); i++)
   {
-    humanOmegaBuffer_.push_back(humanOmega());
+    humanOmegaBuffer_.push_back(humanOmega_);
   }
 
 
@@ -177,6 +183,10 @@ bool HelpUpController::run()
   LBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLBForce");
   RFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRFForce");
   RBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRBForce");
+
+  xsensCoMpos_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos");
+  xsensCoMvel_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel");
+  xsensCoMacc_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc");
 
   // ------------------------------------- Computation polytope robot
   if (!computing_)
@@ -380,16 +390,23 @@ bool HelpUpController::run()
     }*/
   }
   
-  prevDCMerror_ = DCMerror_;
-  prevOmega_ = humanOmega();
-  humanOmegaBuffer_.push_back(humanOmega());
-  DCMerrorBuffer_.push_back(DCMerror_);
+  // Order: current dcm error computed, pushed in the buffer for filtered version of dotError, compute dotError (depending on the option), finally save current as previous
   computeDCMerror();
+  DCMerrorBuffer_.push_back(DCMerror_);
+  computeDotDCMerror();
+  
+  computeHumanOmega();
+  humanOmegaBuffer_.push_back(humanOmega_);
+  computeDotHumanOmega();
+
   computeCommandVRP();
-  sva::ForceVecd desiredCoMWrench;
-  desiredCoMWrench.force() = missingForces();
+  computeMissingForces();
+
+  auto desiredCoMWrench = sva::ForceVecd(Eigen::Vector3d::Zero(), missingForces_);
   distributeHandsWrench(desiredCoMWrench);
   t_ += solver().dt();
+  prevDCMerror_ = DCMerror_;
+  prevOmega_ = humanOmega_;
   bool ok = mc_control::fsm::Controller::run();
   return ok;
 }
@@ -509,9 +526,6 @@ void HelpUpController::addLogEntries()
   logger().addLogEntry("polytope_computationTime", [this]() -> const int { return currentCompPoint_->computationTime();});
   logger().addLogEntry("humPolytope_computationTime", [this]() -> const int { return currentHumCompPoint_->computationTime();});
 
-  logger().addLogEntry("Back_surf_pos" , [this]() -> const auto { return BackSurf->X_0_s(robot("human"));});
-  logger().addLogEntry("Shoulder_surf_pos" , [this]() -> const auto { return RightShoulderSurf->X_0_s(robot("human"));});
-
   // Logging the desired CoM computed
   auto desiredCoM = [this](){
     return comDesired_;
@@ -547,48 +561,11 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("human_com_real", realCoM);
 
-  // Logging the CoM velocity
-  auto controlCoMVel = [this](){
-    return this->robot().comVelocity();
-  };
-  logger().addLogEntry("comVel_control", controlCoMVel);
-
-  auto realCoMVel = [this](){
-    return this->realRobot().comVelocity();
-  };
-  logger().addLogEntry("comVel_real", realCoMVel);
-
-  // Logging the CoM acceleration
-  auto realCoMAcc = [this](){
-    return this->realRobot().comAcceleration();
-  };
-  logger().addLogEntry("comAcc_real", realCoMAcc);
-
-  // Logging the CoM acceleration
-  auto controlCoMAcc = [this](){
-    return this->robot().comAcceleration();
-  };
-  logger().addLogEntry("comAcc_control", controlCoMAcc);
 
   // auto desiredCoMVel = [this](){
   //   return this->comp_c_;
   // };
   // logger().addLogEntry("comVel_desired", desiredCoMVel);
-
-  auto xsensPos = [this](){
-    return this->xsensCoMpos_;
-  };
-  logger().addLogEntry("xsensCoMpose", xsensPos);
-
-  auto xsensVel = [this](){
-    return this->xsensCoMvel_;
-  };
-  logger().addLogEntry("xsensCoMvel", xsensVel);
-
-  auto xsensAcc = [this](){
-    return this->xsensCoMacc_;
-  };
-  logger().addLogEntry("xsensCoMacc", xsensAcc);
 
 
   // Logging the pose of the right hand for control and real.
@@ -612,25 +589,6 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("LeftHandPose_real", realLeftHand);
 
-  auto measuredTorquesHuman = [this](){
-    return this->realRobot("human").jointTorques();
-  };
-  logger().addLogEntry("Measured torques human", measuredTorquesHuman);
-
-  // auto controlTorquesHuman = [this](){
-  //   return this->robot("human").jointTorque().at(robot("human").jointIndexByName("RShin_0"));
-  // };
-  // logger().addLogEntry("Control torques human", controlTorquesHuman);
-
-  auto measuredTorquesHRP4 = [this](){
-    return this->realRobot().jointTorques();
-  };
-  logger().addLogEntry("Measured torques main robot", measuredTorquesHRP4);
-
-  auto controlTorquesHRP4 = [this](){
-    return this->robot().jointTorques();
-  };
-  logger().addLogEntry("Control torques main robot", controlTorquesHRP4);
 
   auto logDCMhum = [this](){
     return humanXsensDCM();
@@ -638,14 +596,9 @@ void HelpUpController::addLogEntries()
   logger().addLogEntry("DCM_XsensDCM", logDCMhum);
 
   auto logdotDCMerror = [this](){
-    return dotDCMerror();
+    return dotDCMerror_;
   };
   logger().addLogEntry("DCM_human dot DCM error", logdotDCMerror);
-
-  auto logdotDCMerrorv1 = [this](){
-    return dotDCMerrorV1();
-  };
-  logger().addLogEntry("DCM_human dot DCM error V1", logdotDCMerrorv1);
 
   auto logDCMobjhum = [this](){
     return DCMobjective_;
@@ -673,22 +626,18 @@ void HelpUpController::addLogEntries()
   logger().addLogEntry("DCM_VRPmeasured", logVRPhumMeasured);
 
   auto logOmega = [this](){
-    return humanOmega();
+    return humanOmega_;
   };
   logger().addLogEntry("DCM_human omega", logOmega);
 
-  auto logOmegaSquared = [this](){
-    return humanOmega()*humanOmega();
-  };
-  logger().addLogEntry("DCM_human omega square", logOmegaSquared);
 
   auto logDotOmega = [this](){
-    return dotHumanOmega();
+    return dotHumanOmega_;
   };
   logger().addLogEntry("DCM_human dot omega", logDotOmega);
 
   auto commandVRP = [this](){
-    return desiredVRP();
+    return commandVRP_;
   };
   logger().addLogEntry("DCM_desired VRP command", commandVRP);
 
@@ -717,10 +666,10 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("ForceShoes_MeasuredSum", CoMforces);
 
-  auto Missingforces = [this](){
-    return missingForces();
-  };
-  logger().addLogEntry("DCM_MissingForces", Missingforces);
+  // auto Missingforces = [this](){
+  //   return missingForces_;
+  // };
+  // logger().addLogEntry("DCM_MissingForces", Missingforces);
 
   auto QPLH = [this](){
     return LHwrench_;

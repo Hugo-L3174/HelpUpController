@@ -160,9 +160,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       return !transitionning_;
     }
 
-    void addRightHandAdmittanceTask();
-    void addLeftHandAdmittanceTask();
-
   
     std::optional<double> override_CoMz;
 
@@ -184,26 +181,34 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       return Eigen::Vector3d(0.0, 0.0, 9.81);
     }
 
-    double humanOmega()
+    void computeHumanOmega()
     {
       if (OmegaZAcc_)
       {
-        return std::sqrt((9.81 + xsensCoMacc_.z())/xsensCoMpos_.z());
+        humanOmega_ = std::sqrt((9.81 + xsensCoMacc_.z())/xsensCoMpos_.z());
       }
       else
       {
-        return std::sqrt(9.81/xsensCoMpos_.z());
+        humanOmega_ = std::sqrt(9.81/xsensCoMpos_.z());
       }
           
     };
 
-    double dotHumanOmega()
+    void computeDotHumanOmega()
     {
+      if (FilteredDerivation_)
+      {
+        gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
+        dotHumanOmega_ = filter.filter(humanOmegaBuffer_);
+      }
+      else
+      {
+        dotHumanOmega_ = ((humanOmega_ - prevOmega_)/timeStep);
+      }
       // return ((humanOmega() - prevOmega_)/timeStep);
 
       // config: m = 9 (Window size is 2*m+1), t = m = 9 (evaluate polynomial at first point in the [-m;m] window) , n = 4 (Polynomial Order), s = 1 (first order derivative), dt = timestep 
-      gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
-      return filter.filter(humanOmegaBuffer_);
+      
     };
 
     double mainOmega()
@@ -214,7 +219,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     Eigen::Vector3d humanXsensDCM()
     {
-      return xsensCoMpos_ + xsensCoMvel_ / humanOmega();
+      return xsensCoMpos_ + xsensCoMvel_ / humanOmega_;
     };
 
     // This is the previous assumption that omega is a constant
@@ -231,13 +236,13 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     Eigen::Vector3d humanVRPmodel()
     {
-      return xsensCoMpos_ - xsensCoMacc_*(1/(humanOmega()*humanOmega()-dotHumanOmega()));
+      return xsensCoMpos_ - xsensCoMacc_*(1/(humanOmega_*humanOmega_-dotHumanOmega_));
     }
 
     // This is equivalent to the model except we replace the acceleration with the sum of forces applied to the CoM, divided by the human mass (Newton: SumF = m*acc)
     Eigen::Vector3d humanVRPmeasured()
     {
-      return xsensCoMpos_ - (humanVRPforces().force() - humanMass_*gravityVec() )/(humanMass_ * (humanOmega()*humanOmega()-dotHumanOmega()));
+      return xsensCoMpos_ - (humanVRPforces().force() - humanMass_*gravityVec() )/(humanMass_ * (humanOmega_*humanOmega_-dotHumanOmega_));
     }
 
 
@@ -257,6 +262,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       auto w_RF_0 = X_RF_0.dualMul(RFShoe_);
       auto w_RB_0 = X_RB_0.dualMul(RBShoe_);
 
+      // finish this rear contacts problem
       auto w_LC_0 = X_RC_0.dualMul(LCheekForce_);
       auto w_RC_0 = X_RC_0.dualMul(RCheekForce_);
 
@@ -273,9 +279,9 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     // }
 
     // required missing forces on the hands to achieve desired VRP command
-    Eigen::Vector3d missingForces()
+    void computeMissingForces()
     {
-      return humanMass_ * (humanOmega()*humanOmega()-dotHumanOmega()) * (xsensCoMpos_ - desiredVRP()) + humanMass_ * gravityVec() - humanVRPforces().force() /*Missing butt contact force !*/; 
+      missingForces_ = humanMass_ * (humanOmega_*humanOmega_-dotHumanOmega_) * (xsensCoMpos_ - commandVRP_) + humanMass_ * gravityVec() - humanVRPforces().force() /*Missing butt contact force !*/; 
     }
 
     void computeDCMerror()
@@ -283,30 +289,26 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       DCMerror_ = DCMobjective_ - humanXsensDCM(); // DCMobjective formerly constant xsensFinalpos_
     }
 
-    Eigen::Vector3d dotDCMerrorV1()
+    void computeDotDCMerror()
     {
-      return ((DCMerror_ - prevDCMerror_)/timeStep);
-    }
-
-    Eigen::Vector3d dotDCMerror()
-    {
-      // return ((DCMerror_ - prevDCMerror_)/timeStep);
-
       // config: m = 9 (Window size is 2*m+1), t = m = 9 (evaluate polynomial at first point in the [-m;m] window) , n = 4 (Polynomial Order), s = 1 (first order derivative), dt = timestep 
-      gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
-      return filter.filter(DCMerrorBuffer_);
+      if(FilteredDerivation_)
+      {
+        gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
+        dotDCMerror_ = filter.filter(DCMerrorBuffer_);
+      } 
+      else
+      {
+        dotDCMerror_ = ((DCMerror_ - prevDCMerror_)/timeStep);
+      }
     }
 
 
     void computeCommandVRP()
     {
-      commandVRP_ = humanXsensDCM() - (1/(humanOmega()-(dotHumanOmega()/humanOmega())))*(/*DCMdyn?*/ VRPpropgain_*(DCMerror_) + VRPinteggain_ * dotDCMerror());
+      commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*(/*DCMdyn?*/ VRPpropgain_*(DCMerror_) + VRPinteggain_ * dotDCMerror_);
     }
 
-    Eigen::Vector3d desiredVRP()
-    {
-      return commandVRP_;
-    }
 
     void distributeHandsWrench(const sva::ForceVecd & desiredWrench);
 
@@ -314,7 +316,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     Eigen::Vector3d mainCtlDCM()
     {
       return robot().com() + robot().comVelocity() / mainOmega();
-    };
+    }
 
     // Eigen::Vector3d mainRealDCM()
     // {
@@ -327,13 +329,18 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     sva::ForceVecd getLHWrenchComputed()
     {
       return LHwrench_;
-    };
+    }
 
     sva::ForceVecd getRHWrenchComputed()
     {
       return RHwrench_;
-    };
+    }
 
+    // This should: compute the polytope with the current contact set, update the DCM objective and give it to the stabilizer task associated to the robot
+    void computePolytope()
+    {
+
+    }
 
 private:
     mc_rtc::Configuration config_;
@@ -354,22 +361,29 @@ private:
 
     Eigen::Vector3d DCMobjective_; // formerly constant xsensFinalpos_
 
-    Eigen::Vector3d xsensCoMpos_ = Eigen::Vector3d::Identity();
-    Eigen::Vector3d xsensCoMvel_ = Eigen::Vector3d::Identity();
-    Eigen::Vector3d xsensCoMacc_ = Eigen::Vector3d::Identity();
+    // Missing forces to apply at CoM human to achieve dynamic balance
+    Eigen::Vector3d missingForces_ = Eigen::Vector3d::Zero();
 
+    Eigen::Vector3d xsensCoMpos_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d xsensCoMvel_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d xsensCoMacc_ = Eigen::Vector3d::Zero();
+
+    double humanOmega_ = std::sqrt(9.81);
     double prevOmega_ = std::sqrt(9.81);
+    double dotHumanOmega_ = 0.0;
 
-    Eigen::Vector3d DCMerror_ = Eigen::Vector3d::Identity();
-    Eigen::Vector3d prevDCMerror_ = Eigen::Vector3d::Identity();
+    Eigen::Vector3d DCMerror_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d prevDCMerror_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d dotDCMerror_ = Eigen::Vector3d::Zero();
 
     // filter buffers for omega and dcm error derivatives
     boost::circular_buffer<double> humanOmegaBuffer_;
     boost::circular_buffer<Eigen::Vector3d> DCMerrorBuffer_;
 
     bool OmegaZAcc_ = true;
+    bool FilteredDerivation_ = true;
 
-    Eigen::Vector3d commandVRP_ = humanVRPmodel();
+    Eigen::Vector3d commandVRP_ = Eigen::Vector3d::Zero();
     double VRPpropgain_ = 3.0;
     double VRPinteggain_ = 0.3;
 

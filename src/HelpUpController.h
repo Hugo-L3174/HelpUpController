@@ -155,10 +155,10 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     std::map<std::string, double> getConfigFMax() const;
     std::map<std::string, double> getConfigFMin() const;
 
-    inline bool transitionFinished()
-    {
-      return !transitionning_;
-    }
+    // inline bool transitionFinished()
+    // {
+    //   return !transitionning_;
+    // }
 
   
     std::optional<double> override_CoMz;
@@ -337,10 +337,13 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     }
 
     // This should: compute the polytope with the current contact set, update the DCM objective and give it to the stabilizer task associated to the robot
-    void computePolytope()
-    {
+    void computePolytope(bool & computing, bool & readyToComp, bool & computed, bool & transitionning, bool & polyReady, int & polyIndex, unsigned int robotIndex, 
+                          std::thread & thread, std::shared_ptr<ContactSet> contactSet, std::shared_ptr<ComputationPoint> & futureCompPoint, std::shared_ptr<ComputationPoint> & balanceCompPoint);
 
-    }
+    // Todo: add options in both functions to choose if we check CoM or DCM, wether to update the objective or the robot stabilizer via datastore,
+    // and which update contacts function to use (human is real contacts + hard written surfaces)
+
+    void updateObjective(bool & transitionning, std::shared_ptr<ComputationPoint> & balanceCompPoint,Eigen::Vector3d currentPos, Eigen::Vector3d & objective, unsigned int robotIndex);
 
 private:
     mc_rtc::Configuration config_;
@@ -360,6 +363,7 @@ private:
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.215,-0.156,0.7801); // celia_suit1.bin
 
     Eigen::Vector3d DCMobjective_; // formerly constant xsensFinalpos_
+    Eigen::Vector3d robDCMobjective_;
 
     // Missing forces to apply at CoM human to achieve dynamic balance
     Eigen::Vector3d missingForces_ = Eigen::Vector3d::Zero();
@@ -486,22 +490,22 @@ private:
     std::thread stabThread_;
     std::thread stabThreadHum_;
 
-    std::atomic<bool> polytopeReady_;
+    bool polytopeReady_;
 
-    std::atomic<bool> polytopeHumReady_;
+    bool polytopeHumReady_;
 
 
     bool readyForComp_;
     bool computing_;
     bool computed_;
 
-    bool transitionning_;
+    bool firstPolyRobOK_;
 
     bool readyForCompHum_;
     bool computingHum_;
     bool computedHum_;
 
-    bool transitionningHum_;
+    bool firstPolyHumOK_;
 
     std::vector<sva::ForceVecd> LFShoeVec_, RFShoeVec_, LBShoeVec_, RBShoeVec_;
     sva::ForceVecd LFShoe_, RFShoe_, LBShoe_, RBShoe_;

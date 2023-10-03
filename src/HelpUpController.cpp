@@ -3,7 +3,7 @@
 
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
 : mc_control::fsm::Controller(rm, dt, config), polytopeIndex_(0), polytopeHumIndex_(0), computed_(false), computedHum_(false), computing_(false), 
-computingHum_(false), transitionning_(false), transitionningHum_(false), readyForComp_(false), readyForCompHum_(false)
+computingHum_(false), firstPolyRobOK_(false), firstPolyHumOK_(false), readyForComp_(false), readyForCompHum_(false)
 , DCMerrorBuffer_(19), humanOmegaBuffer_(19)
 {
   // Load entire controller configuration file
@@ -42,15 +42,16 @@ computingHum_(false), transitionning_(false), transitionningHum_(false), readyFo
 
 
   // initialize the current computation point:
-  currentCompPoint_ = std::make_shared<ComputationPoint>  (-1, std::make_shared<ContactSet>(false));
-  currentHumCompPoint_ = std::make_shared<ComputationPoint>  (-1, std::make_shared<ContactSet>(false));
+  balanceCompPoint_= std::make_shared<ComputationPoint>  (-1, std::make_shared<ContactSet>(false));
+  balanceHumCompPoint_ = std::make_shared<ComputationPoint>  (-1, std::make_shared<ContactSet>(false));
 
-  // init display regions
-  balanceCompPoint_ = currentCompPoint_;
-  balanceHumCompPoint_ = currentHumCompPoint_;
+  // // init display regions
+  // balanceCompPoint_ = currentCompPoint_;
+  // balanceHumCompPoint_ = currentHumCompPoint_;
 
   // init DCM objective
   DCMobjective_ = robot("human").com(); 
+  robDCMobjective_ = robot().com();
 
   
   comDesired_ = robot().com();
@@ -188,53 +189,15 @@ bool HelpUpController::run()
   xsensCoMvel_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel");
   xsensCoMacc_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc");
 
-  // ------------------------------------- Computation polytope robot
-  if (!computing_)
-  {
-    // update the contact set model 
-    if (!readyForComp_)
-    {
-      computed_ = false;
-      updateContactSet(robot().robotIndex()); //robots().robotIndex("hrp4")
-      // Instead of keeping the max forces as given in the config we update them as the current applied force on the contact ?
-      // Not a good idea, only limiting. It is better to change the max force as what we allow the robot to exert (to stay safe for the human),
-      // and the min force (necessary to help the human stand?)
-      // See change in updateContactForces()
-      updateContactForces();
-      readyForComp_ = true;
-    }
+  computePolytope(computing_, readyForComp_, computed_, firstPolyRobOK_, polytopeReady_, polytopeIndex_, robot().robotIndex(), 
+                  stabThread_, contactSet_, futureCompPoint_, balanceCompPoint_);
 
-    // start the computation
-    if (!computed_ and readyForComp_ and !computingHum_)
-    {
-      polytopeIndex_++;
-      polytopeReady_ = false;
+  updateObjective(firstPolyRobOK_, balanceCompPoint_, robot().com(), robDCMobjective_, robots().robot().robotIndex());
 
-      stabThread_ = std::thread([this](int polIndex, std::shared_ptr<ContactSet> contactSet){
-        this->computeStabilityRegion(contactSet, hrp4, false, polIndex);
-        polytopeReady_ = true;
-      }, polytopeIndex_, std::make_shared<ContactSet>(*contactSet_));
-      computing_ = true;
-      readyForComp_ = false;
-    }
-  }
-  else // computing_ == true => currently computing
-  {
-    // check if the computation is finished
-    if (polytopeReady_ and stabThread_.joinable())
-    {
-      stabThread_.join();
-      computing_ = false;
-      computed_ = true;
-      // add the stuff to update the polytope
 
-      // setting future comp point as the next one
-      nextCompPoint_= futureCompPoint_;
-      transitionning_ = true;
-    }
-  }
+  // computePolytope(computingHum_, readyForCompHum_, computedHum_, firstPolyHumOK_, polytopeHumReady_, polytopeHumIndex_, robot("human").robotIndex(),
+  //                 stabThreadHum_, contactSetHum_, futureHumCompPoint_, balanceHumCompPoint_);
 
-  
   // ------------------------------------- Computation polytope human
   if (!computingHum_)
   {
@@ -258,7 +221,7 @@ bool HelpUpController::run()
       if (contactSetHum_->numberOfContacts() > 0)
       {
         stabThreadHum_ = std::thread([this](int polIndex, std::shared_ptr<ContactSet> contactSetHum){
-          this->computeStabilityRegion(contactSetHum, human, true, polIndex);
+          this->computeStabilityRegion(contactSetHum, human, false, polIndex);
           polytopeHumReady_ = true;
         }, polytopeHumIndex_, std::make_shared<ContactSet>(*contactSetHum_));
         computingHum_ = true;
@@ -281,71 +244,13 @@ bool HelpUpController::run()
       computedHum_ = true;
       // add the stuff to update the polytope
       nextHumCompPoint_ = futureHumCompPoint_;
-      transitionningHum_ = true;
+      firstPolyHumOK_ = true;
     }
-  }
-  // // update the desired CoM Acceleration:
-  // Eigen::Vector3d comPos = robot("hrp4").com();
-  // Eigen::Vector3d comVel = realRobot("hrp4").comVelocity();
-  // Eigen::Vector3d comAcc = realRobot("hrp4").comAcceleration();
-  
-  // Eigen::Vector3d gradientPotential = Eigen::Vector3d::Zero();
-  // gradientPotential = currentCompPoint_->computeGradient(comPos);
-
-
-  // double dt = timeStep;
-  // Eigen::Vector3d gravity;
-  // gravity << 0.0, 0.0, 9.81;
-  // double mass = robot().mass();
-
-  // Eigen::Vector3d newVel = Eigen::Vector3d::Zero();
-
-
-  // ------------------------------------------- transition robot
-  if (transitionning_)
-  {
-    Eigen::Vector3d currentCoM = robot().com(); 
-    nextCompPoint_->constraintPlanes(); 
-    // update display regardless of com in or out
-    balanceCompPoint_ = nextCompPoint_;
-    // checking if com is in robust balance polytope
-    if (isVertexInPlanes(currentCoM, nextCompPoint_->constraintPlanes(), 0.03))
-    {
-      // setNextToCurrent(hrp4);
-      if (datastore().has("RobotStabilizer::getTask"))
-      {
-        auto stabTask = datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
-        // currentCoM.z() = 0.75;
-        stabTask->staticTarget(currentCoM); 
-      }
-    }
-    else
-    {
-      // if not in polytope, project closest point from the DCM belonging to the polytope and give this as objective
-      try
-      {
-        auto projector = nextCompPoint_->getProjector();
-        projector->setPolytope(nextCompPoint_->getPolytope());
-        projector->setPoint(currentCoM);
-        projector->project();
-        if (datastore().has("RobotStabilizer::getTask"))
-        {
-          auto stabTask = datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
-          // currentCoM.z() = 0.75;
-          stabTask->staticTarget(projector->projectedPoint()); 
-        }
-      }
-      catch(...)
-      {
-        mc_rtc::log::error("failed to project");
-      }
-    }
-    
-    transitionning_ = false;
   }
 
   // ------------------------------------------- transition human
-  if (transitionningHum_)
+  // We don't need to wait for the poly to compute to do this, we can just update the objective using the previous poly
+  if (firstPolyHumOK_)
   {
     // Now checking if DCM is in polytope instead of com
 
@@ -376,18 +281,9 @@ bool HelpUpController::run()
       }
     }
 
-    transitionningHum_ = false;
+    // only waiting for first result computed, then reupdating DCMobjective_ every iteration
+    // transitionningHum_ = false;
 
-    /*// if we are not in next
-    Eigen::Vector3d currentHumCoM = robot("human").com(); 
-    nextHumCompPoint_->constraintPlanes();
-    // update display regardless of com in or out
-    balanceHumCompPoint_ = nextHumCompPoint_;
-    if (isVertexInPlanes(currentHumCoM, nextHumCompPoint_->constraintPlanes(), 0.03))
-    {
-      setNextToCurrent(human);
-      transitionningHum_ = false;
-    }*/
   }
   
   // Order: current dcm error computed, pushed in the buffer for filtered version of dotError, compute dotError (depending on the option), finally save current as previous
@@ -483,6 +379,144 @@ void HelpUpController::computeStabilityRegion(std::shared_ptr<ContactSet> contac
   
 }
 
+void HelpUpController::computePolytope(bool & computing, bool & readyToComp, bool & computed, bool & firstPolyOK, bool & polyReady, int & polyIndex, unsigned int robotIndex, 
+                                        std::thread & thread, std::shared_ptr<ContactSet> contactSet, std::shared_ptr<ComputationPoint> & futureCompPoint, std::shared_ptr<ComputationPoint> & balanceCompPoint)
+{
+  // ------------------------------------- Computation polytope robot
+  if (!computing)
+  {
+    // update the contact set
+    if (!readyToComp)
+    {
+      computed = false;
+      updateContactSet(robotIndex);
+      updateContactForces();
+      readyToComp = true;
+    }
+
+    // start the computation
+    if (!computed and readyToComp and !computing)
+    {
+      polyReady = false;
+
+      if (contactSet->numberOfContacts()>0)
+      {
+        auto contactSetPtr = std::make_shared<ContactSet>(*contactSet);
+        thread = std::thread([this, &polyReady, &polyIndex, contactSetPtr, futureCompPoint](){
+          this->computeStabilityRegion(contactSetPtr, hrp4, false, polyIndex); 
+          polyReady = true;
+        });
+        computing = true;
+        readyToComp = false;
+      }
+      else
+      {
+        readyToComp = false;
+      }
+      
+    }
+  }
+  else // computing_ == true => currently computing
+  {
+    // check if the computation is finished
+    if (polyReady and thread.joinable())
+    {
+      thread.join();
+      computing = false;
+      computed = true;
+      balanceCompPoint = futureCompPoint;
+      firstPolyOK = true;
+    }
+  }
+
+
+  // // ------------------------------------------- transition robot
+  // if (firstPolyOK)
+  // {
+  //   Eigen::Vector3d currentCoM = robots().robot(robotIndex).com(); 
+  //   compPoint->constraintPlanes(); 
+  //   // update display regardless of com in or out
+  //   balanceCompPoint = compPoint;
+  //   mc_rtc::log::info("local balance index: {} global: {}", balanceCompPoint->index(), balanceCompPoint_->index());
+  //   // checking if com is in robust balance polytope
+  //   if (isVertexInPlanes(currentCoM, compPoint->constraintPlanes(), 0.03))
+  //   {
+      
+  //     // setNextToCurrent(hrp4);
+  //     if (datastore().has("RobotStabilizer::getTask"))
+  //     {
+  //       auto stabTask = datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
+  //       // currentCoM.z() = 0.75;
+  //       stabTask->staticTarget(currentCoM); 
+  //     }
+  //   }
+  //   else
+  //   {
+  //     // if not in polytope, project closest point from the DCM belonging to the polytope and give this as objective
+  //     try
+  //     {
+  //       auto projector = compPoint->getProjector();
+  //       projector->setPolytope(compPoint->getPolytope());
+  //       projector->setPoint(currentCoM);
+  //       projector->project();
+  //       if (datastore().has("RobotStabilizer::getTask"))
+  //       {
+  //         auto stabTask = datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
+  //         // currentCoM.z() = 0.75;
+  //         stabTask->staticTarget(projector->projectedPoint()); 
+  //       }
+  //     }
+  //     catch(...)
+  //     {
+  //       mc_rtc::log::error("failed to project");
+  //     }
+  //   }
+    
+  // }
+}
+
+void HelpUpController::updateObjective(bool & firstPolyOK, std::shared_ptr<ComputationPoint> & balanceCompPoint, Eigen::Vector3d currentPos, Eigen::Vector3d & objective, unsigned int robotIndex)
+{
+  if (firstPolyOK)
+  {
+    // checking if DCM/CoM (whatever was given) is in robust balance polytope
+    if (!isVertexInPlanes(currentPos, balanceCompPoint->constraintPlanes(), 0.03))
+    {
+      // if not in polytope, project closest point from the objective belonging to the polytope and give this as objective
+      mc_rtc::log::info("Not in polytope!");
+      try
+      {
+        auto projector = balanceCompPoint->getProjector();
+        projector->setPolytope(balanceCompPoint->getPolytope());
+        projector->setPoint(currentPos);
+        projector->project();
+        objective = projector->projectedPoint();
+      }
+      catch(...)
+      {
+        mc_rtc::log::error("failed to project");
+      }
+      
+    }
+    else
+    {
+      mc_rtc::log::info("In polytope!");
+      // if in polytope, then give current DCM/CoM as objective (because dynamic balance ok)
+      objective = robots().robot(robotIndex).com();
+    }
+    
+
+    // Update objective to stabilizing task
+    if (datastore().has("RobotStabilizer::getTask"))
+    {
+      mc_rtc::log::info("passing {} as objective", objective.transpose());
+      auto stabTask = datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
+      // currentCoM.z() = 0.75;
+      stabTask->staticTarget(objective); 
+    }
+    
+  }
+}
 
 bool HelpUpController::addTasksToSolver()
 {
@@ -520,11 +554,8 @@ void HelpUpController::updateCombinedCoM()
 
 void HelpUpController::addLogEntries()
 {
-  logger().addLogEntry("polytopeIndex", [this] () -> const int { return polytopeIndex_; });
-  logger().addLogEntry("humPolytopeIndex", [this] () -> const int { return polytopeHumIndex_; });
-
-  logger().addLogEntry("polytope_computationTime", [this]() -> const int { return currentCompPoint_->computationTime();});
-  logger().addLogEntry("humPolytope_computationTime", [this]() -> const int { return currentHumCompPoint_->computationTime();});
+  logger().addLogEntry("polytope_computationTime", [this]() -> const int { return balanceCompPoint_->computationTime();});
+  logger().addLogEntry("humPolytope_computationTime", [this]() -> const int { return balanceHumCompPoint_->computationTime();});
 
   // Logging the desired CoM computed
   auto desiredCoM = [this](){
@@ -666,10 +697,10 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("ForceShoes_MeasuredSum", CoMforces);
 
-  // auto Missingforces = [this](){
-  //   return missingForces_;
-  // };
-  // logger().addLogEntry("DCM_MissingForces", Missingforces);
+  auto Missingforces = [this](){
+    return missingForces_;
+  };
+  logger().addLogEntry("DCM_MissingForces", Missingforces);
 
   auto QPLH = [this](){
     return LHwrench_;
@@ -694,6 +725,11 @@ void HelpUpController::addLogEntries()
   //   return LFwrenchinLB;
   // };
   // logger().addLogEntry("ForceShoes_LBfromfront", frontToBackL);
+
+  auto nbHumContacts = [this](){
+    return contactSetHum_->numberOfContacts()/4; // contacts are added as 4 points with their own friction cone, see https://hal.archives-ouvertes.fr/hal-02108449/document
+  };
+  logger().addLogEntry("human_nbContacts", nbHumContacts);
 
 }
 
@@ -869,11 +905,6 @@ void HelpUpController::increasePolytopeIndex(int polyIndex)
   polyIndex++;
 }
 
-int HelpUpController::getPolytopeIndex(int polyIndex)
-{
-  return polyIndex;
-}
-
 void HelpUpController::updateContactSet(unsigned int robotIndex) // todo update human outside of qp if too heavy to be under 5ms
 {
   // updateRealHumContacts();
@@ -1035,39 +1066,39 @@ void HelpUpController::updateContactForces()
 // }
 
 
-void HelpUpController::setNextToCurrent(whatRobot rob)
-{
-  Eigen::Vector3d newCoM;
-  switch(rob)
-  {
-    case hrp4 : 
-      currentCompPoint_ = nextCompPoint_;
-      planes(currentCompPoint_->constraintPlanes(), rob);
-      if (planes_.size()>0)
-      {
-        newCoM = currentCompPoint_->objectiveCoM(0, robot().com()); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
-        desiredCoM(newCoM, rob); 
-      }
-      break;
+// void HelpUpController::setNextToCurrent(whatRobot rob)
+// {
+//   Eigen::Vector3d newCoM;
+//   switch(rob)
+//   {
+//     case hrp4 : 
+//       currentCompPoint_ = nextCompPoint_;
+//       planes(currentCompPoint_->constraintPlanes(), rob);
+//       if (planes_.size()>0)
+//       {
+//         newCoM = currentCompPoint_->objectiveCoM(0, robot().com()); // Here is set to mode 2 --> optimal com (qp) Chebychev qp is better: mode 1
+//         desiredCoM(newCoM, rob); 
+//       }
+//       break;
       
-    case human :
-      currentHumCompPoint_ = nextHumCompPoint_;
-      planes(currentHumCompPoint_->constraintPlanes(), rob);
-      if (planesHum_.size()>0)
-      {
-        newCoM = currentHumCompPoint_->objectiveCoM(0, robot("human").com());
-        if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
-        {
-          newCoM[2] = *override_CoMz;
-        }
-        // newCoM[2] = 0.75;
-        desiredCoM(newCoM, rob);
-      }
+//     case human :
+//       currentHumCompPoint_ = nextHumCompPoint_;
+//       planes(currentHumCompPoint_->constraintPlanes(), rob);
+//       if (planesHum_.size()>0)
+//       {
+//         newCoM = currentHumCompPoint_->objectiveCoM(0, robot("human").com());
+//         if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
+//         {
+//           newCoM[2] = *override_CoMz;
+//         }
+//         // newCoM[2] = 0.75;
+//         desiredCoM(newCoM, rob);
+//       }
       
-      break;
-  }
+//       break;
+//   }
   
-}
+// }
 
  // auto currentCoM = robot().com();
  //  double currentZ = currentCoM(2);
@@ -1484,7 +1515,7 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
 
     // w_l_lc.force().z() >= min_Force
     double minHandsForce = 10.; // minimal contact force in Newtons
-    A_ineq.block(nb_const - 3, 0, 1, 6) = -Eigen::Matrix6d::Identity().bottomRows<1>();  // selecting force only, identity bc va(riable is already in contact frame //-X_0_lhc.dualMatrix().bottomRows<1>();
+    A_ineq.block(nb_const - 3, 0, 1, 6) = -Eigen::Matrix6d::Identity().bottomRows<1>();  // selecting force only, identity bc variable is already in contact frame //-X_0_lhc.dualMatrix().bottomRows<1>();
     b_ineq(nb_const - 3) = -minHandsForce;
     // w_r_rc.force().z() >= min_Force
     A_ineq.block(nb_const - 2, 6, 1, 6) = -Eigen::Matrix6d::Identity().bottomRows<1>(); //-X_0_rhc.dualMatrix().bottomRows<1>();

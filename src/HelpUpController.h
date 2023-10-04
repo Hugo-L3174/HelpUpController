@@ -8,12 +8,11 @@
 
 #include <mc_tasks/CoMTask.h>
 
-#include "Tasks/BoundCoMAcceleration.h"
-#include "Tasks/CoMAccelerationTask.h"
-#include "Tasks/BoundCoMVelocity.h"
+// #include "Tasks/BoundCoMAcceleration.h"
+// #include "Tasks/CoMAccelerationTask.h"
+// #include "Tasks/BoundCoMVelocity.h"
 
 #include "utils/ComputationPoint.h"
-#include "utils/TrajectoryModel.h"
 #include <mc_rtc/gui/plot.h>
 
 #include <mc_control/SimulationContactPair.h>
@@ -29,7 +28,7 @@
 
 enum whatRobot
 {
-  hrp4,
+  mainRob,
   human,
   combined
 };
@@ -337,13 +336,21 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     }
 
     // This should: compute the polytope with the current contact set, update the DCM objective and give it to the stabilizer task associated to the robot
-    void computePolytope(bool & computing, bool & readyToComp, bool & computed, bool & transitionning, bool & polyReady, int & polyIndex, unsigned int robotIndex, 
-                          std::thread & thread, std::shared_ptr<ContactSet> contactSet, std::shared_ptr<ComputationPoint> & futureCompPoint, std::shared_ptr<ComputationPoint> & balanceCompPoint);
+    void computePolytope(bool & computing, bool & readyToComp, bool & computed, bool & transitionning, bool & polyReady, 
+                        std::thread & thread, 
+                        std::shared_ptr<ContactSet> contactSet, 
+                        std::shared_ptr<ComputationPoint> & futureCompPoint, 
+                        std::shared_ptr<ComputationPoint> & balanceCompPoint, 
+                        whatRobot rob);
 
     // Todo: add options in both functions to choose if we check CoM or DCM, wether to update the objective or the robot stabilizer via datastore,
     // and which update contacts function to use (human is real contacts + hard written surfaces)
 
-    void updateObjective(bool & transitionning, std::shared_ptr<ComputationPoint> & balanceCompPoint,Eigen::Vector3d currentPos, Eigen::Vector3d & objective, unsigned int robotIndex);
+    // Update the objective: if the currentPos is in the balance polytope, then objective stays current CoM/DCM, otherwise closest polytope point
+    void updateObjective(std::shared_ptr<ComputationPoint> & balanceCompPoint,
+                        Eigen::Vector3d currentPos, 
+                        Eigen::Vector3d & objective, 
+                        whatRobot rob);
 
 private:
     mc_rtc::Configuration config_;
@@ -405,7 +412,6 @@ private:
 
     std::shared_ptr<mc_solver::QPSolver> humanSolver_; 
 
-    std::shared_ptr<TrajectoryModel> trajectories_; 
     std::vector<Eigen::Vector3d> traj_;
 
     double humanMass_ = 50; //52 + 2*1.1 + 10 + 2*2.3; // Celia is 52, each force shoe 1.1kg, body weight 10 kg, legs weights 2.3kg, wrists weights 1.5kg

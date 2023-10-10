@@ -10,18 +10,20 @@ IdleKeepState: false
 StatesLibraries:
 - "@MC_STATES_DEFAULT_RUNTIME_INSTALL_PREFIX@"
 - "@MC_STATES_RUNTIME_INSTALL_PREFIX@"
+- "@XSENS_PLUGIN_STATES_LIBRARIES@"
 # Where to look for state files
 StatesFiles:
 - "@MC_STATES_DEFAULT_RUNTIME_INSTALL_PREFIX@/data"
 - "@MC_STATES_RUNTIME_INSTALL_PREFIX@/data"
+- "@XSENS_PLUGIN_STATES_FILES@"
 # If true, state factory will be more verbose
 VerboseStateFactory: false
 
 # Initial position of main robot (still needed for mujoco)
 # We update it in the reset state to place robot and chair depending on the human
 init_pos: 
-  translation: [0, -1, 0.77] # e2dr
-  # translation: [0, -1, 0.75] # hrp4 # orig pose of chair here is [-0.27, 0.36, 0.0], we apply offset of [0.3, 0.1, 0.8] (with rotation of 1.6) -> +y becomes +x, +x becomes -y
+  # translation: [0, -1, 0.77] # e2dr
+  translation: [0, -1, 0.75] # hrp4 
   # rotation: [0.0, 0.0, 1.6]
 
 
@@ -258,7 +260,8 @@ states:
       translation: [0.1, 0.0, 0.0]
       rotation: [0.0, 0.0, 0.0]
     robotOffset: # in chair frame
-      translation: [0.2, -0.5, 0.75]
+      # translation: [0.2, -0.5, 0.75]
+      translation: [0.2, -0.6, 0.75]
       rotation: [0.0, 0.0, 1.6] 
     AddContactsAfter:
       - r1: hrp4
@@ -272,9 +275,30 @@ states:
         r2Surface: AllGround
         dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
 
-  
-  RobotStabilizerHRP4:
+# These are the stabilizer FSM states
+  GeneralRobotStabilizer:
     base: RobotStabilizer
+    # stiffness and StabilizerConfig are optional but expliciting them makes it easier to change here
+    stiffness: 5
+    StabilizerConfig: 
+      type: lipm_stabilizer
+      enabled: true
+      contacts: [Left, Right] # This uses right and left contact from robot module so ok for any robot that defined them
+      admittance:
+        maxVel:
+          linear: [0.3,0.3,0.3]
+          angular: [0.5,0.5,0.5]
+      Left:
+        # Keep the yaw intact, align roll/pitch with the (flat) ground
+        overwriteRPY:
+          roll: 0
+          pitch: 0
+        height: 0
+      Right:
+        overwriteRPY:
+          roll: 0
+          pitch: 0
+        height: 0
     ExternalWrenchConfig:
       addExpectedCoMOffset: true
       modifyCoMErr: true
@@ -282,6 +306,107 @@ states:
       modifyZMPErrD: true
       substractMeasuredValue: true
 
+  RobotStabilizer::GoCenter:
+    base: GeneralRobotStabilizer
+    above: CenterSurfaces
+    completion:
+      dcmEval: [0.003, 0.003, 0.05]
+
+  RobotStabilizer::GoLeft:
+    base: GeneralRobotStabilizer
+    above: LeftSurface
+    completion:
+      dcmEval: [0.003, 0.003, 0.05]
+
+  RobotStabilizer::LeftSupport:
+    base: RobotStabilizer::GoLeft
+    completion: {}
+    StabilizerConfig:
+      contacts: [Left]
+
+  RobotStabilizer::GoRight:
+    base: GeneralRobotStabilizer
+    above: RightSurface
+    completion:
+      dcmEval: [0.003, 0.003, 0.05]
+
+  RobotStabilizer::RightSupport:
+    base: RobotStabilizer::GoRight
+    completion: {}
+    StabilizerConfig:
+      contacts: [Right]
+
+# This state makes the step to the right while keeping the CoM above the left contact
+  RobotStabilizer::MakeRightStepHRP4:
+    base: Parallel
+    states: [RobotStabilizer::LeftSupport, RightFootExtendHRP4]
+
+  # This state lifts up the right foot while keeping the CoM above the left contact
+  RobotStabilizer::MakeRightLiftHRP4:
+    base: Parallel
+    states: [RobotStabilizer::LeftSupport, RightFootLiftHRP4]
+    RemoveContacts:
+      - r1: hrp4 
+        r2: ground
+        r1Surface: RightFoot 
+        r2Surface: AllGround
+
+  RightFootLiftHRP4:
+    base: MetaTasks
+    tasks:
+      LiftRightFoot:
+        type: transform
+        stiffness: 10.0
+        weight: 500.0
+        frame: RightFoot
+        completion:
+          # OR:
+          eval: 0.015
+            # - AND:
+            #   - timeout: 3
+            #   - speed: 0.005
+        # We target 10cm up
+        moveWorld:
+          translation: [0,0,0.1]
+
+
+  RightFootExtendHRP4:
+    base: MetaTasks
+    tasks:
+      ExtendFootTask:
+        type: bspline_trajectory
+        stiffness: 50.0
+        weight: 500.0
+        duration: 3.0
+        frame: RightFootCenter
+        completion:
+          OR:
+            - timeElapsed: true
+            - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
+        # We target the left foot translated 30cm right
+        targetFrame:
+          robot: hrp4
+          frame: LeftFoot
+          translation: [0.0, -0.3, 0]
+          rotation: [0.0, 0.0, 0.0]
+        controlPoints:
+          - [0.0, -0.2, 0.1]
+      
+          # control points in target surface frame
+          # controlPoints:
+          # [
+          #   [-0.25, -0.35, 0.1],
+          #   [-0.08, -0.13, 0.1]
+          # ]
+          # oriWaypoints:
+          # [
+          #   [13.0, [0.0, -1.57, 0.0]]
+          # ]
+    AddContactsAfter:
+      - r2: ground
+        r1Surface: RightFoot
+        r2Surface: AllGround
+        dof: [0, 0, 1, 1, 1, 0]
 
   TakePositionE2DR:
     base: MetaTasks
@@ -733,10 +858,24 @@ states:
 
 
   XsensHumanPose:
-    base: XsensHuman
+    # base: XsensHuman
+    # robot: human
+    # stiffness: 1000
+    # weight: 10000
+    base: XsensRetargetting
     robot: human
     stiffness: 1000
     weight: 10000
+    Xsens:
+      human:
+        bodies:
+          LAnkleLink:
+            forceHorizontalSegment: true
+          RAnkleLink:
+            forceHorizontalSegment: true
+    groundingFrames: [LeftSole, RightSole] ## REPLACE WITH YOUR FRAME NAMES
+    fixBaseLink: false
+    initialStiffnessInterpolationDuration: 2
 
   Pause_inf:
     base: Meta
@@ -747,22 +886,6 @@ states:
     base: Parallel
     states: [XsensHumanPose, Pause_inf]
        
-
-  TakePosition+hum:
-    base: Parallel
-    states: [TakePosition, XsensHumanPose]
-
-  holdingUp:
-    base: Parallel
-    states: [Holding, XsensHumanPose, Pause_inf]
-
-  GoBackInitHrp4+hum:
-    base: Parallel
-    states: [GoBackInitHrp4, XsensHumanPose]
-
-  HRP4pos+hum:
-    base: Parallel
-    states: [HRP4pos, XsensHumanPose, Pause_inf]
 
   HelpFSM_HRP4:
     base: Meta
@@ -785,11 +908,22 @@ states:
 
   HelpDemoHRP4:
     base: Parallel
-    states: [XsensHumanPose, RobotStabilizerHRP4, HelpFSM_HRP4] #AddCollisionWithHuman, 
+    states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_HRP4] #AddCollisionWithHuman, 
 
   HelpDemoE2DR:
     base: Parallel
-    states: [XsensHumanPose, RobotStabilizerE2DR, HelpFSM_E2DR]
+    states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_E2DR]
+
+  RightStepFSMHRP4:
+    base: Meta
+    transitions:
+    - [RobotStabilizer::GoLeft, OK, RobotStabilizer::MakeRightLiftHRP4, Auto]
+    - [RobotStabilizer::MakeRightLiftHRP4, OK, RobotStabilizer::MakeRightStepHRP4, Auto]
+    - [RobotStabilizer::MakeRightStepHRP4, OK, RobotStabilizer::GoCenter, Auto]
+
+  GetReadyHRP4:
+    base: Parallel
+    states: [XsensHumanPose, RightStepFSMHRP4]
 
 # OK between the states is the transition if the state output is OK -> I can branch with 
 # - [StateA, Output1, StateB]
@@ -798,16 +932,15 @@ states:
 
 # Transitions map for human tracking
 transitions:  
-# - [ResetStateE2DR, OK, HelpDemoE2DR, Auto]
-- [ResetStateHRP4, OK, HelpDemoHRP4, Auto]
+# HRP4 version
+- [ResetStateHRP4, OK, GetReadyHRP4, Strict]
+- [GetReadyHRP4, OK, HelpDemoHRP4, Auto]
 - [HelpDemoHRP4, OK, HelpDemoHRP4, Strict]
 
+# E2DR version
+# - [ResetStateE2DR, OK, HelpDemoE2DR, Auto]
+# - [HelpDemoE2DR, OK, HelpDemoE2DR, Strict]
 
-# - [Pause, OK, XsensHumanPause, Strict]
-# - [XsensHumanPause, OK, TakePosition+hum, Strict]
-# - [TakePosition+hum, OK, holdingUp, Strict]
-# - [holdingUp, OK, GoBackInitHrp4+hum, Strict]
-# - [GoBackInitHrp4+hum, OK, HRP4pos+hum, Strict]
 
 
 # Initial state
@@ -880,10 +1013,10 @@ ObserverPipelines:
 
 
 # Plugins: [XsensPlugin]
-Plugins: [XsensPlugin, Replay, ForceShoePlugin] #ForceShoePlugin
+Plugins: [Replay, XsensPlugin, ForceShoePlugin] #ForceShoePlugin
 # configuration for Replay plugin
 Replay:
-  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin  
+  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit3.bin  
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_nosuit2.bin #  forceshoes1.bin  
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit3.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit2.bin
@@ -895,8 +1028,6 @@ Replay:
   with-gui-inputs: false
   with-datastore-config: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/log-to-datastore.yaml
 
-
-handContactsForBalance: false
 
 measuredPerson:
   # mass: 42 # Wanchen
@@ -912,6 +1043,10 @@ measuredPerson:
 Omega:
   WithVerticalAcc: true
 
+handContactsForBalance: false
+
+filteredDerivation: true
+
 ForceShoes:
   liveMode: false #add function to wait for xsens and force shoes sync in replays
 
@@ -919,89 +1054,93 @@ ForceShoes:
 Xsens:
   liveMode: false
   human:
-    HipsLink:
-      segment: "Pelvis"
-      offset:
-        translation: [0, 0, 0]
-    TorsoLink:
-      segment: "T8" # Sternum
-      offset:
-        translation: [0, 0, -0.31] # torso is 31cm higher than pelvis for celia model, but urdf orig is same as pelvis
-        rotation: [0, 0, 0]
-    HeadLink:
-      segment: "Head"
-      offset:
-        translation: [0, 0, 0]
-        rotation: [0, 0, 0]
-    # Getting rid of shoulder retargeting
-    # torso2rshoulder_2: #might be 2 instead of 1
-    #   segment: "Right Upper Arm"
-    #   offset:
-    #     translation: [0, 0.0, -0.05] # 5cm lower for celia model (whole arm)
-    #     rotation: [0, 0, 0]
-    # torso2rshoulder_1:
-    #   segment: "Right Upper Arm"
-    #   offset:
-    #     translation: [0, -0.0, -0.05]
-    #     rotation: [0, 0, 0]
-    RForearmLink:
-      segment: "Right Forearm"
-      offset:
-        translation: [0, -0.0, -0.00]
-        rotation: [0, 0, 0]
-    RHandLink:
-      segment: "Right Hand"
-      offset:
-        translation: [0, 0, -0.00]
-        rotation: [0, 0, 0]
-    # torso2lshoulder_2:
-    #   segment: "Left Upper Arm"
-    #   offset:
-    #     translation: [0, 0.0, -0.05] # 5cm lower for celia model (whole arm)
-    #     rotation: [0, 0, 0]
-    # torso2lshoulder_1:
-    #   segment: "Left Upper Arm"
-    #   offset:
-    #     translation: [0, 0.0, -0.05]
-    #     rotation: [0, 0, 0]
-    LForearmLink:
-      segment: "Left Forearm"
-      offset:
-        translation: [0, 0.0, -0.00]
-        rotation: [0, 0, 0]
-    LHandLink:
-      segment: "Left Hand"
-      offset:
-        translation: [0, 0, -0.00]
-        rotation: [0, 0, 0]
-    RLegLink:
-      segment: "Right Upper Leg"
-      offset:
-        translation: [0, 0, -0.12] # 10cm lower for celia
-        rotation: [0, 0, 0]
-    RShinLink:
-      segment: "Right Lower Leg"
-      offset:
-        translation: [0, 0, 0.0] # 5cm higher for celia
-        rotation: [0, 0, 0]
-    RAnkleLink:
-      segment: "Right Foot"
-      offset:
-        translation: [0, 0, 0.0]
-        rotation: [0, 0, 0]
-    LLegLink:
-      segment: "Left Upper Leg"
-      offset:
-        translation: [0, 0, -0.12]
-        rotation: [0, 0, 0]
-    LShinLink:
-      segment: "Left Lower Leg"
-      offset:
-        translation: [0, 0, 0.0] # 5cm higher for celia
-        rotation: [0, 0, 0]
-    LAnkleLink:
-      segment: "Left Foot"
-      offset:
-        translation: [0, 0, 0.0]
-        rotation: [0, 0, 0]
-    
+    bodies:
+      HipsLink:
+        segment: "Pelvis"
+        offset:
+          translation: [0, 0, 0]
+      TorsoLink:
+        segment: "T8" # Sternum
+        offset:
+          # translation: [0, 0, -0.31] # torso is 31cm higher than pelvis for celia model, but urdf orig is same as pelvis
+          translation: [0, 0, 0]
+          rotation: [0, 0, 0]
+      HeadLink:
+        segment: "Head"
+        offset:
+          translation: [0, 0, 0]
+          rotation: [0, 0, 0]
+      # Getting rid of shoulder retargeting
+      # torso2rshoulder_2: #might be 2 instead of 1
+      #   segment: "Right Upper Arm"
+      #   offset:
+      #     translation: [0, 0.0, -0.05] # 5cm lower for celia model (whole arm)
+      #     rotation: [0, 0, 0]
+      # torso2rshoulder_1:
+      #   segment: "Right Upper Arm"
+      #   offset:
+      #     translation: [0, -0.0, -0.05]
+      #     rotation: [0, 0, 0]
+      RForearmLink:
+        segment: "Right Forearm"
+        offset:
+          translation: [0, -0.0, -0.00]
+          rotation: [0, 0, 0]
+      RHandLink:
+        segment: "Right Hand"
+        offset:
+          translation: [0, 0, -0.00]
+          rotation: [0, 0, 0]
+      # torso2lshoulder_2:
+      #   segment: "Left Upper Arm"
+      #   offset:
+      #     translation: [0, 0.0, -0.05] # 5cm lower for celia model (whole arm)
+      #     rotation: [0, 0, 0]
+      # torso2lshoulder_1:
+      #   segment: "Left Upper Arm"
+      #   offset:
+      #     translation: [0, 0.0, -0.05]
+      #     rotation: [0, 0, 0]
+      LForearmLink:
+        segment: "Left Forearm"
+        offset:
+          translation: [0, 0.0, -0.00]
+          rotation: [0, 0, 0]
+      LHandLink:
+        segment: "Left Hand"
+        offset:
+          translation: [0, 0, -0.00]
+          rotation: [0, 0, 0]
+      RLegLink:
+        segment: "Right Upper Leg"
+        offset:
+          # translation: [0, 0, -0.12] # 10cm lower for celia
+          translation: [0, 0, 0]
+          rotation: [0, 0, 0]
+      RShinLink:
+        segment: "Right Lower Leg"
+        offset:
+          translation: [0, 0, 0.0] # 5cm higher for celia
+          rotation: [0, 0, 0]
+      RAnkleLink:
+        segment: "Right Foot"
+        offset:
+          translation: [0, 0, 0.0]
+          rotation: [0, 0, 0]
+      LLegLink:
+        segment: "Left Upper Leg"
+        offset:
+          # translation: [0, 0, -0.12]
+          translation: [0, 0, 0]
+          rotation: [0, 0, 0]
+      LShinLink:
+        segment: "Left Lower Leg"
+        offset:
+          translation: [0, 0, 0.0] # 5cm higher for celia
+          rotation: [0, 0, 0]
+      LAnkleLink:
+        segment: "Left Foot"
+        offset:
+          translation: [0, 0, 0.0]
+          rotation: [0, 0, 0]
+

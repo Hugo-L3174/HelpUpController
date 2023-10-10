@@ -211,6 +211,17 @@ bool HelpUpController::run()
     updateObjective(balanceHumCompPoint_, humanXsensDCM(), DCMobjective_, human);
   }
   
+  if (contactSetHum_->numberOfContacts()/4 > 2) 
+  {
+    // If more than two contacts: then the rear is still in contact with the chair
+    // Then we should use the model version using the CoM acceleration
+    modelMode_ = true;
+  }
+  else
+  {
+    // two contacts or less: only feet contacts -> we can switch to force measurements
+    modelMode_ = false;
+  }
   
   // Order: current dcm error computed, pushed in the buffer for filtered version of dotError, 
   // compute dotError (depending on the option), finally save current as previous (just before bool run ok)
@@ -223,6 +234,7 @@ bool HelpUpController::run()
   computeDotHumanOmega();
 
   computeCommandVRP();
+  computeVRPerror();
   computeMissingForces();
 
   auto desiredCoMWrench = sva::ForceVecd(Eigen::Vector3d::Zero(), missingForces_);
@@ -413,10 +425,10 @@ void HelpUpController::updateObjective(std::shared_ptr<ComputationPoint> & balan
   switch (rob)
   {
   case mainRob:
-    if (datastore().has("RobotStabilizer::getTask"))
+    if (datastore().has("RobotStabilizer::setCoMTarget"))
     {
-      auto stabTask = datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
-      stabTask->staticTarget(objective); 
+      // TODO: change this to robot DCM
+      // datastore().call<void, const Eigen::Vector3d &>("RobotStabilizer::setCoMTarget", objective);
     }
     break;
   
@@ -549,12 +561,12 @@ void HelpUpController::addLogEntries()
   auto logDCMerror = [this](){
     return DCMerror_;
   };
-  logger().addLogEntry("DCM_error", logDCMerror);
+  logger().addLogEntry("DCM_DCMerror", logDCMerror);
 
-  // auto logVRPhum = [this](){
-  //   return humanXsensVRP();
-  // };
-  // logger().addLogEntry("DCM_XsensVRP", logVRPhum);
+  auto logVRPerror = [this](){
+    return VRPerror_;
+  };
+  logger().addLogEntry("DCM_VRPerror", logVRPerror);
 
   auto logVRPhumModel = [this](){
     return humanVRPmodel();
@@ -640,6 +652,16 @@ void HelpUpController::addLogEntries()
     return contactSetHum_->numberOfContacts()/4; // contacts are added as 4 points with their own friction cone, see https://hal.archives-ouvertes.fr/hal-02108449/document
   };
   logger().addLogEntry("human_nbContacts", nbHumContacts);
+
+  auto distRcheek =[this](){
+    return RCheekChair->pair.getDistance();
+  };
+  logger().addLogEntry("human_RCheekDist", distRcheek);
+
+  auto distLcheek =[this](){
+    return LCheekChair->pair.getDistance();
+  };
+  logger().addLogEntry("human_LCheekDist", distLcheek);
 
 }
 
@@ -1157,7 +1179,7 @@ void HelpUpController::updateRealHumContacts()
   // RHandShoulder->update(robot(), robot("human"));
   // LHandBack->update(robot(), robot("human"));
 
-  double distThreshold = 0.01;
+  double distThreshold = 0.002;
   double speedThreshold = 1e-4;
 
   // for (auto contact:solver().contacts())
@@ -1209,13 +1231,13 @@ void HelpUpController::updateRealHumContacts()
     // std::cout<<"adding left sole"<<std::endl;
   }
 
-  if (RCheekChair->pair.getDistance()<=distThreshold)
+  if (RCheekChair->pair.getDistance()<=distThreshold && (humanVRPforces().force().z() < 300))
   {
     addRealHumContact("RCheek", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding right cheek"<<std::endl;
   }
 
-  if (LCheekChair->pair.getDistance()<=distThreshold)
+  if (LCheekChair->pair.getDistance()<=distThreshold && (humanVRPforces().force().z() < 300))
   {
     addRealHumContact("LCheek", 0, humanMass_*9.81, ContactType::support);
     // std::cout<<"adding left cheek"<<std::endl;

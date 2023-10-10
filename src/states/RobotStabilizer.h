@@ -7,6 +7,7 @@
 #include <mc_control/fsm/State.h>
 #include <mc_planning/Pendulum.h>
 #include <mc_tasks/lipm_stabilizer/Contact.h>
+#include <mc_tasks/MetaTaskLoader.h>
 
 namespace mc_tasks
 {

@@ -6,7 +6,7 @@
        1. [mc_rtc](https://jrl-umi3218.github.io/mc_rtc/tutorials/introduction/installation-guide.html) 
        2. [stabiliplus](https://gite.lirmm.fr/mc-controllers/stabiliplus) The balance polytope computation library
        3. eigen-quadprog and sch-core
-       4. [gram_savitzky_golay](https://github.com/arntanguy/gram_savitzky_golay) a filtering library to get velocity and acceleration from position.
+       4. [gram_savitzky_golay](https://github.com/arntanguy/gram_savitzky_golay) a filtering and derivation library. The branch used is topic/sva.
 
   * Install the robot models and their module in mc_rtc:
        1. [human_description](https://gite.lirmm.fr/hlefevre/human_description) is the human model to download in your catkin data workspace.
@@ -14,6 +14,9 @@
        1. [hrp4_description](https://gite.lirmm.fr/hlefevre/hrp4) is the robot model to download in your catkin data workspace.
        4. [mc_hrp4](https://gite.lirmm.fr/mc-hrp4/mc-hrp4) is the interface between `mc_rtc` and the HRP4 model.
 
+  * Install the required plugins:
+       1. [mc_xsens_plugin]() The plugin used to get the xsens data from the motion capture and create the datastore calls necessary to get the data.
+       2. [mc_force_shoe_plugin](https://github.com/Hugo-L3174/mc_force_shoe_plugin) The plugin used to get the 6d force vectors from the xsens force shoes prototypes.
 
   * Set the main robot and the controller in your `mc_rtc.yaml` configuration file:
 ```yaml

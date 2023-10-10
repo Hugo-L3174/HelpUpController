@@ -235,7 +235,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     Eigen::Vector3d humanVRPmodel()
     {
-      return xsensCoMpos_ - xsensCoMacc_*(1/(humanOmega_*humanOmega_-dotHumanOmega_));
+      return xsensCoMpos_ - (xsensCoMacc_/(humanOmega_*humanOmega_-dotHumanOmega_));
     }
 
     // This is equivalent to the model except we replace the acceleration with the sum of forces applied to the CoM, divided by the human mass (Newton: SumF = m*acc)
@@ -253,19 +253,14 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       auto X_RF_0 = robot("human").surfacePose("RFsensor").inv();
       auto X_RB_0 = robot("human").surfacePose("RBsensor").inv();
 
-      auto X_LC_0 = robot("human").surfacePose("LCheek").inv();
-      auto X_RC_0 = robot("human").surfacePose("RCheek").inv();
 
       auto w_LF_0 = X_LF_0.dualMul(LFShoe_);
       auto w_LB_0 = X_LB_0.dualMul(LBShoe_);
       auto w_RF_0 = X_RF_0.dualMul(RFShoe_);
       auto w_RB_0 = X_RB_0.dualMul(RBShoe_);
 
-      // finish this rear contacts problem
-      auto w_LC_0 = X_RC_0.dualMul(LCheekForce_);
-      auto w_RC_0 = X_RC_0.dualMul(RCheekForce_);
 
-      auto Fc = X_0_C.dualMul(w_LF_0) + X_0_C.dualMul(w_LB_0) + X_0_C.dualMul(w_RF_0) + X_0_C.dualMul(w_RB_0) + X_0_C.dualMul(w_LC_0) + X_0_C.dualMul(w_RC_0);
+      auto Fc = X_0_C.dualMul(w_LF_0) + X_0_C.dualMul(w_LB_0) + X_0_C.dualMul(w_RF_0) + X_0_C.dualMul(w_RB_0);
       
       // Do this with transforms directly to the com instead of world origin: high moments can lead to numerical errors
       return Fc;
@@ -277,15 +272,36 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       
     // }
 
-    // required missing forces on the hands to achieve desired VRP command
+    // Required missing forces on the hands to achieve desired VRP command
+    // Change this to missing forces to achieve *missing* VRP command, not total
     void computeMissingForces()
     {
-      missingForces_ = humanMass_ * (humanOmega_*humanOmega_-dotHumanOmega_) * (xsensCoMpos_ - commandVRP_) + humanMass_ * gravityVec() - humanVRPforces().force() /*Missing butt contact force !*/; 
+      if (modelMode_)
+      {
+        missingForces_ = humanMass_ * (humanOmega_*humanOmega_-dotHumanOmega_) * (xsensCoMpos_ - commandVRP_) - humanMass_ * xsensCoMacc_;  
+      }
+      else
+      {
+        missingForces_ = humanMass_ * (humanOmega_*humanOmega_-dotHumanOmega_) * (xsensCoMpos_ - commandVRP_) + humanMass_ * gravityVec() - humanVRPforces().force() /*Missing butt contact force !*/; 
+      }      
     }
 
     void computeDCMerror()
     {
       DCMerror_ = DCMobjective_ - humanXsensDCM(); // DCMobjective formerly constant xsensFinalpos_
+    }
+
+    void computeVRPerror()
+    {
+      if (modelMode_)
+      {
+        VRPerror_ = commandVRP_ - humanVRPmodel();
+      }
+      else
+      {
+        VRPerror_ = commandVRP_ - humanVRPmeasured();
+      } 
+      
     }
 
     void computeDotDCMerror()
@@ -305,7 +321,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
     void computeCommandVRP()
     {
-      commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*(/*DCMdyn?*/ VRPpropgain_*(DCMerror_) + VRPinteggain_ * dotDCMerror_);
+      commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*(/*DCMdyn?*/ VRPpropgain_*(DCMerror_) + VRPdgain_ * dotDCMerror_);
     }
 
 
@@ -362,6 +378,9 @@ private:
 
     bool handContactsForBalance_ = false;
 
+    // model mode to choose to compute VRP using CoM acceleration (true) or contact forces (false)
+    bool modelMode_ = false;
+
     // final position depending on log
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.0054,0.351,0.951); 
     // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.007,0.229,0.92); // standup.bin
@@ -387,6 +406,8 @@ private:
     Eigen::Vector3d prevDCMerror_ = Eigen::Vector3d::Zero();
     Eigen::Vector3d dotDCMerror_ = Eigen::Vector3d::Zero();
 
+    Eigen::Vector3d VRPerror_ = Eigen::Vector3d::Zero();
+
     // filter buffers for omega and dcm error derivatives
     boost::circular_buffer<double> humanOmegaBuffer_;
     boost::circular_buffer<Eigen::Vector3d> DCMerrorBuffer_;
@@ -396,7 +417,7 @@ private:
 
     Eigen::Vector3d commandVRP_ = Eigen::Vector3d::Zero();
     double VRPpropgain_ = 3.0;
-    double VRPinteggain_ = 0.3;
+    double VRPdgain_ = 0.3;
 
     std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask> stabTask_;
     std::shared_ptr<mc_tasks::lipm_stabilizer::internal::Contact> leftHandContact_;
@@ -516,6 +537,7 @@ private:
     std::vector<sva::ForceVecd> LFShoeVec_, RFShoeVec_, LBShoeVec_, RBShoeVec_;
     sva::ForceVecd LFShoe_, RFShoe_, LBShoe_, RBShoe_;
     sva::ForceVecd LCheekForce_, RCheekForce_ = sva::ForceVecd::Zero();
+    sva::ForceVecd ButtForce_ = sva::ForceVecd::Zero();
     sva::ForceVecd LHwrench_, RHwrench_;
     sva::ForceVecd RedistribWrench_;
     

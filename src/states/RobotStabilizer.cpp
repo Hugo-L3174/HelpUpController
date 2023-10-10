@@ -28,13 +28,16 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
   D_ = config_("damping", 2 * std::sqrt(K_));
 
   // create stabilizer task from config
-  stabilizerTask_ = std::make_shared<mc_tasks::lipm_stabilizer::StabilizerTask>(
-                    ctl.solver().robots(),
-                    ctl.solver().realRobots(),
-                    ctl.robot().robotIndex(),
-                    ctl.timeStep
-                    );
+  // stabilizerTask_ = std::make_shared<mc_tasks::lipm_stabilizer::StabilizerTask>(
+  //                   ctl.solver().robots(),
+  //                   ctl.solver().realRobots(),
+  //                   ctl.robot().robotIndex(),
+  //                   ctl.timeStep
+  //                   );
 
+ stabilizerTask_ = mc_tasks::MetaTaskLoader::load<mc_tasks::lipm_stabilizer::StabilizerTask>(
+      ctl.solver(), config_("StabilizerConfig"));
+      
   robot_ = stabilizerTask_->robot().name();
   auto & robot = ctl.robot(robot_);
   anchorFrameFunction_ = config_("anchorFrameFunction", "KinematicAnchorFrame::" + robot_);

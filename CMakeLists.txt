@@ -15,6 +15,7 @@ find_package(eigen-quadprog REQUIRED)
 find_package(sch-core REQUIRED)
 find_package(gram_savitzky_golay REQUIRED)
 
+find_package(XsensPlugin REQUIRED)
 
 add_subdirectory(src)
 

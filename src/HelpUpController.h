@@ -23,6 +23,7 @@
 
 #include <gram_savitzky_golay/gram_savitzky_golay.h>
 #include <boost/circular_buffer.hpp>
+#include <mc_filter/LeakyIntegrator.h>
 
 #include "api.h"
 
@@ -304,24 +305,31 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
       
     }
 
-    void computeDotDCMerror()
+    void computeDCMobjectiveVel()
     {
       // config: m = 9 (Window size is 2*m+1), t = m = 9 (evaluate polynomial at first point in the [-m;m] window) , n = 4 (Polynomial Order), s = 1 (first order derivative), dt = timestep 
       if(FilteredDerivation_)
       {
         gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
-        dotDCMerror_ = filter.filter(DCMerrorBuffer_);
+        DCMobjectiveVel_ = filter.filter(DCMobjectiveBuffer_);
       } 
       else
       {
-        dotDCMerror_ = ((DCMerror_ - prevDCMerror_)/timeStep);
+        DCMobjectiveVel_ = ((DCMobjective_ - prevDCMobjective_)/timeStep);
       }
+    }
+
+    void computeIntegDCMerror()
+    {
+      DCMintegrator_.add(DCMerror_, timeStep);
+      DCMaverageError_ = DCMintegrator_.eval();
     }
 
 
     void computeCommandVRP()
     {
-      commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*(/*DCMdyn?*/ VRPpropgain_*(DCMerror_) + VRPdgain_ * dotDCMerror_);
+      // TODO fix feedforward term
+      commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*(/*DCMobjectiveVel_*/ + DCMpropgain_*(DCMerror_) + DCMinteggain_ * DCMaverageError_);
     }
 
 
@@ -381,12 +389,8 @@ private:
     // model mode to choose to compute VRP using CoM acceleration (true) or contact forces (false)
     bool modelMode_ = false;
 
-    // final position depending on log
-    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.0054,0.351,0.951); 
-    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.007,0.229,0.92); // standup.bin
-    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.0054,0.0738,0.9938); // celia_nosuit1.bin
-    Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(0.2815,0.3911,0.9948); // celia_suit1.bin
-    // Eigen::Vector3d xsensFinalpos_ = Eigen::Vector3d(-0.215,-0.156,0.7801); // celia_suit1.bin
+    bool OmegaZAcc_ = true;
+    bool FilteredDerivation_ = true;
 
     Eigen::Vector3d DCMobjective_; // formerly constant xsensFinalpos_
     Eigen::Vector3d robDCMobjective_;
@@ -403,21 +407,22 @@ private:
     double dotHumanOmega_ = 0.0;
 
     Eigen::Vector3d DCMerror_ = Eigen::Vector3d::Zero();
-    Eigen::Vector3d prevDCMerror_ = Eigen::Vector3d::Zero();
-    Eigen::Vector3d dotDCMerror_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d prevDCMobjective_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d DCMobjectiveVel_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d DCMaverageError_ = Eigen::Vector3d::Zero();
 
     Eigen::Vector3d VRPerror_ = Eigen::Vector3d::Zero();
 
-    // filter buffers for omega and dcm error derivatives
+    // filter buffers for omega and dcm derivatives
     boost::circular_buffer<double> humanOmegaBuffer_;
-    boost::circular_buffer<Eigen::Vector3d> DCMerrorBuffer_;
-
-    bool OmegaZAcc_ = true;
-    bool FilteredDerivation_ = true;
+    boost::circular_buffer<Eigen::Vector3d> DCMobjectiveBuffer_;
+    // filter for dcm integrator
+    mc_filter::LeakyIntegrator<Eigen::Vector3d> DCMintegrator_;
 
     Eigen::Vector3d commandVRP_ = Eigen::Vector3d::Zero();
-    double VRPpropgain_ = 3.0;
-    double VRPdgain_ = 0.3;
+    double DCMpropgain_ = 3.0;
+    double DCMdgain_ = 0.3;
+    double DCMinteggain_ = 0.3;
 
     std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask> stabTask_;
     std::shared_ptr<mc_tasks::lipm_stabilizer::internal::Contact> leftHandContact_;
@@ -522,6 +527,7 @@ private:
     bool polytopeHumReady_;
 
 
+    // Boolean flags
     bool readyForComp_;
     bool computing_;
     bool computed_;

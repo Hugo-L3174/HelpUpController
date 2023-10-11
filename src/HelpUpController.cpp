@@ -4,7 +4,7 @@
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
 : mc_control::fsm::Controller(rm, dt, config), polytopeIndex_(0), polytopeHumIndex_(0), computed_(false), computedHum_(false), computing_(false), 
 computingHum_(false), firstPolyRobOK_(false), firstPolyHumOK_(false), readyForComp_(false), readyForCompHum_(false)
-, DCMerrorBuffer_(19), humanOmegaBuffer_(19)
+, DCMobjectiveBuffer_(19), humanOmegaBuffer_(19)
 {
   // Load entire controller configuration file
   config_.load(config);
@@ -135,18 +135,6 @@ computingHum_(false), firstPolyRobOK_(false), firstPolyHumOK_(false), readyForCo
     FilteredDerivation_ = config_("filteredDerivation");
   }
   
-  
-
-  // initializing filter buffers for omega and dcm error derivatives
-  for (int i = 0; i < DCMerrorBuffer_.capacity(); i++)
-  {
-    DCMerrorBuffer_.push_back(DCMerror_);
-  }
-  
-  for (int i = 0; i < humanOmegaBuffer_.capacity(); i++)
-  {
-    humanOmegaBuffer_.push_back(humanOmega_);
-  }
 
 
   // mc_rtc::log::info("Human pos is {}", robots().robot("human").posW().translation().transpose());
@@ -225,9 +213,15 @@ bool HelpUpController::run()
   
   // Order: current dcm error computed, pushed in the buffer for filtered version of dotError, 
   // compute dotError (depending on the option), finally save current as previous (just before bool run ok)
+
+  // computation of proportional term (P)
   computeDCMerror();
-  DCMerrorBuffer_.push_back(DCMerror_);
-  computeDotDCMerror();
+  // computation of feedforward term
+  // TODO fix feedforward: this is not a feedforward, just a measured velocity /= desired velocity
+  DCMobjectiveBuffer_.push_back(DCMobjective_);
+  computeDCMobjectiveVel();
+  // computation of integration term (I)
+  computeIntegDCMerror();
   
   computeHumanOmega();
   humanOmegaBuffer_.push_back(humanOmega_);
@@ -240,7 +234,7 @@ bool HelpUpController::run()
   auto desiredCoMWrench = sva::ForceVecd(Eigen::Vector3d::Zero(), missingForces_);
   distributeHandsWrench(desiredCoMWrench);
   t_ += solver().dt();
-  prevDCMerror_ = DCMerror_;
+  prevDCMobjective_ = DCMobjective_;
   prevOmega_ = humanOmega_;
   bool ok = mc_control::fsm::Controller::run();
   return ok;
@@ -548,10 +542,10 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("DCM_XsensDCM", logDCMhum);
 
-  auto logdotDCMerror = [this](){
-    return dotDCMerror_;
+  auto logDCMobjvel = [this](){
+    return DCMobjectiveVel_;
   };
-  logger().addLogEntry("DCM_human dot DCM error", logdotDCMerror);
+  logger().addLogEntry("DCM_human DCM objective velocity", logDCMobjvel);
 
   auto logDCMobjhum = [this](){
     return DCMobjective_;

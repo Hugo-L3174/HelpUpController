@@ -307,25 +307,27 @@ states:
       substractMeasuredValue: true
 
   RobotStabilizer::GoCenter:
-    base: GeneralRobotStabilizer
+    base: ChangeBalanceConfig
+    StabilizerConfig:
+      contacts: [Right, Left]
     above: CenterSurfaces
     completion:
       dcmEval: [0.003, 0.003, 0.05]
 
   RobotStabilizer::GoLeft:
-    base: GeneralRobotStabilizer
+    base: ChangeBalanceConfig
     above: LeftSurface
     completion:
       dcmEval: [0.003, 0.003, 0.05]
 
   RobotStabilizer::LeftSupport:
-    base: RobotStabilizer::GoLeft
-    completion: {}
+    base: ChangeBalanceConfig
+    # completion: {}
     StabilizerConfig:
       contacts: [Left]
 
   RobotStabilizer::GoRight:
-    base: GeneralRobotStabilizer
+    base: ChangeBalanceConfig
     above: RightSurface
     completion:
       dcmEval: [0.003, 0.003, 0.05]
@@ -890,7 +892,8 @@ states:
   HelpFSM_HRP4:
     base: Meta
     transitions:
-    - [Pause_2s, OK, TakePositionHRP4, Strict]
+    - [Pause_2s, OK, RightStepFSMHRP4, Strict]
+    - [RightStepFSMHRP4, OK, TakePositionHRP4, Strict]
     - [TakePositionHRP4, OK, MakeHandContactsHRP4, Strict]
     - [MakeHandContactsHRP4, OK, KeepPositionHRP4, Strict]
     # - [TakePositionHRP4, OK, KeepPositionHRP4, Strict]
@@ -921,9 +924,6 @@ states:
     - [RobotStabilizer::MakeRightLiftHRP4, OK, RobotStabilizer::MakeRightStepHRP4, Auto]
     - [RobotStabilizer::MakeRightStepHRP4, OK, RobotStabilizer::GoCenter, Auto]
 
-  GetReadyHRP4:
-    base: Parallel
-    states: [XsensHumanPose, RightStepFSMHRP4]
 
 # OK between the states is the transition if the state output is OK -> I can branch with 
 # - [StateA, Output1, StateB]
@@ -933,8 +933,7 @@ states:
 # Transitions map for human tracking
 transitions:  
 # HRP4 version
-- [ResetStateHRP4, OK, GetReadyHRP4, Strict]
-- [GetReadyHRP4, OK, HelpDemoHRP4, Auto]
+- [ResetStateHRP4, OK, HelpDemoHRP4, Auto]
 - [HelpDemoHRP4, OK, HelpDemoHRP4, Strict]
 
 # E2DR version
@@ -1016,7 +1015,7 @@ ObserverPipelines:
 Plugins: [Replay, XsensPlugin, ForceShoePlugin] #ForceShoePlugin
 # configuration for Replay plugin
 Replay:
-  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit3.bin  
+  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin  
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_nosuit2.bin #  forceshoes1.bin  
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit3.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit2.bin

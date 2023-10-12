@@ -63,38 +63,7 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
 
   if(config_.has("above"))
   {
-    const std::string above = config_("above");
-    if(above == "LeftAnkle") { targetCoP(stabilizerTask_->contactAnklePose(ContactState::Left).translation()); }
-    else if(above == "RightAnkle") { targetCoP(stabilizerTask_->contactAnklePose(ContactState::Right).translation()); }
-    else if(above == "CenterAnkles")
-    {
-      targetCoP(sva::interpolate(stabilizerTask_->contactAnklePose(ContactState::Left),
-                                 stabilizerTask_->contactAnklePose(ContactState::Right), 0.5)
-                    .translation());
-    }
-    else if(above == "LeftSurface")
-    {
-      targetCoP(robot.surfacePose(stabilizerTask_->footSurface(ContactState::Left)).translation());
-    }
-    else if(above == "RightSurface")
-    {
-      targetCoP(robot.surfacePose(stabilizerTask_->footSurface(ContactState::Right)).translation());
-    }
-    else if(above == "CenterSurfaces")
-    {
-      targetCoP(sva::interpolate(ctl.robot().surfacePose(stabilizerTask_->footSurface(ContactState::Left)),
-                                 ctl.robot().surfacePose(stabilizerTask_->footSurface(ContactState::Right)), 0.5)
-                    .translation());
-    }
-    else if(robot.hasSurface(above)) { targetCoP(robot.surfacePose(above).translation()); }
-    else
-    {
-      mc_rtc::log::error_and_throw(
-          "[RobotStabilizer] Requested standing above {} but this is neither one of the state target "
-          "(LeftAnkle, RightAnkle, CenterAnkles, LeftSurface, RightSurface, CenterSurfaces), nor a valid robot surface "
-          "name",
-          above);
-    }
+    setAboveObjective(config_("above"), ctl);
   }
   else if(config_.has("com")) { targetCoM(config_("com")); }
   else { targetCoM(robot.com()); }
@@ -198,6 +167,57 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
   ctl.datastore().make_call("RobotStabilizer::setCoPAdmittance", [this](const Eigen::Vector2d & copAdmittance)
                             { stabilizerTask_->copAdmittance(copAdmittance); });
   ctl.datastore().make_call("RobotStabilizer::getTask", [this]() {return stabilizerTask_; });
+  ctl.datastore().make_call("RobotStabilizer::setDCMThreshold", [this](Eigen::Vector3d dcmThreshold,
+                                                                       bool hasCompletion)
+                                                                      {setDCMThreshold(dcmThreshold, hasCompletion);});
+  ctl.datastore().make_call("RobotStabilizer::setAboveObjective", [this, &ctl](const mc_rtc::Configuration aboveConf)
+                                                                        {setAboveObjective(aboveConf, ctl);});  
+  ctl.datastore().make_call("RobotStabilizer::isBalanced", [this]() {return isBalanced_;});                                                                  
+}
+
+void RobotStabilizer::setDCMThreshold(Eigen::Vector3d dcmThreshold, bool hasCompletion)
+{
+  dcmThreshold_ = dcmThreshold;
+  hasCompletion_ = hasCompletion;
+}
+
+void RobotStabilizer::setAboveObjective(mc_rtc::Configuration aboveConf, mc_control::fsm::Controller & ctl_)
+{
+  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  auto & robot = ctl.robot(robot_);
+  const std::string above = aboveConf;
+  if(above == "LeftAnkle") { targetCoP(stabilizerTask_->contactAnklePose(ContactState::Left).translation()); }
+  else if(above == "RightAnkle") { targetCoP(stabilizerTask_->contactAnklePose(ContactState::Right).translation()); }
+  else if(above == "CenterAnkles")
+  {
+    targetCoP(sva::interpolate(stabilizerTask_->contactAnklePose(ContactState::Left),
+                                stabilizerTask_->contactAnklePose(ContactState::Right), 0.5)
+                  .translation());
+  }
+  else if(above == "LeftSurface")
+  {
+    mc_rtc::log::info("targetting left surface");
+    targetCoP(robot.surfacePose(stabilizerTask_->footSurface(ContactState::Left)).translation());
+  }
+  else if(above == "RightSurface")
+  {
+    targetCoP(robot.surfacePose(stabilizerTask_->footSurface(ContactState::Right)).translation());
+  }
+  else if(above == "CenterSurfaces")
+  {
+    targetCoP(sva::interpolate(ctl.robot().surfacePose(stabilizerTask_->footSurface(ContactState::Left)),
+                                ctl.robot().surfacePose(stabilizerTask_->footSurface(ContactState::Right)), 0.5)
+                  .translation());
+  }
+  else if(robot.hasSurface(above)) { targetCoP(robot.surfacePose(above).translation()); }
+  else
+  {
+    mc_rtc::log::error_and_throw(
+        "[RobotStabilizer] Requested standing above {} but this is neither one of the state target "
+        "(LeftAnkle, RightAnkle, CenterAnkles, LeftSurface, RightSurface, CenterSurfaces), nor a valid robot surface "
+        "name",
+        above);
+  }
 }
 
 void RobotStabilizer::targetCoP(const Eigen::Vector3d & cop)
@@ -242,17 +262,19 @@ bool RobotStabilizer::run(mc_control::fsm::Controller & ctl_)
   // Update stabilizer target
   stabilizerTask_->target(pendulum_.com(), pendulum_.comd(), pendulum_.comdd(), pendulum_.zmp());
 
-  if(!hasCompletion_)
-  {
-    output("OK");
-    return true;
-  }
+  // if(!hasCompletion_)
+  // {
+  //   output("OK");
+  //   return true;
+  // }
   const auto & dcm = stabilizerTask_->measuredDCM();
   if((((dcm - comTarget_).cwiseAbs() - dcmThreshold_).array() < 0.).all())
   {
+    isBalanced_ = true;
     output("OK");
     return true;
   }
+  isBalanced_ = false;
   return false;
 }
 
@@ -283,6 +305,9 @@ void RobotStabilizer::teardown(mc_control::fsm::Controller & ctl_)
   ctl.datastore().remove("RobotStabilizer::setCoPAdmittance");
   ctl.datastore().remove("RobotStabilizer::setExternalWrenchConfiguration");
   ctl.datastore().remove("RobotStabilizer::getTask");
+  ctl.datastore().remove("RobotStabilizer::setDCMThreshold");
+  ctl.datastore().remove("RobotStabilizer::setAboveObjective");  
+  ctl.datastore().remove("RobotStabilizer::isBalanced");   
   if(ownsAnchorFrameCallback_) { ctl.datastore().remove(anchorFrameFunction_); }
 }
 

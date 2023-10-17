@@ -29,6 +29,8 @@ void ChangeBalanceConfig::start(mc_control::fsm::Controller & ctl_)
 
   if(config_.has("above"))
   {
+    auto & manual = ctl.datastore().get<bool>("RobotStabilizer::ManualMode");
+    manual = true;
     ctl.datastore().call("RobotStabilizer::setAboveObjective", config_("above"));
   }
 
@@ -69,6 +71,9 @@ bool ChangeBalanceConfig::run(mc_control::fsm::Controller & ctl_)
 void ChangeBalanceConfig::teardown(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // setting stabilizer back to auto mode with objective set by the controller
+  auto & manual = ctl.datastore().get<bool>("RobotStabilizer::ManualMode");
+  manual = false;
 
 }
 

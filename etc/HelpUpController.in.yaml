@@ -49,7 +49,7 @@ constraints:
   damper: [0.1, 0.01, 0.5]
   velocityPercent: 0.5
 # - type:  dynamics 
-#   robot: e2dr #e2dr hrp4
+#   robot: hrp4
 #   damper: [0.1, 0.01, 0.5]
 # - type:  dynamics 
 #   robot: human  
@@ -66,16 +66,16 @@ collisions:
 #   r2: human
 #   collisions:
 #     # robot left arm collision with human torso important links are L_ELBOW_P_LINK L_WRIST_Y_LINK l_wrist
-#     # - body1: L_ELBOW_P_LINK
-#     #   body2: TorsoLink
-#     #   iDist: 0.03
-#     #   sDist: 0.001
-#     #   damping: 0
-#     # - body1: L_WRIST_Y_LINK
-#     #   body2: TorsoLink
-#     #   iDist: 0.03
-#     #   sDist: 0.001
-#     #   damping: 0
+#     - body1: L_ELBOW_P_LINK
+#       body2: TorsoLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
+#     - body1: L_WRIST_Y_LINK
+#       body2: TorsoLink
+#       iDist: 0.03
+#       sDist: 0.001
+#       damping: 0
 #     - body1: l_wrist
 #       body2: TorsoLink
 #       iDist: 0.003
@@ -261,7 +261,7 @@ states:
       rotation: [0.0, 0.0, 0.0]
     robotOffset: # in chair frame
       # translation: [0.2, -0.5, 0.75]
-      translation: [0.2, -0.6, 0.75]
+      translation: [0.2, -0.55, 0.75]
       rotation: [0.0, 0.0, 1.6] 
     AddContactsAfter:
       - r1: hrp4
@@ -282,6 +282,10 @@ states:
     stiffness: 5
     StabilizerConfig: 
       type: lipm_stabilizer
+      tasks:
+        torso:
+          stiffness: 0
+          weight: 0
       enabled: true
       contacts: [Left, Right] # This uses right and left contact from robot module so ok for any robot that defined them
       admittance:
@@ -393,17 +397,6 @@ states:
           rotation: [0.0, 0.0, 0.0]
         controlPoints:
           - [0.0, -0.2, 0.1]
-      
-          # control points in target surface frame
-          # controlPoints:
-          # [
-          #   [-0.25, -0.35, 0.1],
-          #   [-0.08, -0.13, 0.1]
-          # ]
-          # oriWaypoints:
-          # [
-          #   [13.0, [0.0, -1.57, 0.0]]
-          # ]
     AddContactsAfter:
       - r2: ground
         r1Surface: RightFoot
@@ -472,29 +465,29 @@ states:
         type: bspline_trajectory
         robot: hrp4
         frame: RightHandFlat
-        weight: 5000.0
-        stiffness: 1500.0
+        weight: 10000.0
+        stiffness: 1500
         duration: 4.0
         targetFrame:
           robot: human
           frame:  RightShoulder
-          translation: [0.0, 0.0, 0.02]
-          # controlPoints:
-          #   - [-0.2, 0.2, 0.2]
+          # translation: [0.0, 0.0, 0.02]
+          controlPoints:
+            - [0, 0, 0.1]
       LHandTrajectory:
         type: bspline_trajectory
         robot: hrp4
         frame: LeftHandFlat
-        weight: 5000.0
-        stiffness: 1500.0
+        weight: 10000.0
+        stiffness: 1500
         duration: 4.0
         targetFrame:
           robot: human
           frame: Back
           # translation: [0.0, 0.23, 0.05]
-          translation: [0.0, 0.0, 0.02]
-          # controlPoints: # in target frame !
-          #   - [-0.2, -0.2, 0.2]
+          # translation: [0.0, 0.0, 0.02]
+          controlPoints: # in target frame !
+            - [0, 0, 0.1]
     # RemoveCollisionsAfter:
     #   - r1: hrp4
     #     r2: human
@@ -514,12 +507,14 @@ states:
         r2: human
         r1Surface: RightHandFlat
         r2Surface: RightShoulder 
-        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
+        # dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
+        # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
       - r1: hrp4
         r2: human
         r1Surface: LeftHandFlat
         r2Surface: Back 
-        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+        # dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+        # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
 
 
 
@@ -657,77 +652,78 @@ states:
 
 
   KeepPositionHRP4:
-    base: RobotHolding # add compliance mode to robot holding
-    weight: 1000
-    # stiffness: 10
-    robot: hrp4
-    # mode: forceConstrained
+    base: Pause_2s
+    # base: RobotHolding # add compliance mode to robot holding
+    # weight: 1000
+    # # stiffness: 10
+    # robot: hrp4
+    # # mode: forceConstrained
+    # # ForceRHand: 
+    # #   surface: RightHandFlat
+    # #   target: RightShoulder
+    # #   admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01] # force control: low stiffness high damping; position control: high stiffness low damping
+    # #   stiffness: [1000, 1000, 1000, 1000, 1000, 1]
+    # #   damping: [63.3, 63.3, 63.3, 63.3, 63.3, 300]
+    # #   maxVel: [0.2, 0.2, 0.5]
+    # #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 00.0]
+    # # ForceLHand:
+    # #   surface: LeftHandFlat
+    # #   target: Back
+    # #   admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01]
+    # #   stiffness: [1000, 1000, 1000, 1000, 1000, 1]
+    # #   damping: [63.3, 63.3, 63.3, 63.3, 63.3, 300]
+    # #   maxVel: [0.2, 0.2, 0.5]
+    # #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 00.0]
     # ForceRHand: 
     #   surface: RightHandFlat
     #   target: RightShoulder
     #   admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01] # force control: low stiffness high damping; position control: high stiffness low damping
-    #   stiffness: [1000, 1000, 1000, 1000, 1000, 1]
-    #   damping: [63.3, 63.3, 63.3, 63.3, 63.3, 300]
+    #   stiffness: [1000, 100, 1000, 1000, 1000, 1000]
+    #   damping: [63, 63, 63, 63, 63, 63]
     #   maxVel: [0.2, 0.2, 0.5]
-    #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 00.0]
+    #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
+    #   gains:
+    #     mass:
+    #       angular: [2.0, 2.0, 2.0]
+    #       linear: [10.0, 10.0, 10.0]
+    #     damper:
+    #       angular: [200.0, 200.0, 200.0]
+    #       linear: [1500.0, 1500.0, 1500.0]
+    #     spring:
+    #       angular: [200.0, 200.0, 200.0]
+    #       linear: [200.0, 200.0, 200.0]
+    #     wrench:
+    #       angular: [1.0, 1.0, 1.0]
+    #       linear: [1.0, 1.0, 1.0]
+    #     # wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    #     # mass: [10, 10, 10, 10, 10, 10]
+    #     # spring: [100, 100, 100, 100, 100, 100]
+    #     # damper: [63, 63, 63, 63, 63, 63]
     # ForceLHand:
     #   surface: LeftHandFlat
     #   target: Back
     #   admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01]
-    #   stiffness: [1000, 1000, 1000, 1000, 1000, 1]
-    #   damping: [63.3, 63.3, 63.3, 63.3, 63.3, 300]
+    #   stiffness: [1000, 1000, 1000, 1000, 1000, 1000]
+    #   damping: [63, 63, 63, 63, 63, 63]
     #   maxVel: [0.2, 0.2, 0.5]
-    #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 00.0]
-    ForceRHand: 
-      surface: RightHandFlat
-      target: RightShoulder
-      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01] # force control: low stiffness high damping; position control: high stiffness low damping
-      stiffness: [1000, 100, 1000, 1000, 1000, 1000]
-      damping: [63, 63, 63, 63, 63, 63]
-      maxVel: [0.2, 0.2, 0.5]
-      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
-      gains:
-        mass:
-          angular: [2.0, 2.0, 2.0]
-          linear: [10.0, 10.0, 10.0]
-        damper:
-          angular: [200.0, 200.0, 200.0]
-          linear: [1500.0, 1500.0, 1500.0]
-        spring:
-          angular: [200.0, 200.0, 200.0]
-          linear: [200.0, 200.0, 200.0]
-        wrench:
-          angular: [1.0, 1.0, 1.0]
-          linear: [1.0, 1.0, 1.0]
-        # wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
-        # mass: [10, 10, 10, 10, 10, 10]
-        # spring: [100, 100, 100, 100, 100, 100]
-        # damper: [63, 63, 63, 63, 63, 63]
-    ForceLHand:
-      surface: LeftHandFlat
-      target: Back
-      admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01]
-      stiffness: [1000, 1000, 1000, 1000, 1000, 1000]
-      damping: [63, 63, 63, 63, 63, 63]
-      maxVel: [0.2, 0.2, 0.5]
-      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
-      gains:
-        # wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
-        # mass: [10, 10, 10, 10, 10, 10]
-        # spring: [100, 100, 100, 100, 100, 100]
-        # damper: [63, 63, 63, 63, 63, 63]
-        mass:
-          angular: [2.0, 2.0, 2.0]
-          linear: [10.0, 10.0, 10.0]
-        damper:
-          angular: [200.0, 200.0, 200.0]
-          linear: [1500.0, 1500.0, 1500.0]
-        spring:
-          angular: [200.0, 200.0, 200.0]
-          linear: [200.0, 200.0, 200.0]
-        wrench:
-          angular: [1.0, 1.0, 1.0]
-          linear: [1.0, 1.0, 1.0]
+    #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
+    #   gains:
+    #     # wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    #     # mass: [10, 10, 10, 10, 10, 10]
+    #     # spring: [100, 100, 100, 100, 100, 100]
+    #     # damper: [63, 63, 63, 63, 63, 63]
+    #     mass:
+    #       angular: [2.0, 2.0, 2.0]
+    #       linear: [10.0, 10.0, 10.0]
+    #     damper:
+    #       angular: [200.0, 200.0, 200.0]
+    #       linear: [1500.0, 1500.0, 1500.0]
+    #     spring:
+    #       angular: [200.0, 200.0, 200.0]
+    #       linear: [200.0, 200.0, 200.0]
+    #     wrench:
+    #       angular: [1.0, 1.0, 1.0]
+    #       linear: [1.0, 1.0, 1.0]
       
     
 
@@ -767,10 +763,7 @@ states:
           force: [0.0, 0.0, 0.0]
 
 
-
-
-
-  GoBackInitHRP4:
+  RemoveHandsHRP4:
     base: MetaTasks
     RemoveContacts:
       - r1: hrp4 #e2dr
@@ -793,9 +786,10 @@ states:
         targetFrame:
           robot: human
           frame: RightShoulder 
-          translation: [-0.15, 0.3, 0.3]
+          translation: [0.2, 0.5, 0]
+          rotation: [0, 1.5, 0]
           controlPoints:
-            - [0.2, 0, 0.3]
+            - [0, 0.2, 0.2]
       LHandTrajectory:
         type: bspline_trajectory
         robot: hrp4 #e2dr
@@ -806,9 +800,9 @@ states:
         targetFrame:
           robot: human
           frame: Back
-          translation: [-0.15, -0.3, 0.3]
+          translation: [-0.2, -0.2, 0.2]
           controlPoints:
-            - [0.2, 0, 0.3]
+            - [0, 0, 0.2]
 
   HRP4pos:
     base: MetaTasks
@@ -821,23 +815,17 @@ states:
         stiffness: 3
         weight: 1000
         target:
-          L_HIP_Y: [0.0]
-          L_HIP_R: [0.0]
-          R_KNEE_P: [0.719]
-          L_KNEE_P: [0.719]
-          R_ELBOW_P: [-0.524]
-          L_ELBOW_P: [-0.524]
           R_HIP_Y: [0.0]
           R_HIP_R: [-0.02]
-          R_HIP_P: [-0.384]
-          R_KNEE_P: [0.719]
-          R_ANKLE_P: [-0.335]
+          # R_HIP_P: [-0.384]
+          # R_KNEE_P: [0.719]
+          # R_ANKLE_P: [-0.335]
           R_ANKLE_R: [0.02]
           L_HIP_Y: [0.0]
           L_HIP_R: [0.02]
-          L_HIP_P: [-0.384]
-          L_KNEE_P: [0.719]
-          L_ANKLE_P: [-0.335]
+          # L_HIP_P: [-0.384]
+          # L_KNEE_P: [0.719]
+          # L_ANKLE_P: [-0.335]
           L_ANKLE_R: [-0.02]
           CHEST_P: [0.14]
           CHEST_Y: [0.0]
@@ -851,7 +839,7 @@ states:
           R_WRIST_P: [0.0]
           R_WRIST_R: [0.0]
           L_SHOULDER_P: [-0.052]
-          L_SHOULDER_R: [-0.175]
+          L_SHOULDER_R: [0.175]
           L_SHOULDER_Y: [0.0]
           L_ELBOW_P: [-0.524]
           L_WRIST_Y: [0.0]
@@ -894,11 +882,11 @@ states:
     transitions:
     - [Pause_2s, OK, RightStepFSMHRP4, Strict]
     - [RightStepFSMHRP4, OK, TakePositionHRP4, Strict]
-    - [TakePositionHRP4, OK, MakeHandContactsHRP4, Strict]
-    - [MakeHandContactsHRP4, OK, KeepPositionHRP4, Strict]
-    # - [TakePositionHRP4, OK, KeepPositionHRP4, Strict]
-    - [KeepPositionHRP4, OK, GoBackInitHRP4, Strict]
-    - [GoBackInitHRP4, OK, HRP4pos, Strict]
+    # - [TakePositionHRP4, OK, MakeHandContactsHRP4, Strict]
+    # - [MakeHandContactsHRP4, OK, KeepPositionHRP4, Strict]
+    - [TakePositionHRP4, OK, KeepPositionHRP4, Strict]
+    - [KeepPositionHRP4, OK, GoBackInitFSMHRP4, Strict]
+    # - [GoBackInitHRP4, OK, HRP4pos, Strict]
 
   HelpFSM_E2DR:
     base: Meta
@@ -924,6 +912,11 @@ states:
     - [RobotStabilizer::MakeRightLiftHRP4, OK, RobotStabilizer::MakeRightStepHRP4, Auto]
     - [RobotStabilizer::MakeRightStepHRP4, OK, RobotStabilizer::GoCenter, Auto]
 
+  GoBackInitFSMHRP4:
+    base: Meta
+    transitions:
+    - [RemoveHandsHRP4, OK, RobotStabilizer::GoCenter, Strict]
+    - [RobotStabilizer::GoCenter, OK, HRP4pos, Auto]
 
 # OK between the states is the transition if the state output is OK -> I can branch with 
 # - [StateA, Output1, StateB]

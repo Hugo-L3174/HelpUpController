@@ -52,6 +52,7 @@ computingHum_(false), firstPolyRobOK_(false), firstPolyHumOK_(false), readyForCo
   // init DCM objective
   DCMobjective_ = robot("human").com(); 
   robDCMobjective_ = robot().com();
+  robMeasuredDCM_ = robot().com();
 
   
   comDesired_ = robot().com();
@@ -186,7 +187,8 @@ bool HelpUpController::run()
   */
   if (firstPolyRobOK_) 
   {
-    updateObjective(balanceCompPoint_, robot().com(), robDCMobjective_, mainRob);
+    robMeasuredDCM_ = datastore().call<Eigen::Vector3d>("RobotStabilizer::getMeasuredDCM");
+    updateObjective(balanceCompPoint_, robMeasuredDCM_, robDCMobjective_, mainRob);
   }
 
 
@@ -421,8 +423,13 @@ void HelpUpController::updateObjective(std::shared_ptr<ComputationPoint> & balan
   case mainRob:
     if (datastore().has("RobotStabilizer::setCoMTarget"))
     {
-      // TODO: change this to robot DCM
-      // datastore().call<void, const Eigen::Vector3d &>("RobotStabilizer::setCoMTarget", objective);
+      // if the mode is not set to manual objective, update automatically using balance regions
+      auto manual = datastore().get<bool>("RobotStabilizer::ManualMode");
+      if (manual == false)
+      {
+        datastore().call<void, const Eigen::Vector3d &>("RobotStabilizer::setCoMTarget", objective);
+      }
+      
     }
     break;
   
@@ -536,11 +543,15 @@ void HelpUpController::addLogEntries()
   };
   logger().addLogEntry("LeftHandPose_real", realLeftHand);
 
+  auto logDCMrob = [this](){
+    return robMeasuredDCM_;
+  };
+  logger().addLogEntry("DCM_robot measured DCM", logDCMrob);
 
   auto logDCMhum = [this](){
     return humanXsensDCM();
   };
-  logger().addLogEntry("DCM_XsensDCM", logDCMhum);
+  logger().addLogEntry("DCM_human Xsens DCM", logDCMhum);
 
   auto logDCMobjvel = [this](){
     return DCMobjectiveVel_;
@@ -550,12 +561,17 @@ void HelpUpController::addLogEntries()
   auto logDCMobjhum = [this](){
     return DCMobjective_;
   };
-  logger().addLogEntry("DCM_objective", logDCMobjhum);
+  logger().addLogEntry("DCM_human DCM objective", logDCMobjhum);
 
   auto logDCMerror = [this](){
     return DCMerror_;
   };
-  logger().addLogEntry("DCM_DCMerror", logDCMerror);
+  logger().addLogEntry("DCM_human DCM error", logDCMerror);
+
+  auto logDCMobjrob = [this](){
+    return robDCMobjective_;
+  };
+  logger().addLogEntry("DCM_robot DCM objective", logDCMobjrob);
 
   auto logVRPerror = [this](){
     return VRPerror_;
@@ -699,7 +715,7 @@ void HelpUpController::addGuiElements()
   MissingforceArrowConfig.color = COLORS.at('g');
   
 
-  gui()->addElement({"CoM"},
+  gui()->addElement({"Points", "CoM"},
       mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot().com(); }),
       mc_rtc::gui::Point3D("mainCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE), [this]() { return realRobot().com(); }), // Note that this is the control robot com and not the real robot com 
       mc_rtc::gui::Point3D("humanCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE), [this]() { return robot("human").com(); }),
@@ -711,7 +727,7 @@ void HelpUpController::addGuiElements()
       // mc_rtc::gui::Point3D("CoMcombined", CoMconfig2, [this]() { return combinedCoM_; })
   );
 
-  gui()->addElement({"DCM dynamics"},
+  gui()->addElement({"Points", "DCM dynamics"},
       // mc_rtc::gui::Point3D("mainDCM", mc_rtc::gui::PointConfig(COLORS.at('b'), DCM_POINT_SIZE), [this]() { return mainCtlDCM(); }),
       mc_rtc::gui::Point3D("humanDCMXsens", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE), [this]() { return humanXsensDCM(); }),
       mc_rtc::gui::Point3D("humanVRPmodel", mc_rtc::gui::PointConfig(COLORS.at('y'), DCM_POINT_SIZE), [this]() { return humanVRPmodel(); }),
@@ -722,7 +738,7 @@ void HelpUpController::addGuiElements()
   
   );
 
-  gui()->addElement({"Force Shoes"},
+  gui()->addElement({"Plugin", "ForceShoes", "Values"},
       mc_rtc::gui::Arrow("LFShoe", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LFsensor").translation(); },
           [this, FORCE_SCALE]() -> Eigen::Vector3d {return robot("human").surfacePose("LFsensor").translation() + FORCE_SCALE * LFShoe_.force(); }),
       mc_rtc::gui::Arrow("LBShoe", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LBsensor").translation(); },

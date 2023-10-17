@@ -88,6 +88,9 @@ protected:
   
   bool isBalanced_ = false;
 
+  // manual or auto mode: manual is when "above" objectives are used and targets set manually, auto is when the objective is set by the controller using the regions
+  bool manual_ = false;
+
   Eigen::Vector3d dcmThreshold_ = Eigen::Vector3d{0.01, 0.01, 0.01}; /**< Completion criteria threshold */
 
   mc_planning::Pendulum pendulum_; /** LIPM Pendulum model */

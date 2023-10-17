@@ -172,7 +172,9 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
                                                                       {setDCMThreshold(dcmThreshold, hasCompletion);});
   ctl.datastore().make_call("RobotStabilizer::setAboveObjective", [this, &ctl](const mc_rtc::Configuration aboveConf)
                                                                         {setAboveObjective(aboveConf, ctl);});  
-  ctl.datastore().make_call("RobotStabilizer::isBalanced", [this]() {return isBalanced_;});                                                                  
+  ctl.datastore().make_call("RobotStabilizer::isBalanced", [this]() {return isBalanced_;});   
+  ctl.datastore().make<bool>("RobotStabilizer::ManualMode", manual_); 
+  ctl.datastore().make_call("RobotStabilizer::getMeasuredDCM", [this]() {return stabilizerTask_->measuredDCM();});                                                             
 }
 
 void RobotStabilizer::setDCMThreshold(Eigen::Vector3d dcmThreshold, bool hasCompletion)

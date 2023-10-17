@@ -395,6 +395,8 @@ private:
     Eigen::Vector3d DCMobjective_; // formerly constant xsensFinalpos_
     Eigen::Vector3d robDCMobjective_;
 
+    Eigen::Vector3d robMeasuredDCM_;
+
     // Missing forces to apply at CoM human to achieve dynamic balance
     Eigen::Vector3d missingForces_ = Eigen::Vector3d::Zero();
 

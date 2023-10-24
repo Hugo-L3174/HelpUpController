@@ -459,35 +459,46 @@ states:
         dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
 
   TakePositionHRP4:
-    base: MetaTasks
-    tasks:
-      RHandTrajectory:
-        type: bspline_trajectory
-        robot: hrp4
-        frame: RightHandFlat
-        weight: 10000.0
-        stiffness: 1500
-        duration: 4.0
-        targetFrame:
-          robot: human
-          frame:  RightShoulder
-          # translation: [0.0, 0.0, 0.02]
-          controlPoints:
-            - [0, 0, 0.1]
-      LHandTrajectory:
-        type: bspline_trajectory
-        robot: hrp4
-        frame: LeftHandFlat
-        weight: 10000.0
-        stiffness: 1500
-        duration: 4.0
-        targetFrame:
-          robot: human
-          frame: Back
-          # translation: [0.0, 0.23, 0.05]
-          # translation: [0.0, 0.0, 0.02]
-          controlPoints: # in target frame !
-            - [0, 0, 0.1]
+    base: RobotTakePoseObserved
+    # base: MetaTasks
+    # tasks:
+    RHandTrajectory:
+      type: bspline_trajectory
+      robot: hrp4
+      frame: RightHandFlat
+      weight: 10000.0
+      stiffness: 1500
+      duration: 4.0
+      targetFrame:
+        robot: human
+        frame:  RightShoulder
+        # translation: [0.0, 0.0, 0.02]
+        controlPoints:
+          - [0, 0, 0.1]
+      unactiveJoints: [R_KNEE_P, R_ANKLE_P, R_ANKLE_R, L_KNEE_P, L_ANKLE_P, L_ANKLE_R]
+      completion:
+        AND:
+          - eval: 0.01
+          - speed: 0.01
+    LHandTrajectory:
+      type: bspline_trajectory
+      robot: hrp4
+      frame: LeftHandFlat
+      weight: 10000.0
+      stiffness: 1500
+      duration: 4.0
+      targetFrame:
+        robot: human
+        frame: Back
+        # translation: [0.0, 0.23, 0.05]
+        # translation: [0.0, 0.0, 0.02]
+        controlPoints: # in target frame !
+          - [0, 0, 0.1]
+      unactiveJoints: [R_KNEE_P, R_ANKLE_P, R_ANKLE_R, L_KNEE_P, L_ANKLE_P, L_ANKLE_R]
+      completion:
+        AND:
+          - eval: 0.01
+          - speed: 0.01
     # RemoveCollisionsAfter:
     #   - r1: hrp4
     #     r2: human
@@ -502,20 +513,58 @@ states:
     #         iDist: 0.003
     #         sDist: 0.0001
     #         damping: 0
-    AddContactsAfter: # here the contact constraint added is on the x and y axis to keep position
-      - r1: hrp4
-        r2: human
-        r1Surface: RightHandFlat
-        r2Surface: RightShoulder 
-        # dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
-        # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
-      - r1: hrp4
-        r2: human
-        r1Surface: LeftHandFlat
-        r2Surface: Back 
+    # AddContactsAfter: # here the contact constraint added is on the x and y axis to keep position
+    #   - r1: hrp4
+    #     r2: human
+    #     r1Surface: RightHandFlat
+    #     r2Surface: RightShoulder 
+    #     # dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
+    #     # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+    #   - r1: hrp4
+    #     r2: human
+    #     r1Surface: LeftHandFlat
+    #     r2Surface: Back 
         # dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
         # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
 
+
+# TakePositionHRP4:
+#     base: MetaTasks
+#     tasks:
+#       RHandTrajectory:
+#         type: bspline_trajectory
+#         robot: hrp4
+#         frame: RightHandFlat
+#         weight: 10000.0
+#         stiffness: 1500
+#         duration: 4.0
+#         targetFrame:
+#           robot: human
+#           frame:  RightShoulder
+#           controlPoints:
+#             - [0, 0, 0.1]
+#         unactiveJoints: [R_KNEE_P, R_ANKLE_P, R_ANKLE_R, L_KNEE_P, L_ANKLE_P, L_ANKLE_R]
+#         completion:
+#           AND:
+#             - eval: 0.01
+#             - speed: 0.01
+#       LHandTrajectory:
+#         type: bspline_trajectory
+#         robot: hrp4
+#         frame: LeftHandFlat
+#         weight: 10000.0
+#         stiffness: 1500
+#         duration: 4.0
+#         targetFrame:
+#           robot: human
+#           frame: Back
+#           controlPoints: # in target frame !
+#             - [0, 0, 0.1]
+#         unactiveJoints: [R_KNEE_P, R_ANKLE_P, R_ANKLE_R, L_KNEE_P, L_ANKLE_P, L_ANKLE_R]
+#         completion:
+#           AND:
+#             - eval: 0.01
+#             - speed: 0.01
 
 
   MakeHandContactsE2DR:
@@ -652,78 +701,59 @@ states:
 
 
   KeepPositionHRP4:
-    base: Pause_2s
-    # base: RobotHolding # add compliance mode to robot holding
-    # weight: 1000
-    # # stiffness: 10
-    # robot: hrp4
-    # # mode: forceConstrained
-    # # ForceRHand: 
-    # #   surface: RightHandFlat
-    # #   target: RightShoulder
-    # #   admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01] # force control: low stiffness high damping; position control: high stiffness low damping
-    # #   stiffness: [1000, 1000, 1000, 1000, 1000, 1]
-    # #   damping: [63.3, 63.3, 63.3, 63.3, 63.3, 300]
-    # #   maxVel: [0.2, 0.2, 0.5]
-    # #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 00.0]
-    # # ForceLHand:
-    # #   surface: LeftHandFlat
-    # #   target: Back
-    # #   admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01]
-    # #   stiffness: [1000, 1000, 1000, 1000, 1000, 1]
-    # #   damping: [63.3, 63.3, 63.3, 63.3, 63.3, 300]
-    # #   maxVel: [0.2, 0.2, 0.5]
-    # #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 00.0]
-    # ForceRHand: 
-    #   surface: RightHandFlat
-    #   target: RightShoulder
-    #   admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01] # force control: low stiffness high damping; position control: high stiffness low damping
-    #   stiffness: [1000, 100, 1000, 1000, 1000, 1000]
-    #   damping: [63, 63, 63, 63, 63, 63]
-    #   maxVel: [0.2, 0.2, 0.5]
-    #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
-    #   gains:
-    #     mass:
-    #       angular: [2.0, 2.0, 2.0]
-    #       linear: [10.0, 10.0, 10.0]
-    #     damper:
-    #       angular: [200.0, 200.0, 200.0]
-    #       linear: [1500.0, 1500.0, 1500.0]
-    #     spring:
-    #       angular: [200.0, 200.0, 200.0]
-    #       linear: [200.0, 200.0, 200.0]
-    #     wrench:
-    #       angular: [1.0, 1.0, 1.0]
-    #       linear: [1.0, 1.0, 1.0]
-    #     # wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
-    #     # mass: [10, 10, 10, 10, 10, 10]
-    #     # spring: [100, 100, 100, 100, 100, 100]
-    #     # damper: [63, 63, 63, 63, 63, 63]
-    # ForceLHand:
-    #   surface: LeftHandFlat
-    #   target: Back
-    #   admittance: [0.0, 0.0, 0.0, 0.0, 0.0, 0.01]
-    #   stiffness: [1000, 1000, 1000, 1000, 1000, 1000]
-    #   damping: [63, 63, 63, 63, 63, 63]
-    #   maxVel: [0.2, 0.2, 0.5]
-    #   wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
-    #   gains:
-    #     # wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
-    #     # mass: [10, 10, 10, 10, 10, 10]
-    #     # spring: [100, 100, 100, 100, 100, 100]
-    #     # damper: [63, 63, 63, 63, 63, 63]
-    #     mass:
-    #       angular: [2.0, 2.0, 2.0]
-    #       linear: [10.0, 10.0, 10.0]
-    #     damper:
-    #       angular: [200.0, 200.0, 200.0]
-    #       linear: [1500.0, 1500.0, 1500.0]
-    #     spring:
-    #       angular: [200.0, 200.0, 200.0]
-    #       linear: [200.0, 200.0, 200.0]
-    #     wrench:
-    #       angular: [1.0, 1.0, 1.0]
-    #       linear: [1.0, 1.0, 1.0]
+    # base: Pause_2s
+    base: RobotHolding # add compliance mode to robot holding
+    weight: 10000
+    stiffness: 1500
+    robot: hrp4
+    ForceRHand: 
+      surface: RightHandFlat
+      target: RightShoulder
+      stiffness: [1000, 1000, 1000, 1000, 1000, 1000] # force control: low stiffness high damping; position control: high stiffness low damping
+      damping: [63, 63, 63, 63, 63, 63]
+      maxVel: [0.2, 0.2, 0.5]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
+      gains:
+        mass:
+          angular: [2.0, 2.0, 2.0]
+          linear: [10.0, 10.0, 10.0]
+        damper:
+          angular: [200.0, 200.0, 200.0]
+          # linear: [1500.0, 1500.0, 1500.0]
+          linear: [500.0, 500.0, 500.0]
+        spring:
+          # angular: [200.0, 200.0, 200.0]
+          # linear: [200.0, 200.0, 200.0]
+          angular: [0, 0, 0]
+          linear: [0, 0, 0]
+        wrench:
+          angular: [1.0, 1.0, 1.0]
+          linear: [1.0, 1.0, 1.0]
+      unactiveJoints: [R_KNEE_P, R_ANKLE_P, R_ANKLE_R, L_KNEE_P, L_ANKLE_P, L_ANKLE_R]
+    ForceLHand:
+      surface: LeftHandFlat
+      target: Back
+      stiffness: [1000, 1000, 1000, 1000, 1000, 1000]
+      damping: [63, 63, 63, 63, 63, 63]
+      maxVel: [0.2, 0.2, 0.5]
+      wrench: [0.0, 0.0, 0.0, 0.0, 0.0, 10.0]
+      gains:
+        mass:
+          angular: [2.0, 2.0, 2.0]
+          linear: [10.0, 10.0, 10.0]
+        damper:
+          angular: [200.0, 200.0, 200.0]
+          linear: [1500.0, 1500.0, 1500.0]
+          # linear: [100.0, 100.0, 100.0]
+        spring:
+          # angular: [200.0, 200.0, 200.0]
+          # linear: [200.0, 200.0, 200.0]
+          angular: [0, 0, 0]
+          linear: [0, 0, 0]
+        wrench:
+          angular: [1.0, 1.0, 1.0]
+          linear: [1.0, 1.0, 1.0]
+      unactiveJoints: [R_KNEE_P, R_ANKLE_P, R_ANKLE_R, L_KNEE_P, L_ANKLE_P, L_ANKLE_R]
       
     
 
@@ -865,7 +895,7 @@ states:
             forceHorizontalSegment: true
     groundingFrames: [LeftSole, RightSole] ## REPLACE WITH YOUR FRAME NAMES
     fixBaseLink: false
-    initialStiffnessInterpolationDuration: 2
+    initialStiffnessInterpolationDuration: 0
 
   Pause_inf:
     base: Meta
@@ -881,7 +911,7 @@ states:
     base: Meta
     transitions:
     - [Pause_2s, OK, RightStepFSMHRP4, Strict]
-    - [RightStepFSMHRP4, OK, TakePositionHRP4, Strict]
+    - [RightStepFSMHRP4, OK, TakePositionHRP4, Auto]
     # - [TakePositionHRP4, OK, MakeHandContactsHRP4, Strict]
     # - [MakeHandContactsHRP4, OK, KeepPositionHRP4, Strict]
     - [TakePositionHRP4, OK, KeepPositionHRP4, Strict]

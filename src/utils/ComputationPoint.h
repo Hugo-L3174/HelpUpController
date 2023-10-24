@@ -45,8 +45,8 @@ class ComputationPoint
    */
   void updateTriangles();
 
-  // edges (temporarybefore triangles)
-  // void updateEdges();
+  // edges (temporary before triangles)
+  void updateEdges();
 
   // ----- Setters -----
 
@@ -64,9 +64,14 @@ class ComputationPoint
 
   /* \brief returns the triangles vector for gui polytope
   */
-  std::vector<std::vector<Eigen::Vector3d>> getTriangles() const
+  std::vector<std::array<Eigen::Vector3d, 3>> getTriangles() const
   {
     return triangles_;
+  }
+
+  std::vector<std::vector<Eigen::Vector3d>> getEdges() const
+  {
+    return edges_;
   }
 
   std::shared_ptr<PointProjector> getProjector() const
@@ -79,10 +84,6 @@ class ComputationPoint
     return polytope_;
   }
 
-  // std::vector<Eigen::Vector3d> getEdges() const
-  // {
-  //   return edgesPoly_;
-  // }
   
   // constrainedPlanes
   std::vector<Eigen::Vector4d> constraintPlanes() const;
@@ -125,11 +126,11 @@ class ComputationPoint
 
   /* Triangles vector
    */
-  std::vector<std::vector<Eigen::Vector3d>> triangles_;
+  std::vector<std::array<Eigen::Vector3d, 3>> triangles_;
 
-  //   /* Edges vector
-  //  */
-  // std::vector<Eigen::Vector3d> edgesPoly_;
+  /* Edges vector
+  */
+  std::vector<std::vector<Eigen::Vector3d>> edges_;
 
   /* CoMQP object used to compute the optimal position of the CoM 
    */

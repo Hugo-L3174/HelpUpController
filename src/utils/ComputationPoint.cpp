@@ -24,6 +24,7 @@ void ComputationPoint::computeEquilibriumRegion()
     if (solvedOK)
     {
       updateTriangles();
+      updateEdges();
     }
     else
     {
@@ -47,7 +48,7 @@ void ComputationPoint::computeEquilibriumRegion()
     polytope_->projectionStabilityPolyhedron();
     polytope_->endSolver();
     updateTriangles();
-    // updateEdges();
+    updateEdges();
     // throw e;
   }
   
@@ -62,6 +63,26 @@ void ComputationPoint::computeEquilibriumRegion()
 void ComputationPoint::updateTriangles()
 {
   triangles_.clear();
+  triangles_ = polytope_->triangles();
+  // Eigen::Vector3d coord1, coord2, coord3, normal;
+  // std::vector<Eigen::Vector3d> triangle;
+  // for (auto face:polytope_->fullFaces())
+  // {
+  //   triangle.clear();
+  //   triangle.push_back(face->get_vertex1()->get_coordinates());
+  //   triangle.push_back(face->get_vertex2()->get_coordinates());
+  //   triangle.push_back(face->get_vertex3()->get_coordinates());
+  //   // triangle.push_back(face->get_normal());
+
+  //   triangles_.push_back(triangle);
+  // }
+
+}
+
+
+void ComputationPoint::updateEdges()
+{
+  edges_.clear();
   Eigen::Vector3d coord1, coord2, coord3, normal;
   std::vector<Eigen::Vector3d> triangle;
   for (auto face:polytope_->fullFaces())
@@ -72,11 +93,10 @@ void ComputationPoint::updateTriangles()
     triangle.push_back(face->get_vertex3()->get_coordinates());
     // triangle.push_back(face->get_normal());
 
-    triangles_.push_back(triangle);
+    edges_.push_back(triangle);
   }
 
 }
-
 // void ComputationPoint::updateEdges()
 // {
 //   edgesPoly_.clear();

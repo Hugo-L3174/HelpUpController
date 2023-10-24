@@ -477,71 +477,9 @@ void HelpUpController::updateCombinedCoM()
 
 void HelpUpController::addLogEntries()
 {
-  logger().addLogEntry("polytope_computationTime", [this]() -> const int { return balanceCompPoint_->computationTime();});
-  logger().addLogEntry("humPolytope_computationTime", [this]() -> const int { return balanceHumCompPoint_->computationTime();});
+  // logger().addLogEntry("polytope_computationTime", [this]() -> const int { return balanceCompPoint_->computationTime();});
+  // logger().addLogEntry("humPolytope_computationTime", [this]() -> const int { return balanceHumCompPoint_->computationTime();});
 
-  // Logging the desired CoM computed
-  auto desiredCoM = [this](){
-    return comDesired_;
-  };
-  logger().addLogEntry("mainRob_com_desired", desiredCoM);
-
-  auto desiredHumCoM = [this](){
-    return comDesiredHum_;
-  };
-  logger().addLogEntry("humCom_desired", desiredHumCoM);
-
-  // Logging the control CoM position computed by mc_rtc
-  auto controlCoM = [this](){
-    return this->robot().com();
-  };
-  logger().addLogEntry("mainRob_com_control", controlCoM);
-
-  // Logging the estimated CoM position of the real robot estimated by the observers
-  auto realCoM = [this](){
-    return this->realRobot().com();
-  };
-  logger().addLogEntry("mainRob_com_real", realCoM);
-
-  // Logging the control CoM position computed by mc_rtc
-  auto humcontrolCoM = [this](){
-    return this->robot("human").com();
-  };
-  logger().addLogEntry("human_com_control", controlCoM);
-
-  // Logging the estimated CoM position of the real robot estimated by the observers
-  auto humrealCoM = [this](){
-    return this->realRobot("human").com();
-  };
-  logger().addLogEntry("human_com_real", realCoM);
-
-
-  // auto desiredCoMVel = [this](){
-  //   return this->comp_c_;
-  // };
-  // logger().addLogEntry("comVel_desired", desiredCoMVel);
-
-
-  // Logging the pose of the right hand for control and real.
-  auto controlRightHand = [this](){
-    return this->robot().surfacePose("RightHand");
-  };
-  logger().addLogEntry("RightHandPose_control", controlRightHand);
-
-  auto realRightHand = [this](){
-    return this->realRobot().surfacePose("RightHand");
-  };
-  logger().addLogEntry("RightHandPose_real", realRightHand);
-
-  auto controlLeftHand = [this](){
-    return this->robot().surfacePose("LeftHand");
-  };
-  logger().addLogEntry("LeftHandPose_control", controlLeftHand);
-
-  auto realLeftHand = [this](){
-    return this->realRobot().surfacePose("LeftHand");
-  };
-  logger().addLogEntry("LeftHandPose_real", realLeftHand);
 
   auto logDCMrob = [this](){
     return robMeasuredDCM_;
@@ -594,10 +532,10 @@ void HelpUpController::addLogEntries()
   logger().addLogEntry("DCM_human omega", logOmega);
 
 
-  auto logDotOmega = [this](){
-    return dotHumanOmega_;
-  };
-  logger().addLogEntry("DCM_human dot omega", logDotOmega);
+  // auto logDotOmega = [this](){
+  //   return dotHumanOmega_;
+  // };
+  // logger().addLogEntry("DCM_human dot omega", logDotOmega);
 
   auto commandVRP = [this](){
     return commandVRP_;
@@ -756,10 +694,6 @@ void HelpUpController::addGuiElements()
    
   // );
 
-  gui()->addElement({"Polytopes"}, 
-      mc_rtc::gui::Polygon("MainRobBalanceRegion", COLORS.at('r'), [this]() { return balanceCompPoint_->getTriangles(); }),
-      mc_rtc::gui::Polygon("HumanBalanceRegion", COLORS.at('g'), [this]() { return balanceHumCompPoint_->getTriangles(); }) 
-  );
 
   // gui()->addElement({"AccPoly"}, 
   //     mc_rtc::gui::Polygon("HRP4accBalanceRegion", mc_rtc::gui::Color{0.8, 0., 0.}, [this]() { return accelerations_; }),
@@ -770,25 +704,28 @@ void HelpUpController::addGuiElements()
   pconfig.triangle_color = mc_rtc::gui::Color(0.2, 0.2, 0.2, 0.3);
   pconfig.use_triangle_color = true;
   pconfig.show_triangle = true;
-  pconfig.show_vertices = true;
-  pconfig.show_edges = true;
+  pconfig.show_vertices = false;
+  pconfig.show_edges = false;
   pconfig.fixed_edge_color = true;
   pconfig.edge_config.color = mc_rtc::gui::Color::LightGray;
-  pconfig.edge_config.width = 0.03;
+  pconfig.edge_config.width = 0.003;
   static bool publish_as_vertices_triangles = false;
 
-    
-  // gui()->addElement({"Polyhedrons"},
-  //                        mc_rtc::gui::Polyhedron("Polyhedron", pconfig, [this]() { 
-  //                         auto in = currentCompPoint_->getTriangles();
-  //                         auto res = std::vector<std::array<Eigen::Vector3d, 3>>{};
-  //                         for(const auto & v : in)
-  //                         {
-  //                           res.push_back({v[0], v[1], v[2]});
-  //                         }
-  //                         return res; })                    
-  // );
+  mc_rtc::gui::PolyhedronConfig pconfig_rob = pconfig;
+  pconfig_rob.triangle_color = mc_rtc::gui::Color(1, 0, 0, 0.3);
 
+  mc_rtc::gui::PolyhedronConfig pconfig_hum = pconfig;
+  pconfig_hum.triangle_color = mc_rtc::gui::Color(0, 1, 0, 0.3);;
+    
+  gui()->addElement({"Polytopes", "Polyhedrons"},
+                         mc_rtc::gui::Polyhedron("Robot balance region", pconfig_rob, [this]() { return balanceCompPoint_->getTriangles(); }),
+                         mc_rtc::gui::Polyhedron("Human balance region", pconfig_hum, [this]() { return balanceHumCompPoint_->getTriangles(); })                    
+  );
+
+  gui()->addElement({"Polytopes", "Triangles"}, 
+      mc_rtc::gui::Polygon("Robot balance region", COLORS.at('r'), [this]() { return balanceCompPoint_->getEdges(); }),
+      mc_rtc::gui::Polygon("Human balance region", COLORS.at('g'), [this]() { return balanceHumCompPoint_->getEdges(); }) 
+  );
   // gui()->addPlot(
   //   "Applied force",
   //   mc_rtc::gui::plot::X("t", [this]() { return t_; }),

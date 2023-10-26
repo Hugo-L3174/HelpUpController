@@ -9,7 +9,6 @@ void ChangeBalanceConfig::configure(const mc_rtc::Configuration & config)
   {
     hasCompletion_ = !config("completion").empty();
     config("completion")("dcmEval", dcmThreshold_);
-    
   }
   mc_rtc::log::info("there is a completion criteria: {}", hasCompletion_);
   mc_rtc::log::info("dcm objective: {}", dcmThreshold_.transpose()); 
@@ -42,7 +41,7 @@ void ChangeBalanceConfig::start(mc_control::fsm::Controller & ctl_)
     {
       ContactState s = contactName;
       contactState_.push_back(s);
-      mc_rtc::log::info("contact added: {}", s);
+      // mc_rtc::log::info("contact added: {}", s);
     }
     
     stabTask->setContacts(contactState_);
@@ -71,9 +70,13 @@ bool ChangeBalanceConfig::run(mc_control::fsm::Controller & ctl_)
 void ChangeBalanceConfig::teardown(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
-  // setting stabilizer back to auto mode with objective set by the controller
-  auto & manual = ctl.datastore().get<bool>("RobotStabilizer::ManualMode");
-  manual = false;
+  if (config_.has("stayManualAfter"))
+  {
+    // setting stabilizer back to auto mode with objective set by the controller
+    auto & manual = ctl.datastore().get<bool>("RobotStabilizer::ManualMode");
+    manual = config_("stayManualAfter");
+  }
+  
 
 }
 

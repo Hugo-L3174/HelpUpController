@@ -3,6 +3,7 @@
 #include <mc_control/fsm/State.h>
 #include <mc_tasks/BSplineTrajectoryTask.h>
 #include <mc_tasks/MetaTaskLoader.h>
+#include <mc_control/CompletionCriteria.h>
 
 struct RobotTakePoseObserved : mc_control::fsm::State
 {
@@ -20,4 +21,9 @@ private:
 
     std::shared_ptr<mc_tasks::BSplineTrajectoryTask> RHandTrajectoryTask_;
     std::shared_ptr<mc_tasks::BSplineTrajectoryTask> LHandTrajectoryTask_;
+
+    double errorRH_, errorLH_ = 0;
+    // double critRH_, critLH_;
+    mc_control::CompletionCriteria critRH_, critLH_;
+    
 };

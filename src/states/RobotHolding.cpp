@@ -10,155 +10,69 @@ void RobotHolding::configure(const mc_rtc::Configuration & config)
 
 void RobotHolding::start(mc_control::fsm::Controller & ctl_)
 {
-  if (config_.has("weight")) weight_ = static_cast<int>(config_("weight"));
-  else weight_ = 1000;
-
-  if (config_.has("stiffness")) stiffness_ = static_cast<int>(config_("stiffness"));
-  else stiffness_ = 5;
-
-  // if (config_.has("dimWeight")) dimWeight_ = config_("dimWeight");
-  // else dimWeight_.setOnes();
-
-  // if (config_.has("mode"))
-  // {
-  //   auto mode = static_cast<std::string>(config_("mode"));
-  //   if (mode.compare("admittance") == 0)
-  //   {
-  //     mode_ = admittance;
-  //   }
-    
-  // } 
-  
   auto & ctl = static_cast<HelpUpController &>(ctl_);
 
-  auto RHForceConf = config_("ForceRHand");
+  if (config_.has("RightHandAdmi"))
+  {
+    rightHandAdmittancePtr_ = mc_tasks::MetaTaskLoader::load<mc_tasks::force::AdmittanceTask>(ctl.solver(), config_("RightHandAdmi"));
+    auto RHtarget = config_("RightHandAdmi")("targetFrame");
+    RHtarget("robot", RHtargetRobot_);
+    RHtarget("frame", RHtargetFrame_);
+    RHtarget("offset", RHtargetOffset_);
+    rightHandAdmittancePtr_->velFilterGain(0.1); // see admittance implem, we want the ref vel to be made of a higher prop of the wrench error (clamped!) than of the prev refVel 
+    // rightHandAdmittancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
+    ctl.solver().addTask(rightHandAdmittancePtr_);
+  }
 
-  RHadmittance_ = RHForceConf("admittance");
-  RHstiffness_ = RHForceConf("stiffness");
-  RHdamping_ = RHForceConf("damping");
-  RHmaxVel_ = RHForceConf("maxVel");
-  RHwrench_ = RHForceConf("wrench");
-  RHForceConf("surface", RHsurf_);
-  RHForceConf("target", RHtarget_);
-  RHimpGains_ = RHForceConf("gains");
+  if (config_.has("LeftHandAdmi"))
+  {
+    leftHandAdmittancePtr_ = mc_tasks::MetaTaskLoader::load<mc_tasks::force::AdmittanceTask>(ctl.solver(), config_("LeftHandAdmi"));
+    auto LHtarget = config_("LeftHandAdmi")("targetFrame");
+    LHtarget("robot", LHtargetRobot_);
+    LHtarget("frame", LHtargetFrame_);
+    LHtarget("offset", LHtargetOffset_);
+    leftHandAdmittancePtr_->velFilterGain(0.1);
+    // rightHandAdmittancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
+    ctl.solver().addTask(leftHandAdmittancePtr_);
+  }
 
-  auto LHForceConf = config_("ForceLHand");  
+  if (config_.has("CoPRH"))
+  {
+    rightHandCoPTaskPtr_ = mc_tasks::MetaTaskLoader::load<mc_tasks::force::CoPTask>(ctl.solver(), config_("CoPRH"));
+    auto RHtarget = config_("CoPRH")("targetFrame");
+    RHtarget("robot", RHtargetRobot_);
+    RHtarget("frame", RHtargetFrame_);
+    RHtarget("offset", RHtargetOffset_);
+    ctl.solver().addTask(rightHandCoPTaskPtr_);
+  }
+  
 
-  LHadmittance_ = LHForceConf("admittance");
-  LHstiffness_ = LHForceConf("stiffness");
-  LHdamping_ = LHForceConf("damping");
-  LHmaxVel_ = LHForceConf("maxVel");
-  LHwrench_ = LHForceConf("wrench");
-  LHForceConf("surface", LHsurf_);
-  LHForceConf("target", LHtarget_);
-  LHimpGains_ = LHForceConf("gains");
-
-
-  // rightHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> (RHsurf_, ctl.robots(), ctl.robots().robotIndex());
-  // rightHandAdmittancePtr_->admittance(sva::ForceVec(RHadmittance_));
-  // rightHandAdmittancePtr_->setGains(sva::MotionVec(RHstiffness_), sva::MotionVec(RHdamping_));
-  // rightHandAdmittancePtr_->maxLinearVel(RHmaxVel_);
-  // rightHandAdmittancePtr_->targetWrench(RHwrench_);
-  // rightHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose(RHtarget_));
-
-
-  // leftHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> (LHsurf_, ctl.robots(), ctl.robots().robotIndex());
-  // leftHandAdmittancePtr_->admittance(sva::ForceVec(LHadmittance_));
-  // leftHandAdmittancePtr_->setGains(sva::MotionVec(LHstiffness_), sva::MotionVec(LHdamping_));
-  // leftHandAdmittancePtr_->maxLinearVel(LHmaxVel_);
-  // leftHandAdmittancePtr_->targetWrench(LHwrench_);
-  // leftHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose(LHtarget_));
-
-
-
-  rightHandImpedancePtr_ = std::make_shared<mc_tasks::force::ImpedanceTask> (RHsurf_, ctl.robots(), ctl.robots().robotIndex());
-  rightHandImpedancePtr_->setGains(sva::MotionVec(RHstiffness_), sva::MotionVec(RHdamping_));
-  rightHandImpedancePtr_->gains() = RHimpGains_;
-  rightHandImpedancePtr_->targetWrench(RHwrench_);
-  rightHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(RHtarget_));
-
-  leftHandImpedancePtr_ = std::make_shared<mc_tasks::force::ImpedanceTask> (LHsurf_, ctl.robots(), ctl.robots().robotIndex());
-  leftHandImpedancePtr_->setGains(sva::MotionVec(LHstiffness_), sva::MotionVec(LHdamping_));
-  leftHandImpedancePtr_->gains() = LHimpGains_;
-  leftHandImpedancePtr_->targetWrench(LHwrench_);
-  leftHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(LHtarget_));
+  if (config_.has("RightHandImped"))
+  {
+    rightHandImpedancePtr_ = mc_tasks::MetaTaskLoader::load<mc_tasks::force::ImpedanceTask>(ctl.solver(), config_("RightHandImped"));
+    auto RHtarget = config_("RightHandImped")("targetFrame");
+    RHtarget("robot", RHtargetRobot_);
+    RHtarget("frame", RHtargetFrame_);
+    RHtarget("offset", RHtargetOffset_);
+    rightHandImpedancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
+    ctl.solver().addTask(rightHandImpedancePtr_);
+  }
+  
+  if (config_.has("LeftHandImped"))
+  {
+    leftHandImpedancePtr_ = mc_tasks::MetaTaskLoader::load<mc_tasks::force::ImpedanceTask>(ctl.solver(), config_("LeftHandImped"));
+    auto LHtarget = config_("LeftHandImped")("targetFrame");
+    LHtarget("robot", LHtargetRobot_);
+    LHtarget("frame", LHtargetFrame_);
+    LHtarget("offset", LHtargetOffset_);
+    leftHandImpedancePtr_->targetPose(LHtargetOffset_ * ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).position());
+    ctl.solver().addTask(leftHandImpedancePtr_);
+  }
 
 
   // adding tasks to solver
-  addToGUI(*ctl.gui(), ctl);
-  // ctl.solver().addTask(rightHandAdmittancePtr_);
-  // ctl.solver().addTask(leftHandAdmittancePtr_);
+  // addToGUI(*ctl.gui(), ctl);
 
-  ctl.solver().addTask(rightHandImpedancePtr_);
-  ctl.solver().addTask(leftHandImpedancePtr_);
-  
-
-  // case forceConstraint:
-  //   // ctl.addContact({ctl.robot().name(), "human", "RightHandFlat", "RightShoulder"});
-  //   // ctl.addContact({ctl.robot().name(), "human", "LeftHandFlat", "Back"});
-  //   // Trigger the contact update now so the contact is in the solver
-  //   ctl.updateContacts();
-
-  //   // Todo: generalize lambda (pb of string argument)
-  //   mc_rbdyn::Contact contactRH = [this, &ctl]() {
-  //     for(const auto & c : ctl.solver().contacts())
-  //     {
-  //       if(c.r1Surface()->name() == "RightHandFlat")
-  //       {
-  //         return c;
-  //       }
-  //     }
-  //     mc_rtc::log::error_and_throw("Unreachable");
-  //   }();
-
-  //   mc_rbdyn::Contact contactLH = [this, &ctl]() {
-  //     for(const auto & c : ctl.solver().contacts())
-  //     {
-  //       if(c.r1Surface()->name() == "LeftHandFlat")
-  //       {
-  //         return c;
-  //       }
-  //     }
-  //     mc_rtc::log::error_and_throw("Unreachable");
-  //   }();
-
-  //   // Adding RH contact task
-  //   auto cid = contactRH.contactId(ctl.robots());
-  //   rightHandForceConstPtr_ = std::make_shared<TrackDesiredForceTask>(ctl.solver(), cid); 
-  //   rightHandForceConstPtr_->setTargetWrench(RHwrench_);
-  //   tasks_solver(ctl.solver()).addTask(rightHandForceConstPtr_.get());
-
-  //   // Adding LH
-  //   cid = contactLH.contactId(ctl.robots());
-  //   leftHandForceConstPtr_ = std::make_shared<TrackDesiredForceTask>(ctl.solver(), cid); 
-  //   leftHandForceConstPtr_->setTargetWrench(LHwrench_);
-  //   tasks_solver(ctl.solver()).addTask(leftHandForceConstPtr_.get());
-    
-  //   // Add gui elements
-  //   GUIForceContacts(*ctl.gui(), ctl);
-
-
-  //   // Add hands admittance tasks
-  //   // right hand admittance
-  //   rightHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("RightHandFlat", ctl.robots(), ctl.robots().robotIndex());
-  //   rightHandAdmittancePtr_->admittance(sva::ForceVec(RHadmittance_));
-  //   rightHandAdmittancePtr_->setGains(sva::MotionVec(RHstiffness_), sva::MotionVec(RHdamping_));
-  //   rightHandAdmittancePtr_->maxLinearVel(RHmaxVel_);
-  //   rightHandAdmittancePtr_->targetWrench(RHwrench_);
-  //   rightHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("RightShoulder"));
-  //   // left hand admittance
-  //   leftHandAdmittancePtr_ = std::make_shared<mc_tasks::force::AdmittanceTask> ("LeftHandFlat", ctl.robots(), ctl.robots().robotIndex());
-  //   leftHandAdmittancePtr_->admittance(sva::ForceVec(LHadmittance_));
-  //   leftHandAdmittancePtr_->setGains(sva::MotionVec(LHstiffness_), sva::MotionVec(LHdamping_));
-  //   leftHandAdmittancePtr_->maxLinearVel(LHmaxVel_);
-  //   leftHandAdmittancePtr_->targetWrench(LHwrench_);
-  //   leftHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose("Back"));
-  //   // adding admittance tasks to solver
-  //   addToGUI(*ctl.gui(), ctl);
-  //   ctl.solver().addTask(rightHandAdmittancePtr_);
-  //   ctl.solver().addTask(leftHandAdmittancePtr_);
-
-  
   
 
 }
@@ -166,43 +80,79 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl_)
 bool RobotHolding::run(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
-  
-  // rightHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose(RHtarget_));
-  // rightHandAdmittancePtr_->targetWrench(ctl.getRHWrenchComputed());
 
-  // leftHandAdmittancePtr_->targetPose(ctl.robot("human").surfacePose(LHtarget_));
-  // leftHandAdmittancePtr_->targetWrench(ctl.getLHWrenchComputed());
+  // rightHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(RHtarget_));
+  // rightHandImpedancePtr_->targetWrench(ctl.getRHWrenchComputed());
 
-  rightHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(RHtarget_));
-  rightHandImpedancePtr_->targetWrench(ctl.getRHWrenchComputed());
+  // leftHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(LHtarget_));
+  // leftHandImpedancePtr_->targetWrench(ctl.getLHWrenchComputed());
 
-  leftHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(LHtarget_));
-  leftHandImpedancePtr_->targetWrench(ctl.getLHWrenchComputed());
-
-  Eigen::Vector6d gain;
-  gain << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
+  // Eigen::Vector6d gain;
+  // gain << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
   // gain for setExternalWrenches is used only if we use the measured forces (might vibrate, thus gains)
-  auto handGains = sva::MotionVecd(gain);
+  // auto handGains = sva::MotionVecd(gain);
+
   std::vector<sva::MotionVecd> gainsVec;
-  gainsVec.push_back(handGains);
-  gainsVec.push_back(handGains);
-
   std::vector<std::string> surfVec;
-  surfVec.push_back(LHsurf_);
-  surfVec.push_back(RHsurf_);
-
   std::vector<sva::ForceVecd> wrenchVec;
-  wrenchVec.push_back(ctl.getLHWrenchComputed());
-  wrenchVec.push_back(ctl.getRHWrenchComputed());
 
-  // if (ctl.datastore().has("RobotStabilizer::setExternalWrenches"))
-  // {
-  //   ctl.datastore().call("RobotStabilizer::setExternalWrenches", 
-  //                         static_cast<const std::vector<std::string> &>(surfVec), 
-  //                         static_cast<const std::vector<sva::ForceVecd> &>(wrenchVec),
-  //                         static_cast<const std::vector<sva::MotionVecd> &>(gainsVec)
-  //                       );
-  // }
+  if (config_.has("RightHandAdmi"))
+  {
+    // rightHandAdmittancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
+    // rightHandAdmittancePtr_->targetSurface();
+    // RHgains_= sva::MotionVecd(Eigen::Vector3d(0.01, 0.01, 0.01), Eigen::Vector3d(0.01, 0.01, 0.01));
+    RHgains_= sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
+    gainsVec.push_back(RHgains_);
+    surfVec.push_back(config_("RightHandAdmi")("frame"));
+    // wrenchVec.push_back(rightHandAdmittancePtr_->targetWrench());
+    wrenchVec.push_back(sva::ForceVecd::Zero());
+  }
+  if (config_.has("LeftHandAdmi"))
+  {
+    // leftHandAdmittancePtr_->targetPose(LHtargetOffset_ * ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).position());
+    // LHgains_= sva::MotionVecd(Eigen::Vector3d(0.01, 0.01, 0.01), Eigen::Vector3d(0.01, 0.01, 0.01));
+    LHgains_= sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
+    gainsVec.push_back(LHgains_);
+    surfVec.push_back(config_("LeftHandAdmi")("frame"));
+    // wrenchVec.push_back(leftHandAdmittancePtr_->targetWrench());
+    wrenchVec.push_back(sva::ForceVecd::Zero());
+  }
+  
+  
+  if (config_.has("CoPRH"))
+  {
+    rightHandCoPTaskPtr_->targetSurface(ctl.robot(RHtargetRobot_).robotIndex(), RHtargetFrame_, RHtargetOffset_);
+    // gainsVec.push_back(RHgains_);
+    // surfVec.push_back(config_("CoPRH")("frame"));
+    // wrenchVec.push_back( rightHandCoPTaskPtr_->targetWrench());
+
+  }
+  
+
+  if (config_.has("RightHandImped"))
+  {
+    rightHandImpedancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
+    RHgains_= sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
+    gainsVec.push_back(RHgains_);
+    surfVec.push_back(config_("RightHandImped")("frame"));
+    wrenchVec.push_back(sva::ForceVecd::Zero());
+  }
+  if (config_.has("LeftHandImped"))
+  {
+    leftHandImpedancePtr_->targetPose(LHtargetOffset_ * ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).position());
+    LHgains_= sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
+    gainsVec.push_back(LHgains_);
+    surfVec.push_back(config_("LeftHandImped")("frame"));
+    wrenchVec.push_back(sva::ForceVecd::Zero());
+  }
+  
+  
+  
+  ctl.datastore().call("RobotStabilizer::setExternalWrenches", 
+                        static_cast<const std::vector<std::string> &>(surfVec), 
+                        static_cast<const std::vector<sva::ForceVecd> &>(wrenchVec),
+                        static_cast<const std::vector<sva::MotionVecd> &>(gainsVec)
+                        );
   
 
   // Completion
@@ -299,50 +249,5 @@ void RobotHolding::addToGUI(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Co
 
 }
 
-void RobotHolding::GUIForceContacts(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Controller & ctl)
-{ 
-  mc_rbdyn::Contact contactRH = [this, &ctl]() {
-      for(const auto & c : ctl.solver().contacts())
-      {
-        if(c.r1Surface()->name() == RHsurf_)
-        {
-          return c;
-        }
-      }
-      mc_rtc::log::error_and_throw("Unreachable");
-    }();
-
-    mc_rbdyn::Contact contactLH = [this, &ctl]() {
-      for(const auto & c : ctl.solver().contacts())
-      {
-        if(c.r1Surface()->name() == LHsurf_)
-        {
-          return c;
-        }
-      }
-      mc_rtc::log::error_and_throw("Unreachable");
-    }();
-
-  ctl.gui()->addElement(
-      {"Force Contacts"},
-      mc_rtc::gui::NumberInput(
-          "right weight", [this]() { return rightHandForceConstPtr_->weight(); }, [this](double w) { rightHandForceConstPtr_->weight(w); }),
-      mc_rtc::gui::NumberInput(
-          "left weight", [this]() { return leftHandForceConstPtr_->weight(); }, [this](double w) { leftHandForceConstPtr_->weight(w); }),
-      mc_rtc::gui::ArrayInput(
-          "Right Target wrench", [this]() { return RHwrench_; },
-          [this](const sva::ForceVecd & fv) {
-            RHwrench_ = fv;
-            rightHandForceConstPtr_->setTargetWrench(fv);
-          }),
-      mc_rtc::gui::ArrayInput(
-          "Left Target wrench", [this]() { return LHwrench_; },
-          [this](const sva::ForceVecd & fv) {
-            LHwrench_ = fv;
-            leftHandForceConstPtr_->setTargetWrench(fv);
-          }),
-      mc_rtc::gui::ArrayLabel("QP wrench RH", [this, contactRH, &ctl]() { return ctl.solver().desiredContactForce(contactRH); }),
-      mc_rtc::gui::ArrayLabel("QP wrench LH", [this, contactLH, &ctl]() { return ctl.solver().desiredContactForce(contactLH); }));
-}
 
 EXPORT_SINGLE_STATE("RobotHolding", RobotHolding)

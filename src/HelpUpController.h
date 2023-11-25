@@ -24,6 +24,7 @@
 #include <gram_savitzky_golay/gram_savitzky_golay.h>
 #include <boost/circular_buffer.hpp>
 #include <mc_filter/LeakyIntegrator.h>
+#include <mc_filter/LowPass.h>
 
 #include "api.h"
 
@@ -329,7 +330,9 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     void computeCommandVRP()
     {
       // TODO fix feedforward term
-      commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*(/*DCMobjectiveVel_*/ + DCMpropgain_*(DCMerror_) + DCMinteggain_ * DCMaverageError_);
+      // commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*(/*DCMobjectiveVel_*/ + DCMpropgain_*(DCMerror_) + DCMinteggain_ * DCMaverageError_);
+      Eigen::Vector3d DCMvel = (humanOmega_ - (dotHumanOmega_/humanOmega_)) * (humanXsensDCM() - humanVRPmodel());
+      commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*( DCMvel + DCMpropgain_*(DCMerror_) + DCMinteggain_ * DCMaverageError_);
     }
 
 
@@ -403,10 +406,15 @@ private:
     Eigen::Vector3d xsensCoMpos_ = Eigen::Vector3d::Zero();
     Eigen::Vector3d xsensCoMvel_ = Eigen::Vector3d::Zero();
     Eigen::Vector3d xsensCoMacc_ = Eigen::Vector3d::Zero();
+    Eigen::Vector3d rawxsensCoMacc_ = Eigen::Vector3d::Zero();
 
-    double humanOmega_ = std::sqrt(9.81);
-    double prevOmega_ = std::sqrt(9.81);
+    double cutoffPeriod_ = 0.05;
+    mc_filter::LowPass<Eigen::Vector3d> accLowPass_;
+
+    double humanOmega_ = std::sqrt(9.81/0.674); // seated human com is around 67 cm in height
+    double prevOmega_ = std::sqrt(9.81/0.674);
     double dotHumanOmega_ = 0.0;
+    mc_filter::LowPass<Eigen::Vector3d> humOmegaLowPass_;
 
     Eigen::Vector3d DCMerror_ = Eigen::Vector3d::Zero();
     Eigen::Vector3d prevDCMobjective_ = Eigen::Vector3d::Zero();
@@ -424,7 +432,7 @@ private:
     Eigen::Vector3d commandVRP_ = Eigen::Vector3d::Zero();
     double DCMpropgain_ = 3.0;
     double DCMdgain_ = 0.3;
-    double DCMinteggain_ = 0.3;
+    double DCMinteggain_ = 0;//0.3;
 
     std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask> stabTask_;
     std::shared_ptr<mc_tasks::lipm_stabilizer::internal::Contact> leftHandContact_;
@@ -542,6 +550,8 @@ private:
 
     bool firstPolyHumOK_;
 
+    mc_filter::LowPass<sva::ForceVecd> lowPassLF_, lowPassRF_, lowPassLB_, lowPassRB_;
+    double cutoffPeriodForceShoes_ = 0.05;
     std::vector<sva::ForceVecd> LFShoeVec_, RFShoeVec_, LBShoeVec_, RBShoeVec_;
     sva::ForceVecd LFShoe_, RFShoe_, LBShoe_, RBShoe_;
     sva::ForceVecd LCheekForce_, RCheekForce_ = sva::ForceVecd::Zero();

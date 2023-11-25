@@ -53,13 +53,24 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
   {
     config_("ExternalWrenchConfig")("addExpectedCoMOffset", ExternalWrenchConf_.addExpectedCoMOffset);
     config_("ExternalWrenchConfig")("modifyCoMErr", ExternalWrenchConf_.modifyCoMErr);
+    config_("ExternalWrenchConfig")("com_offset_cutoff", ExternalWrenchConf_.comOffsetLowPassCoMCutoffPeriod);
     config_("ExternalWrenchConfig")("modifyZMPErr", ExternalWrenchConf_.modifyZMPErr);
-    config_("ExternalWrenchConfig")("modifyZMPErrD", ExternalWrenchConf_.modifyZMPErr);
+    config_("ExternalWrenchConfig")("com_offset_com_cutoff", ExternalWrenchConf_.comOffsetLowPassCutoffPeriod);
+    config_("ExternalWrenchConfig")("modifyZMPErrD", ExternalWrenchConf_.modifyZMPErrD);
     config_("ExternalWrenchConfig")("substractMeasuredValue", ExternalWrenchConf_.subtractMeasuredValue);
+    config_("ExternalWrenchConfig")("ext_wrench_sum_cutoff", ExternalWrenchConf_.extWrenchSumLowPassCutoffPeriod);
+    config_("ExternalWrenchConfig")("excludeFromDCMBiasEst", ExternalWrenchConf_.excludeFromDCMBiasEst);
   }
-
-
   stabilizerTask_->externalWrenchConfiguration(ExternalWrenchConf_);
+
+  if (config_.has("DCMBiasEstimatorConfig"))
+  {
+    config_("DCMBiasEstimatorConfig")("withDCMBias", DCMBiasConf_.withDCMBias);
+    config_("DCMBiasEstimatorConfig")("withDCMFilter", DCMBiasConf_.withDCMFilter);
+    config_("DCMBiasEstimatorConfig")("correctCoMPos", DCMBiasConf_.correctCoMPos);
+  }
+  stabilizerTask_->dcmBiasEstimatorConfiguration(DCMBiasConf_);
+  
 
   if(config_.has("above"))
   {
@@ -161,7 +172,10 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
                             { stabilizerTask_->setExternalWrenches(surfaceNames, targetWrenches, gains); });
   ctl.datastore().make_call("RobotStabilizer::setExternalWrenchConfiguration",
                             [this](const mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration & extWrenchConfig)
-                            { stabilizerTask_->externalWrenchConfiguration(extWrenchConfig); });                          
+                            { stabilizerTask_->externalWrenchConfiguration(extWrenchConfig); });   
+  ctl.datastore().make_call("RobotStabilizer::setDCMBiasConfiguration",
+                            [this](const mc_rbdyn::lipm_stabilizer::DCMBiasEstimatorConfiguration & dcmBiasConfig)
+                            { stabilizerTask_->dcmBiasEstimatorConfiguration(dcmBiasConfig); });                         
   ctl.datastore().make_call("RobotStabilizer::getCoPAdmittance",
                             [this]() { return stabilizerTask_->config().copAdmittance; });
   ctl.datastore().make_call("RobotStabilizer::setCoPAdmittance", [this](const Eigen::Vector2d & copAdmittance)
@@ -251,18 +265,23 @@ bool RobotStabilizer::run(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
 
+  // getting current measured pendulum state
   const Eigen::Vector3d & com_ = pendulum_.com();
   const Eigen::Vector3d & comd_ = pendulum_.comd();
 
+  // computing desired com acceleration from error between stabilizer state target and current pendulum com movement
   Eigen::Vector3d comdd = K_ * (comTarget_ - com_) - D_ * comd_;
+  // computing vertical acceleration + weird pendulum stiffness factor (from vhip)
   Eigen::Vector3d n = constants::vertical;
   double lambda = n.dot(comdd + constants::gravity) / n.dot(com_ - copTarget_);
+  // computing zmp (2d)
   Eigen::Vector3d zmp = com_ - (constants::gravity + comdd) / lambda;
-
+  // integrate pendulum movement over timestep -> updates pendulum com, comd, comdd, zmp, zmpd
   pendulum_.integrateIPM(zmp, lambda, ctl.timeStep);
 
-  // Update stabilizer target
+  // Update stabilizer task target with computed pendulum dynamics
   stabilizerTask_->target(pendulum_.com(), pendulum_.comd(), pendulum_.comdd(), pendulum_.zmp());
+  // stabilizerTask_->staticTarget(comTarget_);
 
   // if(!hasCompletion_)
   // {
@@ -285,31 +304,30 @@ void RobotStabilizer::teardown(mc_control::fsm::Controller & ctl_)
   auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   ctl.solver().removeTask(stabilizerTask_);
-  ctl.gui()->removeCategory({"FSM", name()});
   ctl.logger().removeLogEntries(this);
 
-  ctl.datastore().remove("RobotStabilizer::getCoMTarget");
-  ctl.datastore().remove("RobotStabilizer::setCoMTarget");
-  ctl.datastore().remove("RobotStabilizer::getStiffness");
-  ctl.datastore().remove("RobotStabilizer::setStiffness");
-  ctl.datastore().remove("RobotStabilizer::getDamping");
-  ctl.datastore().remove("RobotStabilizer::setDamping");
-  ctl.datastore().remove("RobotStabilizer::getConfiguration");
-  ctl.datastore().remove("RobotStabilizer::setConfiguration");
-  ctl.datastore().remove("RobotStabilizer::setPelvisWeight");
-  ctl.datastore().remove("RobotStabilizer::setPelvisStiffness");
-  ctl.datastore().remove("RobotStabilizer::setTorsoWeight");
-  ctl.datastore().remove("RobotStabilizer::setTorsoStiffness");
-  ctl.datastore().remove("RobotStabilizer::setCoMWeight");
-  ctl.datastore().remove("RobotStabilizer::setCoMStiffness");
-  ctl.datastore().remove("RobotStabilizer::setExternalWrenches");
-  ctl.datastore().remove("RobotStabilizer::getCoPAdmittance");
-  ctl.datastore().remove("RobotStabilizer::setCoPAdmittance");
-  ctl.datastore().remove("RobotStabilizer::setExternalWrenchConfiguration");
-  ctl.datastore().remove("RobotStabilizer::getTask");
-  ctl.datastore().remove("RobotStabilizer::setDCMThreshold");
-  ctl.datastore().remove("RobotStabilizer::setAboveObjective");  
-  ctl.datastore().remove("RobotStabilizer::isBalanced");   
+  // ctl.datastore().remove("RobotStabilizer::getCoMTarget");
+  // ctl.datastore().remove("RobotStabilizer::setCoMTarget");
+  // ctl.datastore().remove("RobotStabilizer::getStiffness");
+  // ctl.datastore().remove("RobotStabilizer::setStiffness");
+  // ctl.datastore().remove("RobotStabilizer::getDamping");
+  // ctl.datastore().remove("RobotStabilizer::setDamping");
+  // ctl.datastore().remove("RobotStabilizer::getConfiguration");
+  // ctl.datastore().remove("RobotStabilizer::setConfiguration");
+  // ctl.datastore().remove("RobotStabilizer::setPelvisWeight");
+  // ctl.datastore().remove("RobotStabilizer::setPelvisStiffness");
+  // ctl.datastore().remove("RobotStabilizer::setTorsoWeight");
+  // ctl.datastore().remove("RobotStabilizer::setTorsoStiffness");
+  // ctl.datastore().remove("RobotStabilizer::setCoMWeight");
+  // ctl.datastore().remove("RobotStabilizer::setCoMStiffness");
+  // ctl.datastore().remove("RobotStabilizer::setExternalWrenches");
+  // ctl.datastore().remove("RobotStabilizer::getCoPAdmittance");
+  // ctl.datastore().remove("RobotStabilizer::setCoPAdmittance");
+  // ctl.datastore().remove("RobotStabilizer::setExternalWrenchConfiguration");
+  // ctl.datastore().remove("RobotStabilizer::getTask");
+  // ctl.datastore().remove("RobotStabilizer::setDCMThreshold");
+  // ctl.datastore().remove("RobotStabilizer::setAboveObjective");  
+  // ctl.datastore().remove("RobotStabilizer::isBalanced");   
   if(ownsAnchorFrameCallback_) { ctl.datastore().remove(anchorFrameFunction_); }
 }
 

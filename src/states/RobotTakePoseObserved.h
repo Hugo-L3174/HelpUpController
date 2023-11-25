@@ -18,6 +18,8 @@ struct RobotTakePoseObserved : mc_control::fsm::State
 
 private:
     mc_rtc::Configuration config_;
+    sva::PTransformd RHobjectiveOffset_ = sva::PTransformd::Identity();
+    sva::PTransformd LHobjectiveOffset_ = sva::PTransformd::Identity();
 
     std::shared_ptr<mc_tasks::BSplineTrajectoryTask> RHandTrajectoryTask_;
     std::shared_ptr<mc_tasks::BSplineTrajectoryTask> LHandTrajectoryTask_;

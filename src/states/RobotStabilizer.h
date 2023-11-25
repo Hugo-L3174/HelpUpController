@@ -82,6 +82,7 @@ protected:
   mc_rtc::Configuration config_; /**< Full state configuration */
 
   mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration ExternalWrenchConf_;
+  mc_rbdyn::lipm_stabilizer::DCMBiasEstimatorConfiguration DCMBiasConf_;
 
   bool hasCompletion_ = false; /**< If the latest definition of the state configuration has an empty "completion"
                                    element, no completion rule will be used */

@@ -6,8 +6,8 @@
 
 #include <mc_control/fsm/State.h>
 #include <mc_planning/Pendulum.h>
-#include <mc_tasks/lipm_stabilizer/Contact.h>
 #include <mc_tasks/MetaTaskLoader.h>
+#include <mc_tasks/lipm_stabilizer/Contact.h>
 
 namespace mc_tasks
 {
@@ -16,7 +16,6 @@ namespace lipm_stabilizer
 struct StabilizerTask;
 }
 } // namespace mc_tasks
-
 
 /**
  * @brief Simple state to control and stabilize the CoM of a biped-like robot
@@ -86,10 +85,11 @@ protected:
 
   bool hasCompletion_ = false; /**< If the latest definition of the state configuration has an empty "completion"
                                    element, no completion rule will be used */
-  
+
   bool isBalanced_ = false;
 
-  // manual or auto mode: manual is when "above" objectives are used and targets set manually, auto is when the objective is set by the controller using the regions
+  // manual or auto mode: manual is when "above" objectives are used and targets set manually, auto is when the
+  // objective is set by the controller using the regions
   bool manual_ = false;
 
   Eigen::Vector3d dcmThreshold_ = Eigen::Vector3d{0.01, 0.01, 0.01}; /**< Completion criteria threshold */
@@ -110,4 +110,3 @@ protected:
   bool ownsAnchorFrameCallback_ =
       false; /** Whether the state added its own anchor frame callback or is using a global one */
 };
-

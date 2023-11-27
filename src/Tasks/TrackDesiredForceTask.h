@@ -1,7 +1,6 @@
-#include <Tasks/QPTasks.h>
-
 #include <mc_solver/utils/ContactWrenchMatrixToLambdaMatrix.h>
 #include <mc_solver/utils/UpdateNrVars.h>
+#include <Tasks/QPTasks.h>
 
 /** Implementation of the tracking task for the Tasks library
  *

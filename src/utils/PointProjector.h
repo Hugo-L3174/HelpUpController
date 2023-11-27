@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <utility>
-//#include <math.h>
+// #include <math.h>
 
 // stabiliplus
 #include <polytope/robustStabilityPolytope.h>
@@ -14,35 +14,36 @@
 
 class PointProjector
 {
- public:
+public:
   PointProjector();
 
   void setPolytope(std::shared_ptr<RobustStabilityPolytope> poly);
   void setPoint(Eigen::Vector3d point);
   void project();
-  
+
   inline Eigen::Vector3d projectedPoint() const
   {
     return projectedPoint_;
   }
-  
+
   inline double distance() const
   {
     return distance_;
   }
-  
+
   inline bool isInside() const
   {
     return isInside_;
   }
-  
+
   inline bool isSet() const
   {
     return isSet_;
   }
 
   void displaySqueleton();
- private:
+
+private:
   std::shared_ptr<RobustStabilityPolytope> polytope_;
   sch::S_Polyhedron polyhedron_;
   sch::S_Point point_;

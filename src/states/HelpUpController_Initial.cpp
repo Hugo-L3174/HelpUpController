@@ -2,9 +2,7 @@
 
 #include "../HelpUpController.h"
 
-void HelpUpController_Initial::configure(const mc_rtc::Configuration & config)
-{
-}
+void HelpUpController_Initial::configure(const mc_rtc::Configuration & config) {}
 
 void HelpUpController_Initial::start(mc_control::fsm::Controller & ctl_)
 {

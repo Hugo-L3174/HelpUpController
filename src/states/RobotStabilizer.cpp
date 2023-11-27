@@ -1,6 +1,6 @@
 #include "RobotStabilizer.h"
-#include "../HelpUpController.h"
 
+#include "../HelpUpController.h"
 
 namespace constants = mc_rtc::constants;
 using ContactState = mc_tasks::lipm_stabilizer::ContactState;
@@ -21,7 +21,10 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
 
-  if(!config_.has("StabilizerConfig")) { config_.add("StabilizerConfig"); }
+  if(!config_.has("StabilizerConfig"))
+  {
+    config_.add("StabilizerConfig");
+  }
   config_("StabilizerConfig").add("type", "lipm_stabilizer");
 
   config_("stiffness", K_);
@@ -35,9 +38,9 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
   //                   ctl.timeStep
   //                   );
 
- stabilizerTask_ = mc_tasks::MetaTaskLoader::load<mc_tasks::lipm_stabilizer::StabilizerTask>(
+  stabilizerTask_ = mc_tasks::MetaTaskLoader::load<mc_tasks::lipm_stabilizer::StabilizerTask>(
       ctl.solver(), config_("StabilizerConfig"));
-      
+
   robot_ = stabilizerTask_->robot().name();
   auto & robot = ctl.robot(robot_);
   anchorFrameFunction_ = config_("anchorFrameFunction", "KinematicAnchorFrame::" + robot_);
@@ -49,7 +52,7 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
   double lambda = constants::GRAVITY / stabilizerTask_->config().comHeight;
   pendulum_.reset(lambda, robot.com(), robot.comVelocity(), robot.comAcceleration());
 
-  if (config_.has("ExternalWrenchConfig"))
+  if(config_.has("ExternalWrenchConfig"))
   {
     config_("ExternalWrenchConfig")("addExpectedCoMOffset", ExternalWrenchConf_.addExpectedCoMOffset);
     config_("ExternalWrenchConfig")("modifyCoMErr", ExternalWrenchConf_.modifyCoMErr);
@@ -63,21 +66,26 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
   }
   stabilizerTask_->externalWrenchConfiguration(ExternalWrenchConf_);
 
-  if (config_.has("DCMBiasEstimatorConfig"))
+  if(config_.has("DCMBiasEstimatorConfig"))
   {
     config_("DCMBiasEstimatorConfig")("withDCMBias", DCMBiasConf_.withDCMBias);
     config_("DCMBiasEstimatorConfig")("withDCMFilter", DCMBiasConf_.withDCMFilter);
     config_("DCMBiasEstimatorConfig")("correctCoMPos", DCMBiasConf_.correctCoMPos);
   }
   stabilizerTask_->dcmBiasEstimatorConfiguration(DCMBiasConf_);
-  
 
   if(config_.has("above"))
   {
     setAboveObjective(config_("above"), ctl);
   }
-  else if(config_.has("com")) { targetCoM(config_("com")); }
-  else { targetCoM(robot.com()); }
+  else if(config_.has("com"))
+  {
+    targetCoM(config_("com"));
+  }
+  else
+  {
+    targetCoM(robot.com());
+  }
 
   // Fixme: the stabilizer needs the observed state immediatly
   if(ctl.datastore().has(anchorFrameFunction_))
@@ -153,16 +161,13 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
   ctl.datastore().make_call("RobotStabilizer::setConfiguration",
                             [this](const mc_rbdyn::lipm_stabilizer::StabilizerConfiguration & conf)
                             { stabilizerTask_->configure(conf); });
-  ctl.datastore().make_call("RobotStabilizer::setPelvisWeight",
-                            [this](double w) { stabilizerTask_->pelvisWeight(w); });
+  ctl.datastore().make_call("RobotStabilizer::setPelvisWeight", [this](double w) { stabilizerTask_->pelvisWeight(w); });
   ctl.datastore().make_call("RobotStabilizer::setPelvisStiffness",
                             [this](double s) { stabilizerTask_->pelvisStiffness(s); });
-  ctl.datastore().make_call("RobotStabilizer::setTorsoWeight",
-                            [this](double w) { stabilizerTask_->torsoWeight(w); });
+  ctl.datastore().make_call("RobotStabilizer::setTorsoWeight", [this](double w) { stabilizerTask_->torsoWeight(w); });
   ctl.datastore().make_call("RobotStabilizer::setTorsoStiffness",
                             [this](double s) { stabilizerTask_->torsoStiffness(s); });
-  ctl.datastore().make_call("RobotStabilizer::setCoMWeight",
-                            [this](double w) { stabilizerTask_->comWeight(w); });
+  ctl.datastore().make_call("RobotStabilizer::setCoMWeight", [this](double w) { stabilizerTask_->comWeight(w); });
   ctl.datastore().make_call("RobotStabilizer::setCoMStiffness",
                             [this](const Eigen::Vector3d & s) { stabilizerTask_->comStiffness(s); });
   ctl.datastore().make_call("RobotStabilizer::setExternalWrenches",
@@ -172,23 +177,22 @@ void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
                             { stabilizerTask_->setExternalWrenches(surfaceNames, targetWrenches, gains); });
   ctl.datastore().make_call("RobotStabilizer::setExternalWrenchConfiguration",
                             [this](const mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration & extWrenchConfig)
-                            { stabilizerTask_->externalWrenchConfiguration(extWrenchConfig); });   
+                            { stabilizerTask_->externalWrenchConfiguration(extWrenchConfig); });
   ctl.datastore().make_call("RobotStabilizer::setDCMBiasConfiguration",
                             [this](const mc_rbdyn::lipm_stabilizer::DCMBiasEstimatorConfiguration & dcmBiasConfig)
-                            { stabilizerTask_->dcmBiasEstimatorConfiguration(dcmBiasConfig); });                         
+                            { stabilizerTask_->dcmBiasEstimatorConfiguration(dcmBiasConfig); });
   ctl.datastore().make_call("RobotStabilizer::getCoPAdmittance",
                             [this]() { return stabilizerTask_->config().copAdmittance; });
   ctl.datastore().make_call("RobotStabilizer::setCoPAdmittance", [this](const Eigen::Vector2d & copAdmittance)
                             { stabilizerTask_->copAdmittance(copAdmittance); });
-  ctl.datastore().make_call("RobotStabilizer::getTask", [this]() {return stabilizerTask_; });
-  ctl.datastore().make_call("RobotStabilizer::setDCMThreshold", [this](Eigen::Vector3d dcmThreshold,
-                                                                       bool hasCompletion)
-                                                                      {setDCMThreshold(dcmThreshold, hasCompletion);});
-  ctl.datastore().make_call("RobotStabilizer::setAboveObjective", [this, &ctl](const mc_rtc::Configuration aboveConf)
-                                                                        {setAboveObjective(aboveConf, ctl);});  
-  ctl.datastore().make_call("RobotStabilizer::isBalanced", [this]() {return isBalanced_;});   
-  ctl.datastore().make<bool>("RobotStabilizer::ManualMode", manual_); 
-  ctl.datastore().make_call("RobotStabilizer::getMeasuredDCM", [this]() {return stabilizerTask_->measuredDCM();});                                                             
+  ctl.datastore().make_call("RobotStabilizer::getTask", [this]() { return stabilizerTask_; });
+  ctl.datastore().make_call("RobotStabilizer::setDCMThreshold", [this](Eigen::Vector3d dcmThreshold, bool hasCompletion)
+                            { setDCMThreshold(dcmThreshold, hasCompletion); });
+  ctl.datastore().make_call("RobotStabilizer::setAboveObjective",
+                            [this, &ctl](const mc_rtc::Configuration aboveConf) { setAboveObjective(aboveConf, ctl); });
+  ctl.datastore().make_call("RobotStabilizer::isBalanced", [this]() { return isBalanced_; });
+  ctl.datastore().make<bool>("RobotStabilizer::ManualMode", manual_);
+  ctl.datastore().make_call("RobotStabilizer::getMeasuredDCM", [this]() { return stabilizerTask_->measuredDCM(); });
 }
 
 void RobotStabilizer::setDCMThreshold(Eigen::Vector3d dcmThreshold, bool hasCompletion)
@@ -202,12 +206,18 @@ void RobotStabilizer::setAboveObjective(mc_rtc::Configuration aboveConf, mc_cont
   auto & ctl = static_cast<HelpUpController &>(ctl_);
   auto & robot = ctl.robot(robot_);
   const std::string above = aboveConf;
-  if(above == "LeftAnkle") { targetCoP(stabilizerTask_->contactAnklePose(ContactState::Left).translation()); }
-  else if(above == "RightAnkle") { targetCoP(stabilizerTask_->contactAnklePose(ContactState::Right).translation()); }
+  if(above == "LeftAnkle")
+  {
+    targetCoP(stabilizerTask_->contactAnklePose(ContactState::Left).translation());
+  }
+  else if(above == "RightAnkle")
+  {
+    targetCoP(stabilizerTask_->contactAnklePose(ContactState::Right).translation());
+  }
   else if(above == "CenterAnkles")
   {
     targetCoP(sva::interpolate(stabilizerTask_->contactAnklePose(ContactState::Left),
-                                stabilizerTask_->contactAnklePose(ContactState::Right), 0.5)
+                               stabilizerTask_->contactAnklePose(ContactState::Right), 0.5)
                   .translation());
   }
   else if(above == "LeftSurface")
@@ -222,10 +232,13 @@ void RobotStabilizer::setAboveObjective(mc_rtc::Configuration aboveConf, mc_cont
   else if(above == "CenterSurfaces")
   {
     targetCoP(sva::interpolate(ctl.robot().surfacePose(stabilizerTask_->footSurface(ContactState::Left)),
-                                ctl.robot().surfacePose(stabilizerTask_->footSurface(ContactState::Right)), 0.5)
+                               ctl.robot().surfacePose(stabilizerTask_->footSurface(ContactState::Right)), 0.5)
                   .translation());
   }
-  else if(robot.hasSurface(above)) { targetCoP(robot.surfacePose(above).translation()); }
+  else if(robot.hasSurface(above))
+  {
+    targetCoP(robot.surfacePose(above).translation());
+  }
   else
   {
     mc_rtc::log::error_and_throw(
@@ -255,7 +268,10 @@ void RobotStabilizer::targetCoM(const Eigen::Vector3d & com)
   {
     copHeight = stabilizerTask_->contactAnklePose(ContactState::Left).translation().z();
   }
-  else { copHeight = stabilizerTask_->contactAnklePose(ContactState::Right).translation().z(); }
+  else
+  {
+    copHeight = stabilizerTask_->contactAnklePose(ContactState::Right).translation().z();
+  }
 
   comTarget_ = com;
   copTarget_ = Eigen::Vector3d{comTarget_.x(), comTarget_.y(), copHeight};
@@ -326,9 +342,12 @@ void RobotStabilizer::teardown(mc_control::fsm::Controller & ctl_)
   // ctl.datastore().remove("RobotStabilizer::setExternalWrenchConfiguration");
   // ctl.datastore().remove("RobotStabilizer::getTask");
   // ctl.datastore().remove("RobotStabilizer::setDCMThreshold");
-  // ctl.datastore().remove("RobotStabilizer::setAboveObjective");  
-  // ctl.datastore().remove("RobotStabilizer::isBalanced");   
-  if(ownsAnchorFrameCallback_) { ctl.datastore().remove(anchorFrameFunction_); }
+  // ctl.datastore().remove("RobotStabilizer::setAboveObjective");
+  // ctl.datastore().remove("RobotStabilizer::isBalanced");
+  if(ownsAnchorFrameCallback_)
+  {
+    ctl.datastore().remove(anchorFrameFunction_);
+  }
 }
 
 EXPORT_SINGLE_STATE("RobotStabilizer", RobotStabilizer)

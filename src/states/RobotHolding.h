@@ -1,19 +1,16 @@
 #pragma once
 
 #include <mc_control/fsm/State.h>
+#include <mc_rbdyn/lipm_stabilizer/StabilizerConfiguration.h>
 #include <mc_tasks/AdmittanceTask.h>
+#include <mc_tasks/CoPTask.h>
 #include <mc_tasks/ComplianceTask.h>
 #include <mc_tasks/DampingTask.h>
 #include <mc_tasks/ImpedanceTask.h>
-#include <mc_tasks/CoPTask.h>
-#include <mc_rbdyn/lipm_stabilizer/StabilizerConfiguration.h>
-
 #include <mc_tasks/MetaTaskLoader.h>
-
 
 struct RobotHolding : mc_control::fsm::State
 {
-
   void configure(const mc_rtc::Configuration & config) override;
 
   void start(mc_control::fsm::Controller & ctl) override;
@@ -27,7 +24,6 @@ struct RobotHolding : mc_control::fsm::State
   void GUIForceContacts(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Controller & ctl);
 
 private:
-
   std::shared_ptr<mc_tasks::force::AdmittanceTask> rightHandAdmittancePtr_, leftHandAdmittancePtr_;
   std::shared_ptr<mc_tasks::force::ImpedanceTask> rightHandImpedancePtr_, leftHandImpedancePtr_;
   std::shared_ptr<mc_tasks::force::DampingTask> rightHandDampingPtr_, leftHandDampingPtr_;
@@ -36,7 +32,7 @@ private:
 
   // int RHweight_, LHweight_;
   int weight_, stiffness_;
-  
+
   Eigen::Vector6d RHadmittance_;
   Eigen::Vector6d RHstiffness_;
   Eigen::Vector6d RHdamping_;
@@ -46,7 +42,6 @@ private:
   std::string RHtargetFrame_;
   sva::PTransformd RHtargetOffset_ = sva::PTransformd::Identity();
   mc_tasks::force::ImpedanceGains RHimpGains_;
-
 
   Eigen::Vector6d LHadmittance_;
   Eigen::Vector6d LHstiffness_;
@@ -62,5 +57,4 @@ private:
   sva::MotionVecd RHgains_, LHgains_ = sva::MotionVecd::Zero();
 
   // mc_filter::LowPass<sva::ForceVecd> extWrenchRHLowPass_, extWrenchLHLowPass_;
-
 };

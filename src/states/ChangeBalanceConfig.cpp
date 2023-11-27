@@ -11,18 +11,18 @@ void ChangeBalanceConfig::configure(const mc_rtc::Configuration & config)
     config("completion")("dcmEval", dcmThreshold_);
   }
   mc_rtc::log::info("there is a completion criteria: {}", hasCompletion_);
-  mc_rtc::log::info("dcm objective: {}", dcmThreshold_.transpose()); 
-  if(config_.has("StabilizerConfig")) 
+  mc_rtc::log::info("dcm objective: {}", dcmThreshold_.transpose());
+  if(config_.has("StabilizerConfig"))
   {
     StabilizerConfig_ = config_("StabilizerConfig");
   }
-  
 }
 
 void ChangeBalanceConfig::start(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
-  auto stabTask = ctl.datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
+  auto stabTask =
+      ctl.datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
 
   ctl.datastore().call<void, Eigen::Vector3d, bool>("RobotStabilizer::setDCMThreshold", dcmThreshold_, hasCompletion_);
 
@@ -33,32 +33,28 @@ void ChangeBalanceConfig::start(mc_control::fsm::Controller & ctl_)
     ctl.datastore().call("RobotStabilizer::setAboveObjective", config_("above"));
   }
 
-  if (config_.has("StabilizerConfig"))
+  if(config_.has("StabilizerConfig"))
   {
     contactState_.clear();
     const auto & contacts = StabilizerConfig_("contacts");
-    for (auto contactName : contacts)
+    for(auto contactName : contacts)
     {
       ContactState s = contactName;
       contactState_.push_back(s);
       // mc_rtc::log::info("contact added: {}", s);
     }
-    
+
     stabTask->setContacts(contactState_);
     // stabTask->updateContacts();
   }
   // stabTask->configure()
-  
-  
-
-  
 }
 
 bool ChangeBalanceConfig::run(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
   auto finished = ctl.datastore().call<bool>("RobotStabilizer::isBalanced");
-  if (finished)
+  if(finished)
   {
     output("OK");
     return true;
@@ -70,14 +66,12 @@ bool ChangeBalanceConfig::run(mc_control::fsm::Controller & ctl_)
 void ChangeBalanceConfig::teardown(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
-  if (config_.has("stayManualAfter"))
+  if(config_.has("stayManualAfter"))
   {
     // setting stabilizer back to auto mode with objective set by the controller
     auto & manual = ctl.datastore().get<bool>("RobotStabilizer::ManualMode");
     manual = config_("stayManualAfter");
   }
-  
-
 }
 
 EXPORT_SINGLE_STATE("ChangeBalanceConfig", ChangeBalanceConfig)

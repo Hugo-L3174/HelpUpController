@@ -5,10 +5,10 @@
 /* #include <mc_rtc/gui.h> */
 /* #include <mc_rtc/log/Logger.h> */
 
+#include <eigen-quadprog/QuadProg.h>
 #include <problemDescriptor/contactSet.h>
 
 #include <Eigen/Dense>
-#include <eigen-quadprog/QuadProg.h>
 
 class CoMQP
 {
@@ -38,8 +38,8 @@ public:
   {
     considerConstrainedContacts_ = true;
   }
-  
- private:
+
+private:
   std::shared_ptr<ContactSet> contactSet_;
   Eigen::QuadProgDense solver_;
 

@@ -3,7 +3,7 @@
 ####  1. Preparation:
 
   * Install the dependencies:
-       1. [mc_rtc](https://jrl-umi3218.github.io/mc_rtc/tutorials/introduction/installation-guide.html) 
+       1. [mc_rtc](https://jrl-umi3218.github.io/mc_rtc/tutorials/introduction/installation-guide.html)
        2. [stabiliplus](https://gite.lirmm.fr/mc-controllers/stabiliplus) The balance polytope computation library
        3. eigen-quadprog and sch-core
        4. [gram_savitzky_golay](https://github.com/arntanguy/gram_savitzky_golay) a filtering and derivation library. The branch used is topic/sva.
@@ -28,7 +28,7 @@
 
 ####  2. Run the controller:
 
-  * Start `roscore`: 
+  * Start `roscore`:
 ```sh
 roscore
 ```

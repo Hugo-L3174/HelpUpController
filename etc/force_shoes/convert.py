@@ -12,6 +12,6 @@ for row in in_:
         if header[i] in data:
             data[header[i]].append(value)
 out = open('data.yaml', 'w')
-out.write(yaml.dump(data))  
+out.write(yaml.dump(data))
 
 # careful: this code appends the yaml file in alphabetic order for the headers

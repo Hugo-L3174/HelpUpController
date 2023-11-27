@@ -4,7 +4,9 @@
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
 : mc_control::fsm::Controller(rm, dt, config), polytopeIndex_(0), polytopeHumIndex_(0), computed_(false), computedHum_(false), computing_(false), 
 computingHum_(false), firstPolyRobOK_(false), firstPolyHumOK_(false), readyForComp_(false), readyForCompHum_(false)
-, DCMobjectiveBuffer_(19), humanOmegaBuffer_(19)
+, DCMobjectiveBuffer_(19), humanOmegaBuffer_(19),
+  accLowPass_(dt, cutoffPeriod_), humOmegaLowPass_(dt, cutoffPeriod_),
+  lowPassLB_(dt, cutoffPeriodForceShoes_), lowPassRB_(dt, cutoffPeriodForceShoes_), lowPassLF_(dt, cutoffPeriodForceShoes_), lowPassRF_(dt, cutoffPeriodForceShoes_)
 {
   // Load entire controller configuration file
   config_.load(config);
@@ -866,7 +868,7 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
             }
             else
             {
-              if(!(surface_name == "LeftHandFlat" || surface_name == "RightHandFlat"))
+              if(!(surface_name == "LeftHand" || surface_name == "RightHand"))
               {
                 contactSet_->addContact(ptName, homTrans, mu, fmax, fmin, type);
               }

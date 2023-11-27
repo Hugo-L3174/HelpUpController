@@ -216,10 +216,8 @@ surfacesMaxForces:
   # RightFoot: 850
   LeftFoot: 500
   RightFoot: 500
-  LeftHandFlat: 15
-  RightHandFlat: 15
-  LeftHand: 10
-  RightHand: 10
+  LeftHand: 15
+  RightHand: 15
   RLegBack: 500
   LLegBack: 500
   LeftSole: 500
@@ -452,7 +450,7 @@ states:
     RHandTrajectory:
       type: bspline_trajectory
       robot: hrp4
-      frame: RightHandFlat
+      frame: RightHand
       weight: 10000.0
       stiffness: 300
       duration: 5.0
@@ -471,7 +469,7 @@ states:
     LHandTrajectory:
       type: bspline_trajectory
       robot: hrp4
-      frame: LeftHandFlat
+      frame: LeftHand
       weight: 10000.0
       stiffness: 300
       duration: 5.0
@@ -493,12 +491,12 @@ states:
     # AddContactsAfter:
     #   - r1: hrp4
     #     r2: human
-    #     r1Surface: RightHandFlat
+    #     r1Surface: RightHand
     #     r2Surface: RightShoulder 
     #     # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
     #   - r1: hrp4
     #     r2: human
-    #     r1Surface: LeftHandFlat
+    #     r1Surface: LeftHand
     #     r2Surface: Back 
     #     # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
 
@@ -584,7 +582,7 @@ states:
     # robot: hrp4
     RightHandImped:
       type: impedance
-      frame: RightHandFlat
+      frame: RightHand
       targetFrame:
         robot: human
         frame: RightShoulder
@@ -614,7 +612,7 @@ states:
               - speed: 0.01
     LeftHandImped:
       type: impedance
-      frame: LeftHandFlat
+      frame: LeftHand
       targetFrame:
         robot: human
         frame: Back
@@ -689,18 +687,18 @@ states:
     RemoveContacts:
       - r1: hrp4 #e2dr
         r2: human
-        r1Surface: LeftHandFlat #Flat
+        r1Surface: LeftHand #Flat
         r2Surface: Back
       - r1: hrp4 #e2dr
         r2: human
-        r1Surface: RightHandFlat #Flat
+        r1Surface: RightHand #Flat
         r2Surface: RightShoulder
     # make bsplines to get away from human
     tasks:
       RHandTrajectory:
         type: bspline_trajectory
         robot: hrp4 #e2dr
-        frame: RightHandFlat #Flat
+        frame: RightHand #Flat
         weight: 500.0
         stiffness: 100.0
         duration: 2.0
@@ -714,7 +712,7 @@ states:
       LHandTrajectory:
         type: bspline_trajectory
         robot: hrp4 #e2dr
-        frame: LeftHandFlat #Flat
+        frame: LeftHand #Flat
         weight: 500.0
         stiffness: 100.0
         duration: 2.0

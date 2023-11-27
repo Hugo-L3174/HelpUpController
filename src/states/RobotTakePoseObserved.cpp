@@ -46,8 +46,8 @@ void RobotTakePoseObserved::start(mc_control::fsm::Controller & ctl_)
     critLH_.configure(*LHandTrajectoryTask_, ctl.solver().dt(), config_("LHandTrajectory")("completion", mc_rtc::Configuration{}));
     ctl.solver().addTask(LHandTrajectoryTask_);
   }
-  // ctl.logger().addLogEntry("bspline_trajectory_hrp4_RightHandFlat_eval", [this]() -> const double { return errorRH_;});
-  // ctl.logger().addLogEntry("bspline_trajectory_hrp4_LeftHandFlat_eval", [this]() -> const double { return errorLH_;});
+  // ctl.logger().addLogEntry("bspline_trajectory_hrp4_RightHand_eval", [this]() -> const double { return errorRH_;});
+  // ctl.logger().addLogEntry("bspline_trajectory_hrp4_LeftHand_eval", [this]() -> const double { return errorLH_;});
   
 }
 
@@ -102,8 +102,8 @@ void RobotTakePoseObserved::teardown(mc_control::fsm::Controller & ctl_)
   ctl.solver().removeTask(RHandTrajectoryTask_);
   ctl.solver().removeTask(LHandTrajectoryTask_);
 
-  // ctl.logger().removeLogEntry("bspline_trajectory_hrp4_LeftHandFlat_eval");
-  // ctl.logger().removeLogEntry("bspline_trajectory_hrp4_RightHandFlat_eval");
+  // ctl.logger().removeLogEntry("bspline_trajectory_hrp4_LeftHand_eval");
+  // ctl.logger().removeLogEntry("bspline_trajectory_hrp4_RightHand_eval");
 }
 
 EXPORT_SINGLE_STATE("RobotTakePoseObserved", RobotTakePoseObserved)

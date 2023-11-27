@@ -85,10 +85,10 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   // LHandBack = std::make_shared<mc_control::SimulationContactPair>(LHandSurf, BackSurf);
 
   // First log: standing alone ok
-  mc_rtc::Configuration dataIn1(std::string(PATH) + "/etc/forces/F1.yaml");
-  mc_rtc::Configuration dataIn2(std::string(PATH) + "/etc/forces/F2.yaml");
-  mc_rtc::Configuration dataIn3(std::string(PATH) + "/etc/forces/F3.yaml");
-  mc_rtc::Configuration dataIn4(std::string(PATH) + "/etc/forces/F4.yaml");
+  // mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F1.yaml");
+  // mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F2.yaml");
+  // mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F3.yaml");
+  // mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F4.yaml");
 
   // Second log: standing with perturbations
   // mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F5.yaml");
@@ -96,41 +96,36 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   // mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F7.yaml");
   // mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F8.yaml");
 
-  auto data1 = dataIn1.operator std::map<std::string, std::vector<double>>();
-  auto data2 = dataIn2.operator std::map<std::string, std::vector<double>>();
-  auto data3 = dataIn3.operator std::map<std::string, std::vector<double>>();
-  auto data4 = dataIn4.operator std::map<std::string, std::vector<double>>();
+  // auto data1 = dataIn1.operator std::map<std::string, std::vector<double>>();
+  // auto data2 = dataIn2.operator std::map<std::string, std::vector<double>>();
+  // auto data3 = dataIn3.operator std::map<std::string, std::vector<double>>();
+  // auto data4 = dataIn4.operator std::map<std::string, std::vector<double>>();
 
   // auto forceVect = sva::ForceVecd(Eigen::Vector3d(data1["Tx"][0], data1["Ty"][0], data1["Tz"][0]),
   // Eigen::Vector3d(data1["Fx"][0], data1["Fy"][0], data1["Fz"][0])); mc_rtc::log::info("first force vec is : {}",
-  // forceVect);
-  for(auto i = 0; i < data1["Counter"].size(); i++)
-  {
-    auto forceVect = sva::ForceVecd(Eigen::Vector3d(data1["Tx"][i], data1["Ty"][i], data1["Tz"][i]),
-                                    Eigen::Vector3d(data1["Fx"][i], data1["Fy"][i], data1["Fz"][i]));
-    LBShoeVec_.push_back(forceVect);
-  }
+  // forceVect); for (auto i = 0; i < data1["Counter"].size(); i++)
+  // {
+  //   auto forceVect = sva::ForceVecd(Eigen::Vector3d(data1["Tx"][i], data1["Ty"][i], data1["Tz"][i]),
+  //   Eigen::Vector3d(data1["Fx"][i], data1["Fy"][i], data1["Fz"][i])); LBShoeVec_.push_back(forceVect);
+  // }
 
-  for(auto i = 0; i < data2["Counter"].size(); i++)
-  {
-    auto forceVect = sva::ForceVecd(Eigen::Vector3d(data2["Tx"][i], data2["Ty"][i], data2["Tz"][i]),
-                                    Eigen::Vector3d(data2["Fx"][i], data2["Fy"][i], data2["Fz"][i]));
-    LFShoeVec_.push_back(forceVect);
-  }
+  // for (auto i = 0; i < data2["Counter"].size(); i++)
+  // {
+  //   auto forceVect = sva::ForceVecd(Eigen::Vector3d(data2["Tx"][i], data2["Ty"][i], data2["Tz"][i]),
+  //   Eigen::Vector3d(data2["Fx"][i], data2["Fy"][i], data2["Fz"][i])); LFShoeVec_.push_back(forceVect);
+  // }
 
-  for(auto i = 0; i < data3["Counter"].size(); i++)
-  {
-    auto forceVect = sva::ForceVecd(Eigen::Vector3d(data3["Tx"][i], data3["Ty"][i], data3["Tz"][i]),
-                                    Eigen::Vector3d(data3["Fx"][i], data3["Fy"][i], data3["Fz"][i]));
-    RBShoeVec_.push_back(forceVect);
-  }
+  // for (auto i = 0; i < data3["Counter"].size(); i++)
+  // {
+  //   auto forceVect = sva::ForceVecd(Eigen::Vector3d(data3["Tx"][i], data3["Ty"][i], data3["Tz"][i]),
+  //   Eigen::Vector3d(data3["Fx"][i], data3["Fy"][i], data3["Fz"][i])); RBShoeVec_.push_back(forceVect);
+  // }
 
-  for(auto i = 0; i < data4["Counter"].size(); i++)
-  {
-    auto forceVect = sva::ForceVecd(Eigen::Vector3d(data4["Tx"][i], data4["Ty"][i], data4["Tz"][i]),
-                                    Eigen::Vector3d(data4["Fx"][i], data4["Fy"][i], data4["Fz"][i]));
-    RFShoeVec_.push_back(forceVect);
-  }
+  // for (auto i = 0; i < data4["Counter"].size(); i++)
+  // {
+  //   auto forceVect = sva::ForceVecd(Eigen::Vector3d(data4["Tx"][i], data4["Ty"][i], data4["Tz"][i]),
+  //   Eigen::Vector3d(data4["Fx"][i], data4["Fy"][i], data4["Fz"][i])); RFShoeVec_.push_back(forceVect);
+  // }
 
   if(config_.has("Omega"))
   {
@@ -142,13 +137,11 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
     FilteredDerivation_ = config_("filteredDerivation");
   }
 
-  // mc_rtc::log::info("Human pos is {}", robots().robot("human").posW().translation().transpose());
+  // accLowPass_.dt(dt);
+  // accLowPass_.cutoffPeriod(cutoffPeriod_);
 
-  // robots().robot("chair").posW(robots().robot("human").posW() * sva::PTransformd(Eigen::Vector3d(0.05, 0.12,
-  // -0.65))); mc_rtc::log::info("Chair pos is {}", robots().robot("chair").posW().translation().transpose());
-
-  // robots().robot().posW(robots().robot("chair").posW() * sva::PTransformd(sva::RotZ(M_PI/2.0), Eigen::Vector3d(-0.17,
-  // -0.3, 0.75))); mc_rtc::log::info("Robot pos is {}", robots().robot().posW().translation().transpose());
+  // humOmegaLowPass_.dt(dt);
+  // humOmegaLowPass_.cutoffPeriod(cutoffPeriod_);
 
   addLogEntries();
   addGuiElements();
@@ -176,9 +169,23 @@ bool HelpUpController::run()
   RFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRFForce");
   RBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRBForce");
 
+  // lowPassLF_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLFForce"));
+  // lowPassLB_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLBForce"));
+  // lowPassRF_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRFForce"));
+  // lowPassRB_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRBForce"));
+
+  // LFShoe_ = lowPassLF_.eval();
+  // LBShoe_ = lowPassLB_.eval();
+  // RFShoe_ = lowPassRF_.eval();
+  // RBShoe_ = lowPassRB_.eval();
+
   xsensCoMpos_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos");
   xsensCoMvel_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel");
-  xsensCoMacc_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc");
+  // xsensCoMacc_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc");
+
+  rawxsensCoMacc_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc");
+  accLowPass_.update(rawxsensCoMacc_);
+  xsensCoMacc_ = accLowPass_.eval();
 
   computePolytope(computing_, readyForComp_, computed_, firstPolyRobOK_, polytopeReady_, stabThread_, contactSet_,
                   futureCompPoint_, balanceCompPoint_, mainRob);
@@ -210,7 +217,7 @@ bool HelpUpController::run()
   else
   {
     // two contacts or less: only feet contacts -> we can switch to force measurements
-    modelMode_ = false;
+    modelMode_ = true;
   }
 
   // Order: current dcm error computed, pushed in the buffer for filtered version of dotError,
@@ -228,6 +235,8 @@ bool HelpUpController::run()
   computeHumanOmega();
   humanOmegaBuffer_.push_back(humanOmega_);
   computeDotHumanOmega();
+  humOmegaLowPass_.update(Eigen::Vector3d(0, 0, dotHumanOmega_));
+  dotHumanOmega_ = humOmegaLowPass_.eval().z();
 
   computeCommandVRP();
   computeVRPerror();
@@ -519,6 +528,12 @@ void HelpUpController::addLogEntries()
 
   auto logOmega = [this]() { return humanOmega_; };
   logger().addLogEntry("DCM_human omega", logOmega);
+
+  auto logRawComAcc = [this]() { return rawxsensCoMacc_; };
+  logger().addLogEntry("DCM_xsens Raw acc", logRawComAcc);
+
+  auto logfilteredComAcc = [this]() { return xsensCoMacc_; };
+  logger().addLogEntry("DCM_xsens filtered acc", logfilteredComAcc);
 
   // auto logDotOmega = [this](){
   //   return dotHumanOmega_;

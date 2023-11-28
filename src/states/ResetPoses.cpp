@@ -6,6 +6,7 @@ void ResetPoses::configure(const mc_rtc::Configuration & config)
 {
   config("chairOffset", chairOffset_);
   config("robotOffset", robotOffset_);
+  config("pandaOffset", pandaOffset_);
 }
 
 void ResetPoses::start(mc_control::fsm::Controller & ctl_)
@@ -53,6 +54,23 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
       mc_rtc::log::info("[ResetPoses state] Resetting chair mujoco position");
       ctl.datastore().call<void, const sva::PTransformd &>(
           fmt::format("{}::SetPosW", ctl.robots().robot("chair").name()), HipsPose * chairOffset_);
+
+      if(ctl.robots().hasRobot("panda"))
+      {
+        // Adjust panda position relative to chair model
+        mc_rtc::log::info("[ResetPoses state] Resetting panda control position");
+        ctl.robots().robot("panda").posW(pandaOffset_ * ctl.robots().robot("chair").posW());
+
+        // Adjust observed pabda position relative to chair model
+        mc_rtc::log::info("[ResetPoses state] Resetting observed panda control position");
+        ctl.realRobots().robot("panda").posW(pandaOffset_ * ctl.robots().robot("chair").posW());
+
+        // adjust panda position in mujoco
+        mc_rtc::log::info("[ResetPoses state] Resetting chair mujoco position");
+        ctl.datastore().call<void, const sva::PTransformd &>(
+            fmt::format("{}::SetPosW", ctl.robots().robot("panda").name()),
+            pandaOffset_ * ctl.robots().robot("chair").posW());
+      }
 
       // Adjust main robot position relative to chair
       mc_rtc::log::info("[ResetPoses state] Resetting main robot control position");

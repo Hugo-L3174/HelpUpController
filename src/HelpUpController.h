@@ -10,6 +10,7 @@
 // #include "Tasks/BoundCoMAcceleration.h"
 // #include "Tasks/CoMAccelerationTask.h"
 // #include "Tasks/BoundCoMVelocity.h"
+#include <mc_tasks/MetaTaskLoader.h>
 
 #include <mc_control/SimulationContactPair.h>
 #include <mc_filter/LeakyIntegrator.h>
@@ -399,8 +400,12 @@ private:
 
   bool handContactsForBalance_ = false;
 
+  // Hacky check to add panda task when positions have been reset
+  bool pandaTaskAdded_ = false;
+  std::shared_ptr<mc_tasks::TransformTask> pandaTransform_;
+
   // model mode to choose to compute VRP using CoM acceleration (true) or contact forces (false)
-  bool modelMode_ = false;
+  bool modelMode_ = true;
 
   bool OmegaZAcc_ = true;
   bool FilteredDerivation_ = true;

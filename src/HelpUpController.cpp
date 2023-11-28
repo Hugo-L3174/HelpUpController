@@ -169,6 +169,7 @@ bool HelpUpController::run()
   RFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRFForce");
   RBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRBForce");
 
+  // Attempt at filtering shoes force sensors: should be in plugin?
   // lowPassLF_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLFForce"));
   // lowPassLB_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLBForce"));
   // lowPassRF_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRFForce"));
@@ -186,6 +187,20 @@ bool HelpUpController::run()
   rawxsensCoMacc_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc");
   accLowPass_.update(rawxsensCoMacc_);
   xsensCoMacc_ = accLowPass_.eval();
+
+  // Assume positions have been reset when first poly is computed (only ran once)
+  if(firstPolyHumOK_ && !pandaTaskAdded_ && robots().hasRobot("panda"))
+  {
+    pandaTransform_ = std::make_shared<mc_tasks::TransformTask>(robot("panda").frame("HumanBack"), 100, 10000);
+    solver().addTask(pandaTransform_);
+    pandaTaskAdded_ = true;
+  }
+
+  // set target every run
+  if(pandaTaskAdded_ && robots().hasRobot("panda"))
+  {
+    pandaTransform_->targetSurface(robot("human").robotIndex(), "Back", sva::PTransformd::Identity());
+  }
 
   computePolytope(computing_, readyForComp_, computed_, firstPolyRobOK_, polytopeReady_, stabThread_, contactSet_,
                   futureCompPoint_, balanceCompPoint_, mainRob);

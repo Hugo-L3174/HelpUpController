@@ -1,6 +1,8 @@
 #include "XsensHuman.h"
+#include <mc_tasks/TransformTask.h>
 
 #include "../HelpUpController.h"
+#include "utils/make_task.h"
 
 void XsensHuman::configure(const mc_rtc::Configuration & config)
 {
@@ -91,8 +93,8 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
     const auto & bodyName = body.first;
     if(robot.hasBody(bodyName))
     {
-      auto task = std::unique_ptr<mc_tasks::TransformTask>(
-          new mc_tasks::TransformTask(bodyName, ctl.robots(), robot.robotIndex(), stiffness_, weight_, false, false));
+      auto task = make_task_optional_gui<mc_tasks::TransformTask, false, false>(
+          bodyName, ctl.robots(), robot.robotIndex(), stiffness_, weight_);
       task->reset();
       ctl.solver().addTask(task.get());
       tasks_[bodyName] = std::move(task);

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <mc_control/fsm/State.h>
-#include <mc_tasks/EndEffectorTask.h>
 #include <mc_tasks/TransformTask.h>
 #include <gram_savitzky_golay/gram_savitzky_golay.h>
 #include <gram_savitzky_golay/sva_filters.h>

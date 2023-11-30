@@ -93,8 +93,8 @@ void XsensHuman::start(mc_control::fsm::Controller & ctl_)
     const auto & bodyName = body.first;
     if(robot.hasBody(bodyName))
     {
-      auto task = make_task_optional_gui<mc_tasks::TransformTask, false, false>(
-          bodyName, ctl.robots(), robot.robotIndex(), stiffness_, weight_);
+      auto task = make_task_optional_gui<mc_tasks::TransformTask, false, false>(ctl.robot().frame(bodyName), stiffness_,
+                                                                                weight_);
       task->reset();
       ctl.solver().addTask(task.get());
       tasks_[bodyName] = std::move(task);

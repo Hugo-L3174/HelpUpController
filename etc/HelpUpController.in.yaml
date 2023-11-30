@@ -40,6 +40,12 @@ robots:
     module: env/ground
   panda:
     module: PandaDefault
+    frames:
+      - name: HumanBack
+        parent: panda_link7
+        X_p_f:
+          translation: [0.07, 0, 0.25]
+          rotation: [0.0, 1.57, 0.0]
 
 # General constraints, always on
 constraints:
@@ -929,7 +935,10 @@ ObserverPipelines:
 
 
 # Plugins: [XsensPlugin]
-Plugins: [Replay, XsensPlugin, ForceShoePlugin] #ForceShoePlugin
+Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate]
+
+RobotModelUpdate:
+  robot: human
 # configuration for Replay plugin
 Replay:
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin
@@ -975,11 +984,13 @@ Xsens:
       HipsLink:
         segment: "Pelvis"
         offset:
+          # translation: [0.05, 0, 0.1]
           translation: [0, 0, 0]
       TorsoLink:
         segment: "T8" # Sternum
         offset:
           # translation: [0, 0, -0.31] # torso is 31cm higher than pelvis for celia model, but urdf orig is same as pelvis
+          # translation: [0.1, 0, -0.27]
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
       HeadLink:
@@ -1001,12 +1012,12 @@ Xsens:
       RForearmLink:
         segment: "Right Forearm"
         offset:
-          translation: [0, -0.0, -0.00]
+          translation: [0, 0, 0]
           rotation: [0, 0, 0]
       RHandLink:
         segment: "Right Hand"
         offset:
-          translation: [0, 0, -0.00]
+          translation: [0, 0, 0]
           rotation: [0, 0, 0]
       # torso2lshoulder_2:
       #   segment: "Left Upper Arm"
@@ -1021,12 +1032,12 @@ Xsens:
       LForearmLink:
         segment: "Left Forearm"
         offset:
-          translation: [0, 0.0, -0.00]
+          translation: [0, 0, 0]
           rotation: [0, 0, 0]
       LHandLink:
         segment: "Left Hand"
         offset:
-          translation: [0, 0, -0.00]
+          translation: [0, 0, 0]
           rotation: [0, 0, 0]
       RLegLink:
         segment: "Right Upper Leg"
@@ -1037,12 +1048,12 @@ Xsens:
       RShinLink:
         segment: "Right Lower Leg"
         offset:
-          translation: [0, 0, 0.0] # 5cm higher for celia
+          translation: [0, 0, 0] # 5cm higher for celia
           rotation: [0, 0, 0]
       RAnkleLink:
         segment: "Right Foot"
         offset:
-          translation: [0, 0, 0.0]
+          translation: [0, 0, 0]
           rotation: [0, 0, 0]
       LLegLink:
         segment: "Left Upper Leg"
@@ -1053,10 +1064,10 @@ Xsens:
       LShinLink:
         segment: "Left Lower Leg"
         offset:
-          translation: [0, 0, 0.0] # 5cm higher for celia
+          translation: [0, 0, 0] # 5cm higher for celia
           rotation: [0, 0, 0]
       LAnkleLink:
         segment: "Left Foot"
         offset:
-          translation: [0, 0, 0.0]
+          translation: [0, 0, 0]
           rotation: [0, 0, 0]

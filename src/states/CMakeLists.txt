@@ -1,7 +1,7 @@
 add_fsm_state_simple(HelpUpController_Initial)
 
 add_fsm_state_simple(RobotHolding)
-add_fsm_state_simple(XsensHuman)
+# add_fsm_state_simple(XsensHuman)
 add_fsm_state_simple(ResetPoses)
 add_fsm_state_simple(RobotStabilizer)
 add_fsm_state_simple(ChangeBalanceConfig)

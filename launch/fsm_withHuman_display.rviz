@@ -3,7 +3,11 @@ Panels:
     Help Height: 0
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
+      Expanded:
+        - /ControlHuman1/Links1/TorsoLink1
+        - /ControlChair1
+        - /ControlPanda1
+        - /RealPanda1
       Splitter Ratio: 0.6000000238418579
     Tree Height: 385
   - Class: rviz/Selection
@@ -366,10 +370,6 @@ Visualization Manager:
       Collision Enabled: false
       Enabled: true
       Links:
-        Accelerometer:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         All Links Enabled: true
         CHEST_P_LINK:
           Alpha: 1
@@ -379,16 +379,7 @@ Visualization Manager:
         Expand Joint Details: false
         Expand Link Details: false
         Expand Tree: false
-        Gyro:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         L_ANKLE_P_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        L_ANKLE_R_LINK:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -398,6 +389,19 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        L_FOOT_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        L_HAND_J0_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        L_HAND_J1_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         L_HIP_P_LINK:
           Alpha: 1
           Show Axes: false
@@ -443,14 +447,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        LeftFootForceSensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        LeftHandForceSensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         Link Tree Style: Links in Alphabetic Order
         NECK_P_LINK:
           Alpha: 1
@@ -467,16 +463,24 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        R_ANKLE_R_LINK:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         R_ELBOW_P_LINK:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
+        R_FOOT_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        R_HAND_J0_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        R_HAND_J1_LINK:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         R_HIP_P_LINK:
           Alpha: 1
           Show Axes: false
@@ -522,40 +526,16 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        RightFootForceSensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        RightHandForceSensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         body:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        gaze:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         l_ankle:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        l_gripper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        l_sole:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         l_wrist:
           Alpha: 1
           Show Axes: false
@@ -566,36 +546,16 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        r_gripper:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        r_gripper_sensor:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        r_sole:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         r_wrist:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        rgbd_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         torso:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        xtion_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
       Name: ControlRobot
       Robot Description: /control/robot_description
       TF Prefix: control
@@ -683,6 +643,75 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        main_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        panda_link0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link7:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link8:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        world:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: ControlPanda
+      Robot Description: control/env_4/robot_description
+      TF Prefix: control/env_4
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
       Enabled: false
       Links:
         All Links Enabled: true
@@ -727,6 +756,75 @@ Visualization Manager:
       TF Prefix: real/env_1
       Update Interval: 0
       Value: false
+      Visual Enabled: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        main_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        panda_link0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link7:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        panda_link8:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        world:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: RealPanda
+      Robot Description: real/env_4/robot_description
+      TF Prefix: real/env_4
+      Update Interval: 0
+      Value: true
       Visual Enabled: true
     - Class: rviz/MarkerArray
       Enabled: true
@@ -782,7 +880,8 @@ Visualization Manager:
       Marker Topic: /mc_rtc_rviz
       Name: mc_rtc GUI markers
       Namespaces:
-        Polytopes/MainRobBalanceRegion: true
+        Polytopes/Polyhedrons/Human balance region_triangles: true
+        Polytopes/Polyhedrons/Robot balance region_triangles: true
         Tasks/lipm_stabilizer_hrp4/Markers/Contacts/SupportContacts: true
       Queue Size: 100
       Value: true
@@ -814,7 +913,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 3.2176544666290283
+      Distance: 2.0552761554718018
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05000000074505806
         Stereo Focal Distance: 1
@@ -822,17 +921,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.38212692737579346
-        Y: -0.022506581619381905
-        Z: 0.37609004974365234
+        X: -0.1934216469526291
+        Y: -0.04548627883195877
+        Z: 0.7392597794532776
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6500002145767212
+      Pitch: 0.380001425743103
       Target Frame: <Fixed Frame>
-      Yaw: 2.043117046356201
+      Yaw: 1.9081130027770996
     Saved: ~
 Window Geometry:
   Displays:

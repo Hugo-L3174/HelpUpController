@@ -77,38 +77,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
    */
   void desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob);
 
-  /*! \brief Gives acces to target CoM of the CoM task
-   */
-  Eigen::Vector3d currentCoM(std::string robotName) const;
-
-  inline double comTaskWeight(std::shared_ptr<mc_tasks::CoMTask> CoMTask) const
-  {
-    return CoMTask->weight();
-  }
-
-  void comTaskWeight(double weight, std::shared_ptr<mc_tasks::CoMTask> CoMTask);
-
-  inline double comTaskStiffness(std::shared_ptr<mc_tasks::CoMTask> CoMTask) const
-  {
-    return CoMTask->stiffness();
-  }
-
-  void comTaskStiffness(double stiffness, std::shared_ptr<mc_tasks::CoMTask> CoMTask);
-
-  inline double comTaskDamping(std::shared_ptr<mc_tasks::CoMTask> CoMTask) const
-  {
-    return CoMTask->damping();
-  }
-
-  void comTaskDamping(double damping, std::shared_ptr<mc_tasks::CoMTask> CoMTask);
-
-  void targetCoM(const Eigen::Vector3d & com,
-                 const Eigen::Vector3d & comp = Eigen::Vector3d::Zero(),
-                 const Eigen::Vector3d & compp = Eigen::Vector3d::Zero());
-
-  void increasePolytopeIndex(int polyIndex);
-  int getPolytopeIndex(int polyIndex);
-
   /*! \brief Update the contactSet with the current contacts of the rbdyn robot object
    */
   void updateContactSet(unsigned int robotIndex);
@@ -136,20 +104,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
                               int polIndex = 0,
                               std::string suffix = "");
 
-  // /*! \brief Dangerous function that move future to current without asking questions
-  //  */
-  // void setFutureToCurrent(std::shared_ptr<ComputationPoint> current, std::shared_ptr<ComputationPoint> future);
-
-  // /*! \brief Set the Next Polytope as a the future one
-  //  * Prepare the objective for the transition
-  //  */
-  // void setFutureToNext(std::shared_ptr<ComputationPoint> future, std::shared_ptr<ComputationPoint> next);
-
-  /*! \brief Set the current polytope as the next one
-   * This method should be called once the transition to next is finished
-   */
-  void setNextToCurrent(whatRobot rob);
-
   /*! \brief Utility function to check if a vertex is inside a set of planes
    * \param Vertex vertex to test
    * \param planes planes to test with
@@ -159,11 +113,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
   std::map<std::string, double> getConfigFMax() const;
   std::map<std::string, double> getConfigFMin() const;
-
-  // inline bool transitionFinished()
-  // {
-  //   return !transitionning_;
-  // }
 
   std::optional<double> override_CoMz;
 
@@ -202,6 +151,8 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
   {
     if(FilteredDerivation_)
     {
+      // config: m = 9 (Window size is 2*m+1), t = m = 9 (evaluate polynomial at first point in the [-m;m] window) , n =
+      // 4 (Polynomial Order), s = 1 (first order derivative), dt = timestep
       gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
       dotHumanOmega_ = filter.filter(humanOmegaBuffer_);
     }
@@ -209,10 +160,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     {
       dotHumanOmega_ = ((humanOmega_ - prevOmega_) / timeStep);
     }
-    // return ((humanOmega() - prevOmega_)/timeStep);
-
-    // config: m = 9 (Window size is 2*m+1), t = m = 9 (evaluate polynomial at first point in the [-m;m] window) , n = 4
-    // (Polynomial Order), s = 1 (first order derivative), dt = timestep
   };
 
   double mainOmega()
@@ -270,12 +217,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     return Fc;
   }
 
-  // sva::ForceVecd estimatedChairForce()
-  // {
-  //   auto X_0_C = sva::PTransformd(xsensCoMpos_);
-
-  // }
-
   // Required missing forces on the hands to achieve desired VRP command
   // Change this to missing forces to achieve *missing* VRP command, not total
   void computeMissingForces()
@@ -294,7 +235,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
   void computeDCMerror()
   {
-    DCMerror_ = DCMobjective_ - humanXsensDCM(); // DCMobjective formerly constant xsensFinalpos_
+    DCMerror_ = DCMobjective_ - humanXsensDCM();
   }
 
   void computeVRPerror()
@@ -347,11 +288,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
   {
     return robot().com() + robot().comVelocity() / mainOmega();
   }
-
-  // Eigen::Vector3d mainRealDCM()
-  // {
-  //   return realRobot().com() + realRobot().comVelocity() / mainRealOmega();
-  // };
 
   // Parametrized start offset of the log to sychronize. Default: start offset at 0, acquisition frequency of force
   // shoes at 100Hz

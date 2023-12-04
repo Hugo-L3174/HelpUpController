@@ -67,6 +67,9 @@ collisions:
 - type: collision
   useMinimal: true
 - type: collision
+  r1: panda
+  useMinimal: true
+- type: collision
   r1: hrp4 #e2dr
   r2: human
   collisions:

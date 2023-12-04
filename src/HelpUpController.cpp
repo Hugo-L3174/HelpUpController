@@ -84,49 +84,6 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   // RHandShoulder = std::make_shared<mc_control::SimulationContactPair>(RHandSurf, RightShoulderSurf);
   // LHandBack = std::make_shared<mc_control::SimulationContactPair>(LHandSurf, BackSurf);
 
-  // First log: standing alone ok
-  // mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F1.yaml");
-  // mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F2.yaml");
-  // mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F3.yaml");
-  // mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F4.yaml");
-
-  // Second log: standing with perturbations
-  // mc_rtc::Configuration dataIn1( std::string(PATH) + "/etc/forces/F5.yaml");
-  // mc_rtc::Configuration dataIn2( std::string(PATH) + "/etc/forces/F6.yaml");
-  // mc_rtc::Configuration dataIn3( std::string(PATH) + "/etc/forces/F7.yaml");
-  // mc_rtc::Configuration dataIn4( std::string(PATH) + "/etc/forces/F8.yaml");
-
-  // auto data1 = dataIn1.operator std::map<std::string, std::vector<double>>();
-  // auto data2 = dataIn2.operator std::map<std::string, std::vector<double>>();
-  // auto data3 = dataIn3.operator std::map<std::string, std::vector<double>>();
-  // auto data4 = dataIn4.operator std::map<std::string, std::vector<double>>();
-
-  // auto forceVect = sva::ForceVecd(Eigen::Vector3d(data1["Tx"][0], data1["Ty"][0], data1["Tz"][0]),
-  // Eigen::Vector3d(data1["Fx"][0], data1["Fy"][0], data1["Fz"][0])); mc_rtc::log::info("first force vec is : {}",
-  // forceVect); for (auto i = 0; i < data1["Counter"].size(); i++)
-  // {
-  //   auto forceVect = sva::ForceVecd(Eigen::Vector3d(data1["Tx"][i], data1["Ty"][i], data1["Tz"][i]),
-  //   Eigen::Vector3d(data1["Fx"][i], data1["Fy"][i], data1["Fz"][i])); LBShoeVec_.push_back(forceVect);
-  // }
-
-  // for (auto i = 0; i < data2["Counter"].size(); i++)
-  // {
-  //   auto forceVect = sva::ForceVecd(Eigen::Vector3d(data2["Tx"][i], data2["Ty"][i], data2["Tz"][i]),
-  //   Eigen::Vector3d(data2["Fx"][i], data2["Fy"][i], data2["Fz"][i])); LFShoeVec_.push_back(forceVect);
-  // }
-
-  // for (auto i = 0; i < data3["Counter"].size(); i++)
-  // {
-  //   auto forceVect = sva::ForceVecd(Eigen::Vector3d(data3["Tx"][i], data3["Ty"][i], data3["Tz"][i]),
-  //   Eigen::Vector3d(data3["Fx"][i], data3["Fy"][i], data3["Fz"][i])); RBShoeVec_.push_back(forceVect);
-  // }
-
-  // for (auto i = 0; i < data4["Counter"].size(); i++)
-  // {
-  //   auto forceVect = sva::ForceVecd(Eigen::Vector3d(data4["Tx"][i], data4["Ty"][i], data4["Tz"][i]),
-  //   Eigen::Vector3d(data4["Fx"][i], data4["Fy"][i], data4["Fz"][i])); RFShoeVec_.push_back(forceVect);
-  // }
-
   if(config_.has("Omega"))
   {
     OmegaZAcc_ = config_("Omega")("WithVerticalAcc");
@@ -152,17 +109,6 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
 
 bool HelpUpController::run()
 {
-  // First log: offset at 6.92 to sync with xsens log
-  // LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.92, 50);
-  // LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.92, 50);
-  // RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.92, 50);
-  // RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.92, 50);
-
-  // Second log: offset at 6.24
-  // LFShoe_ = getCurrentForceVec(LFShoeVec_, 6.24, 50);
-  // LBShoe_ = getCurrentForceVec(LBShoeVec_, 6.24, 50);
-  // RFShoe_ = getCurrentForceVec(RFShoeVec_, 6.24, 50);
-  // RBShoe_ = getCurrentForceVec(RBShoeVec_, 6.24, 50);
 
   LFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLFForce");
   LBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLBForce");
@@ -191,7 +137,7 @@ bool HelpUpController::run()
   // Assume positions have been reset when first poly is computed (only ran once)
   if(firstPolyHumOK_ && !pandaTaskAdded_ && robots().hasRobot("panda"))
   {
-    pandaTransform_ = std::make_shared<mc_tasks::TransformTask>(robot("panda").frame("HumanBack"), 100, 10000);
+    pandaTransform_ = std::make_shared<mc_tasks::TransformTask>(robot("panda").frame("HumanBack"), 1000, 10000);
     solver().addTask(pandaTransform_);
     pandaTaskAdded_ = true;
   }
@@ -199,6 +145,8 @@ bool HelpUpController::run()
   // set target every run
   if(pandaTaskAdded_ && robots().hasRobot("panda"))
   {
+    // pandaTransform_->refAccel(robot("human").frame("Back").)
+    pandaTransform_->refVelB(robot("human").frame("Back").velocity());
     pandaTransform_->targetSurface(robot("human").robotIndex(), "Back", sva::PTransformd::Identity());
   }
 
@@ -584,16 +532,6 @@ void HelpUpController::addLogEntries()
   auto QPforces = [this]() { return RedistribWrench_; };
   logger().addLogEntry("DCM_ComputedAssistanceForces", QPforces);
 
-  // auto frontToBackL = [this](){
-  //   auto X_LF_0 = robot("human").surfacePose("LFsensor").inv();
-  //   auto X_0_LB = robot("human").surfacePose("LBsensor");
-  //   // missing transform LF->world
-  //   auto LFwrenchinWorld = X_LF_0.dualMul(LFShoe_);
-  //   auto LFwrenchinLB = X_0_LB.dualMul(LFwrenchinWorld);
-  //   return LFwrenchinLB;
-  // };
-  // logger().addLogEntry("ForceShoes_LBfromfront", frontToBackL);
-
   auto nbHumContacts = [this]()
   {
     return contactSetHum_->numberOfContacts() / 4; // contacts are added as 4 points with their own friction cone, see
@@ -656,12 +594,8 @@ void HelpUpController::addGuiElements()
                     mc_rtc::gui::Point3D("humanCoMXsens", mc_rtc::gui::PointConfig(COLORS.at('b'), COM_POINT_SIZE),
                                          [this]() { return xsensCoMpos_; }),
                     mc_rtc::gui::Point3D("humanDCMobjective", mc_rtc::gui::PointConfig(COLORS.at('g'), DCM_POINT_SIZE),
-                                         [this]()
-                                         { return DCMobjective_; }) /*,
-mc_rtc::gui::Point3D("humanBaryCenter", mc_rtc::gui::PointConfig(COLORS.at('g'), COM_POINT_SIZE), [this]() { return
-comDesiredHum_; }), mc_rtc::gui::Point3D("robotBaryCenter", mc_rtc::gui::PointConfig(COLORS.at('r'), COM_POINT_SIZE),
-[this]() { return comDesired_; })*/
-                    // mc_rtc::gui::Point3D("CoMcombined", CoMconfig2, [this]() { return combinedCoM_; })
+                                         [this]() { return DCMobjective_; })
+
   );
 
   gui()->addElement(
@@ -708,11 +642,6 @@ comDesiredHum_; }), mc_rtc::gui::Point3D("robotBaryCenter", mc_rtc::gui::PointCo
       mc_rtc::gui::Arrow(
           "CoMForce", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return xsensCoMpos_; },
           [this, FORCE_SCALE]() -> Eigen::Vector3d { return xsensCoMpos_ + FORCE_SCALE * humanVRPforces().force(); }));
-  // gui()->addElement({"Trajectories"},
-  //     mc_rtc::gui::Trajectory("Front trajectory", [this]() { return trajectories_->Front_Traj_; })
-  //     // mc_rtc::gui::Trajectory("Back trajectory", [this]() { return trajectories_->Back_Traj_; })
-
-  // );
 
   // gui()->addElement({"AccPoly"},
   //     mc_rtc::gui::Polygon("HRP4accBalanceRegion", mc_rtc::gui::Color{0.8, 0., 0.}, [this]() { return accelerations_;
@@ -783,7 +712,6 @@ void HelpUpController::planes(std::vector<mc_rbdyn::Plane> constrPlanes, whatRob
 
 void HelpUpController::planes(std::vector<Eigen::Vector4d> constrPlanes, whatRobot rob)
 {
-  // LOG_INFO("Setting the comIncPlaneConstraint planes"
   std::vector<mc_rbdyn::Plane> p;
 
   for(auto plane : constrPlanes)
@@ -791,23 +719,11 @@ void HelpUpController::planes(std::vector<Eigen::Vector4d> constrPlanes, whatRob
     p.push_back({{-plane(0), -plane(1), -plane(2)}, plane(3)});
   }
   planes(p, rob);
-  // planesUpdated_ = true;
-}
-
-// const std::vector<mc_rbdyn::Plane> HelpUpController::planes() const
-// {
-//   return planes_;
-// }
-
-void HelpUpController::increasePolytopeIndex(int polyIndex)
-{
-  polyIndex++;
 }
 
 void HelpUpController::updateContactSet(
     unsigned int robotIndex) // todo update human outside of qp if too heavy to be under 5ms
 {
-  // updateRealHumContacts();
   auto contacts = solver().contacts();
   updateContactSet(contacts, robotIndex);
 }
@@ -907,8 +823,6 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
 
   acceleration << 0.0, 0.0, -9.81;
   contactSet_->addCoMAcc(acceleration);
-  // acceleration << robots().robot("")
-  // accelerations_.push_back()
 
   acceleration << 0.6, 0, -9.81;
   contactSet_->addCoMAcc(acceleration);
@@ -921,10 +835,6 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
 
   acceleration << 0, -0.6, -9.81;
   contactSet_->addCoMAcc(acceleration);
-
-  // std::cout << "#-----------------------------------------" << std::endl;
-  // std::cout << "Displaying current contact Set" << std::endl;
-  // contactSet_->showContactSet();
 
   readyForComp_ = false;
   computed_ = false;
@@ -948,62 +858,6 @@ void HelpUpController::updateContactForces()
     contactSet_->setContactFMin(contactForce.second, contactForce.first);
   }
 }
-
-// void HelpUpController::setFutureToCurrent(std::shared_ptr<ComputationPoint> current,
-// std::shared_ptr<ComputationPoint> future)
-// {
-//   current = future;
-//   planes(current->constraintPlanes());
-//   desiredCoM(current->objectiveCoM(2, robot().com())); // todo same for human
-// }// com computed on mode 2 (comQP, to be explored)
-
-// void HelpUpController::setFutureToNext(std::shared_ptr<ComputationPoint> future, std::shared_ptr<ComputationPoint>
-// next)
-// {
-//   next = future;
-// }
-
-// void HelpUpController::setNextToCurrent(whatRobot rob)
-// {
-//   Eigen::Vector3d newCoM;
-//   switch(rob)
-//   {
-//     case hrp4 :
-//       currentCompPoint_ = nextCompPoint_;
-//       planes(currentCompPoint_->constraintPlanes(), rob);
-//       if (planes_.size()>0)
-//       {
-//         newCoM = currentCompPoint_->objectiveCoM(0, robot().com()); // Here is set to mode 2 --> optimal com (qp)
-//         Chebychev qp is better: mode 1 desiredCoM(newCoM, rob);
-//       }
-//       break;
-
-//     case human :
-//       currentHumCompPoint_ = nextHumCompPoint_;
-//       planes(currentHumCompPoint_->constraintPlanes(), rob);
-//       if (planesHum_.size()>0)
-//       {
-//         newCoM = currentHumCompPoint_->objectiveCoM(0, robot("human").com());
-//         if (override_CoMz) // true if optional is set, false if "empty" (set in custom state if needed)
-//         {
-//           newCoM[2] = *override_CoMz;
-//         }
-//         // newCoM[2] = 0.75;
-//         desiredCoM(newCoM, rob);
-//       }
-
-//       break;
-//   }
-
-// }
-
-// auto currentCoM = robot().com();
-//  double currentZ = currentCoM(2);
-//  desiredCoM_(2)=currentZ;
-
-//  // set the planes and the desired CoM in the controler
-//  planes(desiredPlanes_);
-//  desiredCoM(desiredCoM_);
 
 void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
 {
@@ -1043,35 +897,6 @@ void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
       break;
   }
 }
-
-Eigen::Vector3d HelpUpController::currentCoM(std::string robotName) const
-{
-  // return comTask_->actual();
-  return robot(robotName).com();
-}
-
-void HelpUpController::comTaskWeight(double weight, std::shared_ptr<mc_tasks::CoMTask> CoMTask)
-{
-  CoMTask->weight(weight);
-}
-
-void HelpUpController::comTaskStiffness(double stiffness, std::shared_ptr<mc_tasks::CoMTask> CoMTask)
-{
-  CoMTask->stiffness(stiffness);
-}
-
-void HelpUpController::comTaskDamping(double damping, std::shared_ptr<mc_tasks::CoMTask> CoMTask)
-{
-  CoMTask->damping(damping);
-}
-
-// void HelpUpController::targetCoM(const Eigen::Vector3d & com, const Eigen::Vector3d & comp , const Eigen::Vector3d &
-// compp)
-// {
-//   com_t_ = com;
-//   comp_t_ = comp;
-//   compp_t_ = compp;
-// }
 
 bool HelpUpController::isVertexInPlanes(Eigen::Vector3d Vertex, std::vector<Eigen::Vector4d> planes, double eps)
 {

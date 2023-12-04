@@ -17,6 +17,13 @@ void ResetPoses::start(mc_control::fsm::Controller & ctl_)
 bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
 {
   auto & ctl = static_cast<HelpUpController &>(ctl_);
+
+  if(!ctl.datastore().has("HRP4IsReady"))
+  {
+    mc_rtc::log::warning("Waiting for HRP4");
+    return false;
+  }
+
   auto HipsPose = sva::PTransformd::Identity();
   const std::string & segmentName = "Pelvis";
 
@@ -52,8 +59,11 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
 
       // adjust chair position in mujoco
       mc_rtc::log::info("[ResetPoses state] Resetting chair mujoco position");
-      ctl.datastore().call<void, const sva::PTransformd &>(
-          fmt::format("{}::SetPosW", ctl.robots().robot("chair").name()), HipsPose * chairOffset_);
+      auto dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot("chair").name());
+      if(ctl.datastore().has(dsEntry))
+      {
+        ctl.datastore().call<void, const sva::PTransformd &>(dsEntry, HipsPose * chairOffset_);
+      }
 
       if(ctl.robots().hasRobot("panda"))
       {
@@ -66,10 +76,13 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
         ctl.realRobots().robot("panda").posW(pandaOffset_ * ctl.robots().robot("chair").posW());
 
         // adjust panda position in mujoco
-        mc_rtc::log::info("[ResetPoses state] Resetting chair mujoco position");
-        ctl.datastore().call<void, const sva::PTransformd &>(
-            fmt::format("{}::SetPosW", ctl.robots().robot("panda").name()),
-            pandaOffset_ * ctl.robots().robot("chair").posW());
+        mc_rtc::log::info("[ResetPoses state] Resetting panda mujoco position");
+        dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot("panda").name());
+        if(ctl.datastore().has(dsEntry))
+        {
+          ctl.datastore().call<void, const sva::PTransformd &>(dsEntry,
+                                                               pandaOffset_ * ctl.robots().robot("chair").posW());
+        }
       }
 
       // Adjust main robot position relative to chair
@@ -82,12 +95,13 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
 
       // adjust main robot position in mujoco
       mc_rtc::log::info("[ResetPoses state] Resetting main robot mujoco position");
-      ctl.datastore().call<void, const sva::PTransformd &>(fmt::format("{}::SetPosW", ctl.robots().robot().name()),
-                                                           robotOffset_ * ctl.robots().robot("chair").posW());
+      dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot().name());
+      if(ctl.datastore().has(dsEntry))
+      {
+        ctl.datastore().call<void, const sva::PTransformd &>(dsEntry,
+                                                             robotOffset_ * ctl.robots().robot("chair").posW());
+      }
     }
-
-    output("OK");
-    return true;
   }
   else
   {
@@ -95,6 +109,11 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
     output("NOK");
     return false;
   }
+
+  ctl.datastore().call<void>("LoadHRP4ObserverPipeline");
+
+  output("OK");
+  return true;
 }
 
 void ResetPoses::teardown(mc_control::fsm::Controller & ctl_)

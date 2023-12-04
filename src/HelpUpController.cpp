@@ -1,4 +1,5 @@
 #include "HelpUpController.h"
+#include <mc_observers/ObserverPipeline.h>
 
 #include "config.h"
 
@@ -217,6 +218,49 @@ bool HelpUpController::run()
 void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
 {
   mc_control::fsm::Controller::reset(reset_data);
+
+  /**
+   * The observer pipeline for HRP4 will be initialized once the
+   * position of all robots have been reset in ResetPoses state
+   */
+  datastore().make_call("LoadHRP4ObserverPipeline",
+                        [this]()
+                        {
+                          if(config_.has("HRP4ObserverPipeline"))
+                          {
+                            auto pipelineConfig = config_("HRP4ObserverPipeline");
+                            mc_rtc::log::info("Adding observer pipeline HRP4ObserverPipeline with config:\n{}",
+                                              pipelineConfig.dump(true, true));
+                            observerPipelines_.emplace_back(*this);
+                            auto & pipeline = observerPipelines_.back();
+                            pipeline.create(pipelineConfig, timeStep);
+                            if(pipelineConfig("log", true))
+                            {
+                              pipeline.addToLogger(logger());
+                            }
+                            if(pipelineConfig("gui", false))
+                            {
+                              pipeline.addToGUI(*gui());
+                            }
+                            pipeline.reset();
+                          }
+                        });
+
+  if(datastore().has("UDPPlugin"))
+  { // When using the UDP plugin wait until hrp4 is ready
+    datastore().make_call("UDPPlugin::" + robot().name() + "::reset",
+                          [this]()
+                          {
+                            mc_rtc::log::warning("TestUDPPugin::reset called, resetting posture task");
+                            datastore().make<bool>("HRP4IsReady", true);
+                            getPostureTask(robot().name())->reset();
+                          });
+  }
+  else
+  { // In simulation we do not need to wait
+    datastore().make<bool>("HRP4IsReady", true);
+  }
+
   // Update dynamics constraints
   // dynamicsConstraint = mc_solver::DynamicsConstraint(robots(),
   //                                                    robot().robotIndex(),

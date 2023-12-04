@@ -872,9 +872,10 @@ transitions:
 init: ResetStateHRP4
 # init: ResetStateE2DR
 
-
-ObserverPipelines:
-- name: MainRobPipeline                    # - Create a new pipeline
+# XXX For now load later because we control HRP4 with the UDPPlugin and sensor
+# values are not available from the start of the controller
+HRP4ObserverPipeline:
+  name: MainRobPipeline                    # - Create a new pipeline
   gui: true                              #   diplay the pipeline in the GUI (default = false)
   log: true                              #   log observers (default)
   observers:                             #   declare which observers to use
@@ -905,6 +906,8 @@ ObserverPipelines:
     #   robot: e2dr
     #   updateRobot: e2dr
     #   bodySensor: Accelerometer
+
+ObserverPipelines:
 - name: HumanPipeline
   gui: true
   log: true
@@ -938,7 +941,23 @@ ObserverPipelines:
 
 
 # Plugins: [XsensPlugin]
-Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate]
+Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate, UDPPlugin]
+
+UDPPlugin:
+  # Global configuration options for UDPPlugin
+  # These are the default values used by the plugin, they may be overriden at controller's level,
+  # See https://jrl-umi3218.github.io/mc_rtc/tutorials/usage/global-plugins.html for more details
+  robots:
+    hrp4:
+      host: localhost
+      port: 4444
+      ignoredJoints:
+        #joints: [CHEST_P, CHEST_Y, R_HIP_Y, R_HIP_R, R_HIP_P, L_HIP_Y, L_HIP_R, L_HIP_P, R_HAND_J0, R_HAND_J1, L_HAND_J0, L_HAND_J1, L_SHOULDER_R]
+        joints: [R_HAND_J0, R_HAND_J1, L_HAND_J1, L_HAND_J0, L_WRIST_R, L_WRIST_P]
+        values:
+          L_WRIST_R: 0.0
+          L_WRIST_P: 0.0
+
 
 RobotModelUpdate:
   robot: human

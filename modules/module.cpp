@@ -67,7 +67,7 @@ inertia: [0.00013625, 0.0, 0.0, 0.00013625, 0.0, 0.00000042]
 
     mbg.addBody({mass, com, inertiaM, name});
     mbg.addJoint({rbd::Joint::Type::Fixed, true, "link0_to_base_box"});
-    mbg.linkBodies("panda_link0", sva::PTransformd(Eigen::Vector3d{0.27 - box.size.x() / 2, 0, -box.size.z() / 2}),
+    mbg.linkBodies("panda_link0", sva::PTransformd(Eigen::Vector3d{-(box.size.x() / 2 - 0.27), 0, -box.size.z() / 2}),
                    name, sva::PTransformd::Identity(), "link0_to_base_box");
     _default_attitude = {1, 0, 0, 0, 0, 0, box.size.z()};
   }

@@ -14,10 +14,12 @@ find_package(Stabiliplus REQUIRED)
 find_package(eigen-quadprog REQUIRED)
 find_package(sch-core REQUIRED)
 find_package(gram_savitzky_golay REQUIRED)
+find_package(mc_panda REQUIRED)
 
 find_package(XsensPlugin REQUIRED)
 
 add_subdirectory(src)
+add_subdirectory(modules)
 
 set(AROBASE "@")
 configure_file(etc/HelpUpController.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/HelpUpController.yaml")

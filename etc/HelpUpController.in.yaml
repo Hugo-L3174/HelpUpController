@@ -39,7 +39,7 @@ robots:
   ground:
     module: env/ground
   panda:
-    module: PandaDefault
+    module: PandaHelpUp
     frames:
       - name: HumanBack
         parent: panda_link7
@@ -255,8 +255,8 @@ states:
       translation: [0.1, -0.55, 0.75]
       rotation: [0.0, 0.0, 1.6]
     pandaOffset: # in chair frame
-      translation: [0.0, 0.5, 0.725]
-      # rotation: [0.0, 0.0, 1.6]
+      translation: [0.3, 0.6, 0.725]
+      rotation: [0.0, 0.0, -1.57]
     AddContactsAfter:
       - r1: hrp4
         r2: ground

@@ -85,6 +85,26 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
         }
       }
 
+      // if(ctl.robots().hasRobot("human"))
+      // {
+      //   auto HumanHipsPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName);
+      //   // Adjust human position relative to human model
+      //   mc_rtc::log::info("[ResetPoses state] Resetting human control position");
+      //   ctl.robots().robot("human").posW(HumanHipsPose);
+
+      //   // Adjust observed human position relative to human model
+      //   mc_rtc::log::info("[ResetPoses state] Resetting observed human control position");
+      //   ctl.realRobots().robot("human").posW(HumanHipsPose);
+
+      //   // adjust human position in mujoco
+      //   mc_rtc::log::info("[ResetPoses state] Resetting human mujoco position");
+      //   auto dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot("human").name());
+      //   if(ctl.datastore().has(dsEntry))
+      //   {
+      //     ctl.datastore().call<void, const sva::PTransformd &>(dsEntry, HumanHipsPose);
+      //   }
+      // }
+
       // Adjust main robot position relative to chair
       mc_rtc::log::info("[ResetPoses state] Resetting main robot control position");
       ctl.robots().robot().posW(robotOffset_ * ctl.robots().robot("chair").posW());

@@ -85,7 +85,6 @@ inertia: [0.00013625, 0.0, 0.0, 0.00013625, 0.0, 0.00000042]
   _minimalSelfCollisions.emplace_back("convex_panda_link5", "base_box", i, s, d);
   _minimalSelfCollisions.emplace_back("convex_panda_link6", "base_box", i, s, d);
   _minimalSelfCollisions.emplace_back("convex_panda_link7", "base_box", i, s, d);
-  _minimalSelfCollisions.emplace_back("convex_panda_link8", "base_box", i, s, d);
 
   mb = mbg.makeMultiBody(mb.body(0).name(), true);
   mbc = rbd::MultiBodyConfig(mb);
@@ -103,7 +102,7 @@ inertia: [0.00013625, 0.0, 0.0, 0.00013625, 0.0, 0.00000042]
   }
   this->urdf_path = urdf_path.string();
   this->calib_dir = panda_prosthesis::calib_DIR;
-  this->name = "panda_helpup";
+  this->name = "panda_default";
   mc_rtc::log::info("Wrote URDF to {}", urdf_path.string());
 }
 

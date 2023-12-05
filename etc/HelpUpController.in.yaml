@@ -54,6 +54,10 @@ constraints:
   damper: [0.1, 0.01, 0.5]
   velocityPercent: 0.5
 - type: compoundJoint
+- type: kinematics
+  robot: panda
+  damper: [0.1, 0.01, 0.5]
+  velocityPercent: 0.5
 # - type:  dynamics
 #   damper: [0.1, 0.01, 0.5]
 # - type:  dynamics

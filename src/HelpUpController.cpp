@@ -6,10 +6,9 @@
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
 : mc_control::fsm::Controller(rm, dt, config), polytopeIndex_(0), polytopeHumIndex_(0), computed_(false),
   computedHum_(false), computing_(false), computingHum_(false), firstPolyRobOK_(false), firstPolyHumOK_(false),
-  readyForComp_(false), readyForCompHum_(false), DCMobjectiveBuffer_(19), humanOmegaBuffer_(19),
-  accLowPass_(dt, cutoffPeriod_), humOmegaLowPass_(dt, cutoffPeriod_), lowPassLB_(dt, cutoffPeriodForceShoes_),
-  lowPassRB_(dt, cutoffPeriodForceShoes_), lowPassLF_(dt, cutoffPeriodForceShoes_),
-  lowPassRF_(dt, cutoffPeriodForceShoes_)
+  readyForComp_(false), readyForCompHum_(false), accLowPass_(dt, cutoffPeriod_),
+  lowPassLB_(dt, cutoffPeriodForceShoes_), lowPassRB_(dt, cutoffPeriodForceShoes_),
+  lowPassLF_(dt, cutoffPeriodForceShoes_), lowPassRF_(dt, cutoffPeriodForceShoes_)
 {
   // Load entire controller configuration file
   config_.load(config);
@@ -95,14 +94,17 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
     FilteredDerivation_ = config_("filteredDerivation");
   }
 
+  // initialize DCM tracker for the human and for the main robot
+  humanDCMTracker_ = std::make_shared<DCM_VRPtracker>(dt, cutoffPeriod_, humanMass_, DCMpropgain_, DCMinteggain_);
+  robotDCMTracker_ = std::make_shared<DCM_VRPtracker>(dt, cutoffPeriod_, robot().mass(), DCMpropgain_, DCMinteggain_);
+
   // accLowPass_.dt(dt);
   // accLowPass_.cutoffPeriod(cutoffPeriod_);
 
-  // humOmegaLowPass_.dt(dt);
-  // humOmegaLowPass_.cutoffPeriod(cutoffPeriod_);
-
   addLogEntries();
   addGuiElements();
+  humanDCMTracker_->addGuiElements(gui_);
+  humanDCMTracker_->addLogEntries(logger());
   addTasksToSolver();
 
   mc_rtc::log::success("HelpUpController init done ");
@@ -135,6 +137,24 @@ bool HelpUpController::run()
   accLowPass_.update(rawxsensCoMacc_);
   xsensCoMacc_ = accLowPass_.eval();
 
+  humanDCMTracker_->setCoMDyn(xsensCoMpos_, xsensCoMvel_, xsensCoMacc_);
+  // pass the measured forces and their respective frames to the tracker
+  std::vector<std::pair<sva::PTransformd, sva::ForceVecd>> forceContacts;
+  std::pair<sva::PTransformd, sva::ForceVecd> RF(robot("human").frame("RFsensor").position(), RFShoe_);
+  std::pair<sva::PTransformd, sva::ForceVecd> LF(robot("human").frame("LFsensor").position(), LFShoe_);
+  std::pair<sva::PTransformd, sva::ForceVecd> RB(robot("human").frame("RBsensor").position(), RBShoe_);
+  std::pair<sva::PTransformd, sva::ForceVecd> LB(robot("human").frame("LBsensor").position(), LBShoe_);
+  forceContacts.push_back(RF);
+  forceContacts.push_back(LF);
+  forceContacts.push_back(RB);
+  forceContacts.push_back(LB);
+  humanDCMTracker_->setAppliedForces(forceContacts);
+
+  robotDCMTracker_->setCoMDyn(robot().com(), robot().comVelocity(), robot().comAcceleration());
+
+  humanDCMTracker_->updateTrackedValues();
+  robotDCMTracker_->updateTrackedValues();
+
   // Assume positions have been reset when first poly is computed (only ran once)
   if(firstPolyHumOK_ && !pandaTaskAdded_ && robots().hasRobot("panda"))
   {
@@ -159,6 +179,7 @@ bool HelpUpController::run()
   */
   if(firstPolyRobOK_)
   {
+    // for now we use the stabilizer computed DCM and not the VRP tracker
     robMeasuredDCM_ = datastore().call<Eigen::Vector3d>("RobotStabilizer::getMeasuredDCM");
     updateObjective(balanceCompPoint_, robMeasuredDCM_, robDCMobjective_, mainRob);
   }
@@ -169,7 +190,7 @@ bool HelpUpController::run()
 
   if(firstPolyHumOK_)
   {
-    updateObjective(balanceHumCompPoint_, humanXsensDCM(), DCMobjective_, human);
+    updateObjective(balanceHumCompPoint_, humanDCMTracker_->getDCM(), DCMobjective_, human);
   }
 
   if(contactSetHum_->numberOfContacts() / 4 > 2)
@@ -184,33 +205,12 @@ bool HelpUpController::run()
     modelMode_ = true;
   }
 
-  // Order: current dcm error computed, pushed in the buffer for filtered version of dotError,
-  // compute dotError (depending on the option), finally save current as previous (just before bool run ok)
+  humanDCMTracker_->updateObjectiveValues(DCMobjective_);
+  robotDCMTracker_->updateObjectiveValues(robDCMobjective_);
 
-  // computation of proportional term (P)
-  computeDCMerror();
-  // computation of feedforward term
-  // TODO fix feedforward: this is not a feedforward, just a measured velocity /= desired velocity
-  DCMobjectiveBuffer_.push_back(DCMobjective_);
-  computeDCMobjectiveVel();
-  // computation of integration term (I)
-  computeIntegDCMerror();
-
-  computeHumanOmega();
-  humanOmegaBuffer_.push_back(humanOmega_);
-  computeDotHumanOmega();
-  humOmegaLowPass_.update(Eigen::Vector3d(0, 0, dotHumanOmega_));
-  dotHumanOmega_ = humOmegaLowPass_.eval().z();
-
-  computeCommandVRP();
-  computeVRPerror();
-  computeMissingForces();
-
-  auto desiredCoMWrench = sva::ForceVecd(Eigen::Vector3d::Zero(), missingForces_);
+  auto desiredCoMWrench = humanDCMTracker_->getMissingForces();
   distributeHandsWrench(desiredCoMWrench);
   t_ += solver().dt();
-  prevDCMobjective_ = DCMobjective_;
-  prevOmega_ = humanOmega_;
   bool ok = mc_control::fsm::Controller::run();
   return ok;
 }
@@ -509,46 +509,17 @@ void HelpUpController::addLogEntries()
   auto logDCMrob = [this]() { return robMeasuredDCM_; };
   logger().addLogEntry("DCM_robot measured DCM", logDCMrob);
 
-  auto logDCMhum = [this]() { return humanXsensDCM(); };
-  logger().addLogEntry("DCM_human Xsens DCM", logDCMhum);
-
-  auto logDCMobjvel = [this]() { return DCMobjectiveVel_; };
-  logger().addLogEntry("DCM_human DCM objective velocity", logDCMobjvel);
-
   auto logDCMobjhum = [this]() { return DCMobjective_; };
   logger().addLogEntry("DCM_human DCM objective", logDCMobjhum);
 
-  auto logDCMerror = [this]() { return DCMerror_; };
-  logger().addLogEntry("DCM_human DCM error", logDCMerror);
-
   auto logDCMobjrob = [this]() { return robDCMobjective_; };
   logger().addLogEntry("DCM_robot DCM objective", logDCMobjrob);
-
-  auto logVRPerror = [this]() { return VRPerror_; };
-  logger().addLogEntry("DCM_VRPerror", logVRPerror);
-
-  auto logVRPhumModel = [this]() { return humanVRPmodel(); };
-  logger().addLogEntry("DCM_VRPmodel", logVRPhumModel);
-
-  auto logVRPhumMeasured = [this]() { return humanVRPmeasured(); };
-  logger().addLogEntry("DCM_VRPmeasured", logVRPhumMeasured);
-
-  auto logOmega = [this]() { return humanOmega_; };
-  logger().addLogEntry("DCM_human omega", logOmega);
 
   auto logRawComAcc = [this]() { return rawxsensCoMacc_; };
   logger().addLogEntry("DCM_xsens Raw acc", logRawComAcc);
 
   auto logfilteredComAcc = [this]() { return xsensCoMacc_; };
   logger().addLogEntry("DCM_xsens filtered acc", logfilteredComAcc);
-
-  // auto logDotOmega = [this](){
-  //   return dotHumanOmega_;
-  // };
-  // logger().addLogEntry("DCM_human dot omega", logDotOmega);
-
-  auto commandVRP = [this]() { return commandVRP_; };
-  logger().addLogEntry("DCM_desired VRP command", commandVRP);
 
   auto LFshoe = [this]() { return LFShoe_; };
   logger().addLogEntry("ForceShoes_LFShoeMeasure", LFshoe);
@@ -561,12 +532,6 @@ void HelpUpController::addLogEntries()
 
   auto RBshoe = [this]() { return RBShoe_; };
   logger().addLogEntry("ForceShoes_RBShoeMeasure", RBshoe);
-
-  auto CoMforces = [this]() { return humanVRPforces(); };
-  logger().addLogEntry("ForceShoes_MeasuredSum", CoMforces);
-
-  auto Missingforces = [this]() { return missingForces_; };
-  logger().addLogEntry("DCM_MissingForces", Missingforces);
 
   auto QPLH = [this]() { return LHwrench_; };
   auto QPRH = [this]() { return RHwrench_; };
@@ -643,25 +608,6 @@ void HelpUpController::addGuiElements()
   );
 
   gui()->addElement(
-      {"Points", "DCM dynamics"},
-      // mc_rtc::gui::Point3D("mainDCM", mc_rtc::gui::PointConfig(COLORS.at('b'), DCM_POINT_SIZE), [this]() { return
-      // mainCtlDCM(); }),
-      mc_rtc::gui::Point3D("humanDCMXsens", mc_rtc::gui::PointConfig(COLORS.at('c'), DCM_POINT_SIZE),
-                           [this]() { return humanXsensDCM(); }),
-      mc_rtc::gui::Point3D("humanVRPmodel", mc_rtc::gui::PointConfig(COLORS.at('y'), DCM_POINT_SIZE),
-                           [this]() { return humanVRPmodel(); }),
-      mc_rtc::gui::Point3D("humanVRPmeasured", mc_rtc::gui::PointConfig(COLORS.at('r'), DCM_POINT_SIZE),
-                           [this]() { return humanVRPmodel(); }),
-      // this is the computed vrp to achieve the desired xsensFinalpos_ (not sure)
-      // mc_rtc::gui::Arrow("missingForces", MissingforceArrowConfig, [this]() -> Eigen::Vector3d { return desiredVRP();
-      // }, [this]() -> Eigen::Vector3d { return xsensCoMpos_; }),
-      mc_rtc::gui::Arrow(
-          "DCM-VRP", VRPforceArrowConfig, [this]() -> Eigen::Vector3d { return /*humanXsensVRP()*/ humanVRPmodel(); },
-          [this]() -> Eigen::Vector3d { return humanXsensDCM(); })
-
-  );
-
-  gui()->addElement(
       {"Plugin", "ForceShoes", "Values"},
       mc_rtc::gui::Arrow(
           "LFShoe", ShoesforceArrowConfig,
@@ -685,7 +631,8 @@ void HelpUpController::addGuiElements()
           { return robot("human").surfacePose("RBsensor").translation() + FORCE_SCALE * RBShoe_.force(); }),
       mc_rtc::gui::Arrow(
           "CoMForce", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return xsensCoMpos_; },
-          [this, FORCE_SCALE]() -> Eigen::Vector3d { return xsensCoMpos_ + FORCE_SCALE * humanVRPforces().force(); }));
+          [this, FORCE_SCALE]() -> Eigen::Vector3d
+          { return xsensCoMpos_ + FORCE_SCALE * humanDCMTracker_->getAppliedForcesSum().force(); }));
 
   // gui()->addElement({"AccPoly"},
   //     mc_rtc::gui::Polygon("HRP4accBalanceRegion", mc_rtc::gui::Color{0.8, 0., 0.}, [this]() { return accelerations_;
@@ -1066,13 +1013,13 @@ void HelpUpController::updateRealHumContacts()
     // std::cout<<"adding left sole"<<std::endl;
   }
 
-  if(RCheekChair->pair.getDistance() <= distThreshold && (humanVRPforces().force().z() < 300))
+  if(RCheekChair->pair.getDistance() <= distThreshold && (humanDCMTracker_->getAppliedForcesSum().force().z() < 300))
   {
     addRealHumContact("RCheek", 0, humanMass_ * 9.81, ContactType::support);
     // std::cout<<"adding right cheek"<<std::endl;
   }
 
-  if(LCheekChair->pair.getDistance() <= distThreshold && (humanVRPforces().force().z() < 300))
+  if(LCheekChair->pair.getDistance() <= distThreshold && (humanDCMTracker_->getAppliedForcesSum().force().z() < 300))
   {
     addRealHumContact("LCheek", 0, humanMass_ * 9.81, ContactType::support);
     // std::cout<<"adding left cheek"<<std::endl;

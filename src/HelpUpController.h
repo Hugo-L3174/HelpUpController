@@ -25,6 +25,7 @@
 
 #include "api.h"
 #include "utils/ComputationPoint.h"
+#include "utils/DCM_VRPtracker.h"
 
 enum whatRobot
 {
@@ -129,165 +130,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     xsensCoMacc_ = acc;
   };
 
-  // CAREFUL is this the right way or should it be -9.81?
-  Eigen::Vector3d gravityVec()
-  {
-    return Eigen::Vector3d(0.0, 0.0, 9.81);
-  }
-
-  void computeHumanOmega()
-  {
-    if(OmegaZAcc_)
-    {
-      humanOmega_ = std::sqrt((9.81 + xsensCoMacc_.z()) / xsensCoMpos_.z());
-    }
-    else
-    {
-      humanOmega_ = std::sqrt(9.81 / xsensCoMpos_.z());
-    }
-  };
-
-  void computeDotHumanOmega()
-  {
-    if(FilteredDerivation_)
-    {
-      // config: m = 9 (Window size is 2*m+1), t = m = 9 (evaluate polynomial at first point in the [-m;m] window) , n =
-      // 4 (Polynomial Order), s = 1 (first order derivative), dt = timestep
-      gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
-      dotHumanOmega_ = filter.filter(humanOmegaBuffer_);
-    }
-    else
-    {
-      dotHumanOmega_ = ((humanOmega_ - prevOmega_) / timeStep);
-    }
-  };
-
-  double mainOmega()
-  {
-    return std::sqrt(9.81 / robot().com().z());
-  };
-
-  Eigen::Vector3d humanXsensDCM()
-  {
-    return xsensCoMpos_ + xsensCoMvel_ / humanOmega_;
-  };
-
-  // This is the previous assumption that omega is a constant
-  // Eigen::Vector3d dotHumanXsensDCM()
-  // {
-  //   return xsensCoMvel_ + xsensCoMacc_ / humanOmega();
-  // };
-
-  // Eigen::Vector3d humanXsensVRP()
-  // {
-  //   // return xsensCoMpos_ + xsensCoMacc_ / (humanOmega()*humanOmega() - dotHumanOmega());
-  //   return humanXsensDCM() - dotHumanXsensDCM() / humanOmega();
-  // };
-
-  Eigen::Vector3d humanVRPmodel()
-  {
-    return xsensCoMpos_ - (xsensCoMacc_ / (humanOmega_ * humanOmega_ - dotHumanOmega_));
-  }
-
-  // This is equivalent to the model except we replace the acceleration with the sum of forces applied to the CoM,
-  // divided by the human mass (Newton: SumF = m*acc)
-  Eigen::Vector3d humanVRPmeasured()
-  {
-    return xsensCoMpos_
-           - (humanVRPforces().force() - humanMass_ * gravityVec())
-                 / (humanMass_ * (humanOmega_ * humanOmega_ - dotHumanOmega_));
-  }
-
-  sva::ForceVecd humanVRPforces()
-  {
-    auto X_0_C = sva::PTransformd(xsensCoMpos_);
-    auto X_LF_0 = robot("human").surfacePose("LFsensor").inv();
-    auto X_LB_0 = robot("human").surfacePose("LBsensor").inv();
-    auto X_RF_0 = robot("human").surfacePose("RFsensor").inv();
-    auto X_RB_0 = robot("human").surfacePose("RBsensor").inv();
-
-    auto w_LF_0 = X_LF_0.dualMul(LFShoe_);
-    auto w_LB_0 = X_LB_0.dualMul(LBShoe_);
-    auto w_RF_0 = X_RF_0.dualMul(RFShoe_);
-    auto w_RB_0 = X_RB_0.dualMul(RBShoe_);
-
-    auto Fc = X_0_C.dualMul(w_LF_0) + X_0_C.dualMul(w_LB_0) + X_0_C.dualMul(w_RF_0) + X_0_C.dualMul(w_RB_0);
-
-    // Do this with transforms directly to the com instead of world origin: high moments can lead to numerical errors
-    return Fc;
-  }
-
-  // Required missing forces on the hands to achieve desired VRP command
-  // Change this to missing forces to achieve *missing* VRP command, not total
-  void computeMissingForces()
-  {
-    if(modelMode_)
-    {
-      missingForces_ = humanMass_ * (humanOmega_ * humanOmega_ - dotHumanOmega_) * (xsensCoMpos_ - commandVRP_)
-                       - humanMass_ * xsensCoMacc_;
-    }
-    else
-    {
-      missingForces_ = humanMass_ * (humanOmega_ * humanOmega_ - dotHumanOmega_) * (xsensCoMpos_ - commandVRP_)
-                       + humanMass_ * gravityVec() - humanVRPforces().force() /*Missing butt contact force !*/;
-    }
-  }
-
-  void computeDCMerror()
-  {
-    DCMerror_ = DCMobjective_ - humanXsensDCM();
-  }
-
-  void computeVRPerror()
-  {
-    if(modelMode_)
-    {
-      VRPerror_ = commandVRP_ - humanVRPmodel();
-    }
-    else
-    {
-      VRPerror_ = commandVRP_ - humanVRPmeasured();
-    }
-  }
-
-  void computeDCMobjectiveVel()
-  {
-    // config: m = 9 (Window size is 2*m+1), t = m = 9 (evaluate polynomial at first point in the [-m;m] window) , n = 4
-    // (Polynomial Order), s = 1 (first order derivative), dt = timestep
-    if(FilteredDerivation_)
-    {
-      gram_sg::SavitzkyGolayFilter filter(9, 9, 4, 1, timeStep);
-      DCMobjectiveVel_ = filter.filter(DCMobjectiveBuffer_);
-    }
-    else
-    {
-      DCMobjectiveVel_ = ((DCMobjective_ - prevDCMobjective_) / timeStep);
-    }
-  }
-
-  void computeIntegDCMerror()
-  {
-    DCMintegrator_.add(DCMerror_, timeStep);
-    DCMaverageError_ = DCMintegrator_.eval();
-  }
-
-  void computeCommandVRP()
-  {
-    // TODO fix feedforward term
-    // commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*(/*DCMobjectiveVel_*/ +
-    // DCMpropgain_*(DCMerror_) + DCMinteggain_ * DCMaverageError_);
-    Eigen::Vector3d DCMvel = (humanOmega_ - (dotHumanOmega_ / humanOmega_)) * (humanXsensDCM() - humanVRPmodel());
-    commandVRP_ = humanXsensDCM()
-                  - (1 / (humanOmega_ - (dotHumanOmega_ / humanOmega_)))
-                        * (DCMvel + DCMpropgain_ * (DCMerror_) + DCMinteggain_ * DCMaverageError_);
-  }
-
   void distributeHandsWrench(const sva::ForceVecd & desiredWrench);
-
-  Eigen::Vector3d mainCtlDCM()
-  {
-    return robot().com() + robot().comVelocity() / mainOmega();
-  }
 
   // Parametrized start offset of the log to sychronize. Default: start offset at 0, acquisition frequency of force
   // shoes at 100Hz
@@ -352,7 +195,7 @@ private:
   Eigen::Vector3d robMeasuredDCM_;
 
   // Missing forces to apply at CoM human to achieve dynamic balance
-  Eigen::Vector3d missingForces_ = Eigen::Vector3d::Zero();
+  // Eigen::Vector3d missingForces_ = Eigen::Vector3d::Zero();
 
   Eigen::Vector3d xsensCoMpos_ = Eigen::Vector3d::Zero();
   Eigen::Vector3d xsensCoMvel_ = Eigen::Vector3d::Zero();
@@ -362,28 +205,11 @@ private:
   double cutoffPeriod_ = 0.05;
   mc_filter::LowPass<Eigen::Vector3d> accLowPass_;
 
-  double humanOmega_ = std::sqrt(9.81 / 0.674); // seated human com is around 67 cm in height
-  double prevOmega_ = std::sqrt(9.81 / 0.674);
-  double dotHumanOmega_ = 0.0;
-  mc_filter::LowPass<Eigen::Vector3d> humOmegaLowPass_;
-
-  Eigen::Vector3d DCMerror_ = Eigen::Vector3d::Zero();
-  Eigen::Vector3d prevDCMobjective_ = Eigen::Vector3d::Zero();
-  Eigen::Vector3d DCMobjectiveVel_ = Eigen::Vector3d::Zero();
-  Eigen::Vector3d DCMaverageError_ = Eigen::Vector3d::Zero();
-
-  Eigen::Vector3d VRPerror_ = Eigen::Vector3d::Zero();
-
-  // filter buffers for omega and dcm derivatives
-  boost::circular_buffer<double> humanOmegaBuffer_;
-  boost::circular_buffer<Eigen::Vector3d> DCMobjectiveBuffer_;
-  // filter for dcm integrator
-  mc_filter::LeakyIntegrator<Eigen::Vector3d> DCMintegrator_;
-
-  Eigen::Vector3d commandVRP_ = Eigen::Vector3d::Zero();
   double DCMpropgain_ = 3.0;
-  double DCMdgain_ = 0.3;
-  double DCMinteggain_ = 0; // 0.3;
+  double DCMinteggain_ = 0;
+
+  std::shared_ptr<DCM_VRPtracker> humanDCMTracker_;
+  std::shared_ptr<DCM_VRPtracker> robotDCMTracker_;
 
   std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask> stabTask_;
   std::shared_ptr<mc_tasks::lipm_stabilizer::internal::Contact> leftHandContact_;

@@ -1,6 +1,9 @@
 #include "ChangeBalanceConfig.h"
 
-#include "../HelpUpController.h"
+#include <mc_control/fsm/Controller.h>
+#include <mc_tasks/lipm_stabilizer/StabilizerTask.h>
+
+// #include "../HelpUpController.h"
 
 void ChangeBalanceConfig::configure(const mc_rtc::Configuration & config)
 {
@@ -18,9 +21,9 @@ void ChangeBalanceConfig::configure(const mc_rtc::Configuration & config)
   }
 }
 
-void ChangeBalanceConfig::start(mc_control::fsm::Controller & ctl_)
+void ChangeBalanceConfig::start(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
   auto stabTask =
       ctl.datastore().call<std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask>>("RobotStabilizer::getTask");
 
@@ -50,9 +53,9 @@ void ChangeBalanceConfig::start(mc_control::fsm::Controller & ctl_)
   // stabTask->configure()
 }
 
-bool ChangeBalanceConfig::run(mc_control::fsm::Controller & ctl_)
+bool ChangeBalanceConfig::run(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
   auto finished = ctl.datastore().call<bool>("RobotStabilizer::isBalanced");
   if(finished)
   {
@@ -63,9 +66,9 @@ bool ChangeBalanceConfig::run(mc_control::fsm::Controller & ctl_)
   return false;
 }
 
-void ChangeBalanceConfig::teardown(mc_control::fsm::Controller & ctl_)
+void ChangeBalanceConfig::teardown(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
   if(config_.has("stayManualAfter"))
   {
     // setting stabilizer back to auto mode with objective set by the controller

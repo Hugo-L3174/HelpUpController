@@ -1,6 +1,7 @@
 #include "ResetPoses.h"
 
-#include "../HelpUpController.h"
+// #include "../HelpUpController.h"
+#include <mc_control/fsm/Controller.h>
 
 void ResetPoses::configure(const mc_rtc::Configuration & config)
 {
@@ -9,14 +10,14 @@ void ResetPoses::configure(const mc_rtc::Configuration & config)
   config("pandaOffset", pandaOffset_);
 }
 
-void ResetPoses::start(mc_control::fsm::Controller & ctl_)
+void ResetPoses::start(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 }
 
-bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
+bool ResetPoses::run(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   if(!ctl.datastore().has("HRP4IsReady"))
   {
@@ -116,9 +117,9 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl_)
   return true;
 }
 
-void ResetPoses::teardown(mc_control::fsm::Controller & ctl_)
+void ResetPoses::teardown(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 }
 
 EXPORT_SINGLE_STATE("ResetPoses", ResetPoses)

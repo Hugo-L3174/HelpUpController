@@ -2,16 +2,17 @@
 
 #include <mc_solver/TasksQPSolver.h>
 
-#include "../HelpUpController.h"
+// #include "../HelpUpController.h"
+#include <mc_control/fsm/Controller.h>
 
 void RobotHolding::configure(const mc_rtc::Configuration & config)
 {
   config_.load(config);
 }
 
-void RobotHolding::start(mc_control::fsm::Controller & ctl_)
+void RobotHolding::start(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   if(config_.has("RightHandAdmi"))
   {
@@ -78,9 +79,9 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl_)
   // addToGUI(*ctl.gui(), ctl);
 }
 
-bool RobotHolding::run(mc_control::fsm::Controller & ctl_)
+bool RobotHolding::run(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   // rightHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(RHtarget_));
   // rightHandImpedancePtr_->targetWrench(ctl.getRHWrenchComputed());
@@ -159,9 +160,9 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl_)
   return false;
 }
 
-void RobotHolding::teardown(mc_control::fsm::Controller & ctl_)
+void RobotHolding::teardown(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration DefaultExternalWrenchConf_;
   ctl.datastore().call(
@@ -175,11 +176,11 @@ void RobotHolding::teardown(mc_control::fsm::Controller & ctl_)
   // TODO: remove gui addition when teardown
 }
 
-void RobotHolding::addToGUI(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Controller & ctl_)
+void RobotHolding::addToGUI(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Controller & ctl)
 {
   using namespace mc_rtc::gui;
   using Style = mc_rtc::gui::plot::Style;
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   ///// GUI MARKERS
   constexpr double ARROW_HEAD_DIAM = 0.015;

@@ -1,6 +1,9 @@
 #include "RobotStabilizer.h"
 
-#include "../HelpUpController.h"
+// #include "../HelpUpController.h"
+#include <mc_control/fsm/Controller.h>
+#include <mc_tasks/MetaTaskLoader.h>
+#include <mc_tasks/lipm_stabilizer/StabilizerTask.h>
 
 namespace constants = mc_rtc::constants;
 using ContactState = mc_tasks::lipm_stabilizer::ContactState;
@@ -17,9 +20,9 @@ void RobotStabilizer::configure(const mc_rtc::Configuration & config)
   config_.load(config);
 }
 
-void RobotStabilizer::start(mc_control::fsm::Controller & ctl_)
+void RobotStabilizer::start(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   if(!config_.has("StabilizerConfig"))
   {
@@ -201,9 +204,9 @@ void RobotStabilizer::setDCMThreshold(Eigen::Vector3d dcmThreshold, bool hasComp
   hasCompletion_ = hasCompletion;
 }
 
-void RobotStabilizer::setAboveObjective(mc_rtc::Configuration aboveConf, mc_control::fsm::Controller & ctl_)
+void RobotStabilizer::setAboveObjective(mc_rtc::Configuration aboveConf, mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
   auto & robot = ctl.robot(robot_);
   const std::string above = aboveConf;
   if(above == "LeftAnkle")
@@ -277,9 +280,9 @@ void RobotStabilizer::targetCoM(const Eigen::Vector3d & com)
   copTarget_ = Eigen::Vector3d{comTarget_.x(), comTarget_.y(), copHeight};
 }
 
-bool RobotStabilizer::run(mc_control::fsm::Controller & ctl_)
+bool RobotStabilizer::run(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   // getting current measured pendulum state
   const Eigen::Vector3d & com_ = pendulum_.com();
@@ -315,9 +318,9 @@ bool RobotStabilizer::run(mc_control::fsm::Controller & ctl_)
   return false;
 }
 
-void RobotStabilizer::teardown(mc_control::fsm::Controller & ctl_)
+void RobotStabilizer::teardown(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   ctl.solver().removeTask(stabilizerTask_);
   ctl.logger().removeLogEntries(this);

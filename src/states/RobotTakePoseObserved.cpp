@@ -1,6 +1,7 @@
 #include "RobotTakePoseObserved.h"
 
-#include "../HelpUpController.h"
+// #include "../HelpUpController.h"
+#include <mc_control/fsm/Controller.h>
 
 void RobotTakePoseObserved::configure(const mc_rtc::Configuration & config)
 {
@@ -9,9 +10,9 @@ void RobotTakePoseObserved::configure(const mc_rtc::Configuration & config)
   // critLH_ = config_("LHandTrajectory")("completion")("eval",0.02);
 }
 
-void RobotTakePoseObserved::start(mc_control::fsm::Controller & ctl_)
+void RobotTakePoseObserved::start(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   if(config_.has("RHandTrajectory"))
   {
@@ -53,9 +54,9 @@ void RobotTakePoseObserved::start(mc_control::fsm::Controller & ctl_)
   // ctl.logger().addLogEntry("bspline_trajectory_hrp4_LeftHand_eval", [this]() -> const double { return errorLH_;});
 }
 
-bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl_)
+bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
   auto RHtargetFrame = config_("RHandTrajectory")("targetFrame");
   auto LHtargetFrame = config_("LHandTrajectory")("targetFrame");
 
@@ -101,9 +102,9 @@ bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl_)
   return false;
 }
 
-void RobotTakePoseObserved::teardown(mc_control::fsm::Controller & ctl_)
+void RobotTakePoseObserved::teardown(mc_control::fsm::Controller & ctl)
 {
-  auto & ctl = static_cast<HelpUpController &>(ctl_);
+  // auto & ctl = static_cast<HelpUpController &>(ctl_);
   ctl.solver().removeTask(RHandTrajectoryTask_);
   ctl.solver().removeTask(LHandTrajectoryTask_);
 

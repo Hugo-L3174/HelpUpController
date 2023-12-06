@@ -158,7 +158,7 @@ bool HelpUpController::run()
   // Assume positions have been reset when first poly is computed (only ran once)
   if(firstPolyHumOK_ && !pandaTaskAdded_ && robots().hasRobot("panda"))
   {
-    pandaTransform_ = std::make_shared<mc_tasks::TransformTask>(robot("panda").frame("HumanBack"), 1000, 10000);
+    pandaTransform_ = std::make_shared<mc_tasks::TransformTask>(robot("panda").frame("HumanBack"), 10, 1000);
     solver().addTask(pandaTransform_);
     pandaTaskAdded_ = true;
   }

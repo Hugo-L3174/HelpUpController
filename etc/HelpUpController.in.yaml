@@ -39,7 +39,7 @@ robots:
   ground:
     module: env/ground
   panda:
-    module: PandaDefault
+    module: PandaHelpUp
     frames:
       - name: HumanBack
         parent: panda_link7
@@ -54,6 +54,10 @@ constraints:
   damper: [0.1, 0.01, 0.5]
   velocityPercent: 0.5
 - type: compoundJoint
+- type: kinematics
+  robot: panda
+  damper: [0.1, 0.01, 0.5]
+  velocityPercent: 0.5
 # - type:  dynamics
 #   damper: [0.1, 0.01, 0.5]
 # - type:  dynamics
@@ -68,6 +72,7 @@ collisions:
   useMinimal: true
 - type: collision
   r1: panda
+  r2: panda
   useMinimal: true
 - type: collision
   r1: hrp4 #e2dr
@@ -251,8 +256,8 @@ states:
       translation: [0.1, -0.55, 0.75]
       rotation: [0.0, 0.0, 1.6]
     pandaOffset: # in chair frame
-      translation: [0.0, 0.5, 0.725]
-      # rotation: [0.0, 0.0, 1.6]
+      translation: [0.3, 0.6, 0.725]
+      rotation: [0.0, 0.0, -1.57]
     AddContactsAfter:
       - r1: hrp4
         r2: ground
@@ -907,37 +912,37 @@ HRP4ObserverPipeline:
     #   updateRobot: e2dr
     #   bodySensor: Accelerometer
 
-ObserverPipelines:
-- name: HumanPipeline
-  gui: true
-  log: true
-  observers:
-  - type: Encoder                        # - Use an EncoderObserver
-    config:
-      robot: human
-      updateRobot: human
-      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
-      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
-      computeFV: true
-  - type: BodySensor                     # - Use a BodySensor observer
-    update: true                        #   Do not update the real robot state
-    gui: true                           #   Do not display in the gui
-    config:
-      robot: human
-      bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
-                                         #   The observer computes the position and velocity of the floating base
-                                         #   by transforming the sensor measurements to the floating base frame
-  # - type: Attitude
-  #   config:
-  #     robot: human
-  #     bodySensor: Accelerometer
-  # - type: KinematicInertial              # - Estimates the floating base state using the KinematicInertial observer
-  #   update: true                         #   update the real robot instance from its results
-  #   gui: true                            #   Displays the estimated velocity as an arrow (default)
-  #   config:
-  #     robot: human
-  #     updateRobot: human
-  #     bodySensor: Accelerometer
+#ObserverPipelines:
+#- name: HumanPipeline
+#  gui: true
+#  log: true
+#  observers:
+#  - type: Encoder                        # - Use an EncoderObserver
+#    config:
+#      robot: human
+#      updateRobot: human
+#      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
+#      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
+#      computeFV: true
+#  - type: BodySensor                     # - Use a BodySensor observer
+#    update: true                        #   Do not update the real robot state
+#    gui: true                           #   Do not display in the gui
+#    config:
+#      robot: human
+#      bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
+#                                         #   The observer computes the position and velocity of the floating base
+#                                         #   by transforming the sensor measurements to the floating base frame
+#  # - type: Attitude
+#  #   config:
+#  #     robot: human
+#  #     bodySensor: Accelerometer
+#  # - type: KinematicInertial              # - Estimates the floating base state using the KinematicInertial observer
+#  #   update: true                         #   update the real robot instance from its results
+#  #   gui: true                            #   Displays the estimated velocity as an arrow (default)
+#  #   config:
+#  #     robot: human
+#  #     updateRobot: human
+#  #     bodySensor: Accelerometer
 
 
 # Plugins: [XsensPlugin]

@@ -3,7 +3,7 @@ set(controller_SRC
   utils/ComputationPoint.cpp
   utils/PointProjector.cpp
   utils/CoMQP.cpp
-  # utils/DCM_VRP.cpp
+  utils/DCM_VRPtracker.cpp
   # states/PostAdd.cpp
   # utils/TrajectoryModel.cpp
   # Tasks/BoundCoMAcceleration.cpp
@@ -15,7 +15,7 @@ set(controller_HDR
   utils/ComputationPoint.h
   utils/PointProjector.h
   utils/CoMQP.h
-  # utils/DCM_VRP.h
+  utils/DCM_VRPtracker.h
   Tasks/TrackDesiredForceTask.h
   # states/PostAdd.h
   # utils/TrajectoryModel.h

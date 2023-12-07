@@ -181,35 +181,35 @@ void DCM_VRPtracker::addGuiElements(std::shared_ptr<mc_rtc::gui::StateBuilder> g
   );
 }
 
-void DCM_VRPtracker::addLogEntries(mc_rtc::Logger & logger)
+void DCM_VRPtracker::addLogEntries(std::string robotName, mc_rtc::Logger & logger)
 {
   auto logDCMhum = [this]() { return DCM_; };
-  logger.addLogEntry("DCMtracker_DCM", logDCMhum);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_DCM", robotName), logDCMhum);
 
   auto logDCMobjhum = [this]() { return DCMobjective_; };
-  logger.addLogEntry("DCMtracker_DCM objective", logDCMobjhum);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_DCM objective", robotName), logDCMobjhum);
 
   auto logDCMerror = [this]() { return DCMerror_; };
-  logger.addLogEntry("DCMtracker_DCM error", logDCMerror);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_DCM error", robotName), logDCMerror);
 
   auto logVRPerror = [this]() { return VRPerror_; };
-  logger.addLogEntry("DCMtracker_VRP error", logVRPerror);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP error", robotName), logVRPerror);
 
   auto logVRPhumModel = [this]() { return modelVRP_; };
-  logger.addLogEntry("DCMtracker_VRP acceleration model", logVRPhumModel);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP acceleration model", robotName), logVRPhumModel);
 
   auto logVRPhumMeasured = [this]() { return measuredForcesVRP_; };
-  logger.addLogEntry("DCMtracker_VRP forces model", logVRPhumMeasured);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP forces model", robotName), logVRPhumMeasured);
 
   auto logOmega = [this]() { return omega_; };
-  logger.addLogEntry("DCMtracker_omega", logOmega);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_omega", robotName), logOmega);
 
   auto commandVRP = [this]() { return commandVRP_; };
-  logger.addLogEntry("DCMtracker_desired VRP command", commandVRP);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_desired VRP command", robotName), commandVRP);
 
   auto CoMforces = [this]() { return appliedForces_; };
-  logger.addLogEntry("DCMtracker_applied forces sum at CoM", CoMforces);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_applied forces sum at CoM", robotName), CoMforces);
 
   auto Missingforces = [this]() { return missingForces_; };
-  logger.addLogEntry("DCMtracker_Missing forces", Missingforces);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_Missing forces", robotName), Missingforces);
 }

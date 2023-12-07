@@ -104,7 +104,7 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   addLogEntries();
   addGuiElements();
   humanDCMTracker_->addGuiElements(gui_);
-  humanDCMTracker_->addLogEntries(logger());
+  humanDCMTracker_->addLogEntries("human", logger());
   addTasksToSolver();
 
   mc_rtc::log::success("HelpUpController init done ");
@@ -507,19 +507,16 @@ void HelpUpController::addLogEntries()
   // { return balanceHumCompPoint_->computationTime();});
 
   auto logDCMrob = [this]() { return robMeasuredDCM_; };
-  logger().addLogEntry("DCM_robot measured DCM", logDCMrob);
-
-  auto logDCMobjhum = [this]() { return DCMobjective_; };
-  logger().addLogEntry("DCM_human DCM objective", logDCMobjhum);
+  logger().addLogEntry("HelpUp_robot measured DCM", logDCMrob);
 
   auto logDCMobjrob = [this]() { return robDCMobjective_; };
-  logger().addLogEntry("DCM_robot DCM objective", logDCMobjrob);
+  logger().addLogEntry("HelpUp_robot DCM objective", logDCMobjrob);
 
   auto logRawComAcc = [this]() { return rawxsensCoMacc_; };
-  logger().addLogEntry("DCM_xsens Raw acc", logRawComAcc);
+  logger().addLogEntry("Xsens_Raw acc", logRawComAcc);
 
   auto logfilteredComAcc = [this]() { return xsensCoMacc_; };
-  logger().addLogEntry("DCM_xsens filtered acc", logfilteredComAcc);
+  logger().addLogEntry("Xsens_Filtered acc", logfilteredComAcc);
 
   auto LFshoe = [this]() { return LFShoe_; };
   logger().addLogEntry("ForceShoes_LFShoeMeasure", LFshoe);
@@ -535,24 +532,24 @@ void HelpUpController::addLogEntries()
 
   auto QPLH = [this]() { return LHwrench_; };
   auto QPRH = [this]() { return RHwrench_; };
-  logger().addLogEntry("DCM_ComputedLHwrench", QPLH);
-  logger().addLogEntry("DCM_ComputedRHwrench", QPRH);
+  logger().addLogEntry("HelpUp_ComputedLHwrench", QPLH);
+  logger().addLogEntry("HelpUp_ComputedRHwrench", QPRH);
 
   auto QPforces = [this]() { return RedistribWrench_; };
-  logger().addLogEntry("DCM_ComputedAssistanceForces", QPforces);
+  logger().addLogEntry("HelpUp_ComputedAssistanceForces", QPforces);
 
   auto nbHumContacts = [this]()
   {
     return contactSetHum_->numberOfContacts() / 4; // contacts are added as 4 points with their own friction cone, see
                                                    // https://hal.archives-ouvertes.fr/hal-02108449/document
   };
-  logger().addLogEntry("human_nbContacts", nbHumContacts);
+  logger().addLogEntry("HelpUp_human_nbContacts", nbHumContacts);
 
   auto distRcheek = [this]() { return RCheekChair->pair.getDistance(); };
-  logger().addLogEntry("human_RCheekDist", distRcheek);
+  logger().addLogEntry("HelpUp_human_RCheekDist", distRcheek);
 
   auto distLcheek = [this]() { return LCheekChair->pair.getDistance(); };
-  logger().addLogEntry("human_LCheekDist", distLcheek);
+  logger().addLogEntry("HelpUp_human_LCheekDist", distLcheek);
 }
 
 void HelpUpController::addGuiElements()

@@ -37,7 +37,7 @@ public:
 
   /*! \brief function called in the constructor to set up the log entries
    */
-  void addLogEntries(mc_rtc::Logger & logger);
+  void addLogEntries(std::string robotName, mc_rtc::Logger & logger);
 
   // CAREFUL is this the right way or should it be -9.81?
   Eigen::Vector3d gravityVec()

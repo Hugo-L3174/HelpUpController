@@ -23,9 +23,7 @@ static inline mc_rbdyn::RobotModulePtr patch_rm(mc_rbdyn::RobotModulePtr rm, con
 }
 
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
-: mc_control::fsm::Controller(patch_rm(rm, config), dt, config), polytopeIndex_(0), polytopeHumIndex_(0),
-  computed_(false), computedHum_(false), computing_(false), computingHum_(false), firstPolyRobOK_(false),
-  firstPolyHumOK_(false), readyForComp_(false), readyForCompHum_(false), accLowPass_(dt, cutoffPeriod_),
+: mc_control::fsm::Controller(patch_rm(rm, config), dt, config), accLowPass_(dt, cutoffPeriod_),
   lowPassLB_(dt, cutoffPeriodForceShoes_), lowPassRB_(dt, cutoffPeriodForceShoes_),
   lowPassLF_(dt, cutoffPeriodForceShoes_), lowPassRF_(dt, cutoffPeriodForceShoes_)
 {
@@ -122,7 +120,7 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
 
   addLogEntries();
   addGuiElements();
-  humanDCMTracker_->addGuiElements(gui_);
+  humanDCMTracker_->addGuiElements(*gui_);
   humanDCMTracker_->addLogEntries("human", logger());
   addTasksToSolver();
 
@@ -159,14 +157,10 @@ bool HelpUpController::run()
   humanDCMTracker_->setCoMDyn(xsensCoMpos_, xsensCoMvel_, xsensCoMacc_);
   // pass the measured forces and their respective frames to the tracker
   std::vector<std::pair<sva::PTransformd, sva::ForceVecd>> forceContacts;
-  std::pair<sva::PTransformd, sva::ForceVecd> RF(robot("human").frame("RFsensor").position(), RFShoe_);
-  std::pair<sva::PTransformd, sva::ForceVecd> LF(robot("human").frame("LFsensor").position(), LFShoe_);
-  std::pair<sva::PTransformd, sva::ForceVecd> RB(robot("human").frame("RBsensor").position(), RBShoe_);
-  std::pair<sva::PTransformd, sva::ForceVecd> LB(robot("human").frame("LBsensor").position(), LBShoe_);
-  forceContacts.push_back(RF);
-  forceContacts.push_back(LF);
-  forceContacts.push_back(RB);
-  forceContacts.push_back(LB);
+  forceContacts.emplace_back(robot("human").frame("RFsensor").position(), RFShoe_);
+  forceContacts.emplace_back(robot("human").frame("LFsensor").position(), LFShoe_);
+  forceContacts.emplace_back(robot("human").frame("RBsensor").position(), RBShoe_);
+  forceContacts.emplace_back(robot("human").frame("LBsensor").position(), LBShoe_);
   humanDCMTracker_->setAppliedForces(forceContacts);
 
   robotDCMTracker_->setCoMDyn(robot().com(), robot().comVelocity(), robot().comAcceleration());
@@ -322,7 +316,7 @@ void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
   // solver().updateConstrSize();
 }
 
-void HelpUpController::computeStabilityRegion(std::shared_ptr<ContactSet> contactset,
+void HelpUpController::computeStabilityRegion(const std::shared_ptr<ContactSet> & contactset,
                                               whatRobot rob,
                                               bool save,
                                               int polIndex,
@@ -350,6 +344,8 @@ void HelpUpController::computeStabilityRegion(std::shared_ptr<ContactSet> contac
         futureHumCompPoint_->save("");
       }
       break;
+    default:
+      break;
   }
 }
 
@@ -375,6 +371,8 @@ void HelpUpController::computePolytope(bool & computing,
     case human:
       robotIndex = robot("human").robotIndex();
       break;
+    default:
+      break;
   }
 
   // ------------------------------------- Computation polytope
@@ -394,6 +392,8 @@ void HelpUpController::computePolytope(bool & computing,
 
         case human:
           updateRealHumContacts();
+          break;
+        default:
           break;
       }
       readyToComp = true;
@@ -482,6 +482,8 @@ void HelpUpController::updateObjective(std::shared_ptr<ComputationPoint> & balan
     case human:
       // do nothing for now : already wrote objective in DCMobjective_ var used in VRP control law
       break;
+    default:
+      break;
   }
 }
 
@@ -525,50 +527,31 @@ void HelpUpController::addLogEntries()
   // balanceCompPoint_->computationTime();}); logger().addLogEntry("humPolytope_computationTime", [this]() -> const int
   // { return balanceHumCompPoint_->computationTime();});
 
-  auto logDCMrob = [this]() { return robMeasuredDCM_; };
-  logger().addLogEntry("HelpUp_robot measured DCM", logDCMrob);
+  auto & logger = this->logger();
+  logger.addLogEntry("HelpUp_robot measured DCM", [this]() -> const Eigen::Vector3d & { return robMeasuredDCM_; });
+  // MC_RTC_LOG_HELPER("HelpUp_robot measured DCM", robMeasuredDCM_);
+  logger.addLogEntry("HelpUp_robot DCM objective", [this]() -> const Eigen::Vector3d & { return robDCMobjective_; });
+  logger.addLogEntry("Xsens_Raw acc", [this]() -> const Eigen::Vector3d & { return rawxsensCoMacc_; });
+  logger.addLogEntry("Xsens_Filtered acc", [this]() -> const Eigen::Vector3d & { return xsensCoMacc_; });
+  logger.addLogEntry("ForceShoes_LFShoeMeasure", [this]() -> const sva::ForceVecd & { return LFShoe_; });
+  logger.addLogEntry("ForceShoes_LBShoeMeasure", [this]() -> const sva::ForceVecd & { return LBShoe_; });
+  logger.addLogEntry("ForceShoes_RFShoeMeasure", [this]() -> const sva::ForceVecd & { return RFShoe_; });
+  logger.addLogEntry("ForceShoes_RBShoeMeasure", [this]() -> const sva::ForceVecd & { return RBShoe_; });
+  logger.addLogEntry("HelpUp_ComputedLHwrench", [this]() -> const sva::ForceVecd & { return LHwrench_; });
+  logger.addLogEntry("HelpUp_ComputedRHwrench", [this]() -> const sva::ForceVecd & { return RHwrench_; });
+  logger.addLogEntry("HelpUp_ComputedAssistanceForces",
+                     [this]() -> const sva::ForceVecd & { return RedistribWrench_; });
 
-  auto logDCMobjrob = [this]() { return robDCMobjective_; };
-  logger().addLogEntry("HelpUp_robot DCM objective", logDCMobjrob);
+  logger.addLogEntry("HelpUp_human_nbContacts",
+                     [this]()
+                     {
+                       return contactSetHum_->numberOfContacts()
+                              / 4; // contacts are added as 4 points with their own friction cone, see
+                                   // https://hal.archives-ouvertes.fr/hal-02108449/document
+                     });
 
-  auto logRawComAcc = [this]() { return rawxsensCoMacc_; };
-  logger().addLogEntry("Xsens_Raw acc", logRawComAcc);
-
-  auto logfilteredComAcc = [this]() { return xsensCoMacc_; };
-  logger().addLogEntry("Xsens_Filtered acc", logfilteredComAcc);
-
-  auto LFshoe = [this]() { return LFShoe_; };
-  logger().addLogEntry("ForceShoes_LFShoeMeasure", LFshoe);
-
-  auto LBshoe = [this]() { return LBShoe_; };
-  logger().addLogEntry("ForceShoes_LBShoeMeasure", LBshoe);
-
-  auto RFshoe = [this]() { return RFShoe_; };
-  logger().addLogEntry("ForceShoes_RFShoeMeasure", RFshoe);
-
-  auto RBshoe = [this]() { return RBShoe_; };
-  logger().addLogEntry("ForceShoes_RBShoeMeasure", RBshoe);
-
-  auto QPLH = [this]() { return LHwrench_; };
-  auto QPRH = [this]() { return RHwrench_; };
-  logger().addLogEntry("HelpUp_ComputedLHwrench", QPLH);
-  logger().addLogEntry("HelpUp_ComputedRHwrench", QPRH);
-
-  auto QPforces = [this]() { return RedistribWrench_; };
-  logger().addLogEntry("HelpUp_ComputedAssistanceForces", QPforces);
-
-  auto nbHumContacts = [this]()
-  {
-    return contactSetHum_->numberOfContacts() / 4; // contacts are added as 4 points with their own friction cone, see
-                                                   // https://hal.archives-ouvertes.fr/hal-02108449/document
-  };
-  logger().addLogEntry("HelpUp_human_nbContacts", nbHumContacts);
-
-  auto distRcheek = [this]() { return RCheekChair->pair.getDistance(); };
-  logger().addLogEntry("HelpUp_human_RCheekDist", distRcheek);
-
-  auto distLcheek = [this]() { return LCheekChair->pair.getDistance(); };
-  logger().addLogEntry("HelpUp_human_LCheekDist", distLcheek);
+  logger.addLogEntry("HelpUp_human_RCheekDist", [this]() { return RCheekChair->pair.getDistance(); });
+  logger.addLogEntry("HelpUp_human_LCheekDist", [this]() { return LCheekChair->pair.getDistance(); });
 }
 
 void HelpUpController::addGuiElements()
@@ -617,9 +600,9 @@ void HelpUpController::addGuiElements()
                     mc_rtc::gui::Point3D("humanCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE),
                                          [this]() { return realRobot("human").com(); }),
                     mc_rtc::gui::Point3D("humanCoMXsens", mc_rtc::gui::PointConfig(COLORS.at('b'), COM_POINT_SIZE),
-                                         [this]() { return xsensCoMpos_; }),
+                                         [this]() -> const Eigen::Vector3d & { return xsensCoMpos_; }),
                     mc_rtc::gui::Point3D("humanDCMobjective", mc_rtc::gui::PointConfig(COLORS.at('g'), DCM_POINT_SIZE),
-                                         [this]() { return DCMobjective_; })
+                                         [this]() -> const Eigen::Vector3d & { return DCMobjective_; })
 
   );
 
@@ -676,15 +659,19 @@ void HelpUpController::addGuiElements()
 
   gui()->addElement({"Polytopes", "Polyhedrons"},
                     mc_rtc::gui::Polyhedron("Robot balance region", pconfig_rob,
-                                            [this]() { return balanceCompPoint_->getTriangles(); }),
+                                            [this]() -> const std::vector<std::array<Eigen::Vector3d, 3>> &
+                                            { return balanceCompPoint_->getTriangles(); }),
                     mc_rtc::gui::Polyhedron("Human balance region", pconfig_hum,
-                                            [this]() { return balanceHumCompPoint_->getTriangles(); }));
+                                            [this]() -> const std::vector<std::array<Eigen::Vector3d, 3>> &
+                                            { return balanceHumCompPoint_->getTriangles(); }));
 
-  gui()->addElement(
-      {"Polytopes", "Triangles"},
-      mc_rtc::gui::Polygon("Robot balance region", COLORS.at('r'), [this]() { return balanceCompPoint_->getEdges(); }),
-      mc_rtc::gui::Polygon("Human balance region", COLORS.at('g'),
-                           [this]() { return balanceHumCompPoint_->getEdges(); }));
+  gui()->addElement({"Polytopes", "Triangles"},
+                    mc_rtc::gui::Polygon("Robot balance region", COLORS.at('r'),
+                                         [this]() -> const std::vector<std::vector<Eigen::Vector3d>> &
+                                         { return balanceCompPoint_->getEdges(); }),
+                    mc_rtc::gui::Polygon("Human balance region", COLORS.at('g'),
+                                         [this]() -> const std::vector<std::vector<Eigen::Vector3d>> &
+                                         { return balanceHumCompPoint_->getEdges(); }));
   // gui()->addPlot(
   //   "Applied force",
   //   mc_rtc::gui::plot::X("t", [this]() { return t_; }),
@@ -697,7 +684,7 @@ void HelpUpController::addGuiElements()
   // );
 }
 
-void HelpUpController::planes(std::vector<mc_rbdyn::Plane> constrPlanes, whatRobot rob)
+void HelpUpController::planes(const std::vector<mc_rbdyn::Plane> & constrPlanes, whatRobot rob)
 {
   switch(rob)
   {
@@ -717,7 +704,7 @@ void HelpUpController::planes(std::vector<mc_rbdyn::Plane> constrPlanes, whatRob
   }
 }
 
-void HelpUpController::planes(std::vector<Eigen::Vector4d> constrPlanes, whatRobot rob)
+void HelpUpController::planes(const std::vector<Eigen::Vector4d> & constrPlanes, whatRobot rob)
 {
   std::vector<mc_rbdyn::Plane> p;
 
@@ -735,7 +722,7 @@ void HelpUpController::updateContactSet(
   updateContactSet(contacts, robotIndex);
 }
 
-void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex)
+void HelpUpController::updateContactSet(const std::vector<mc_rbdyn::Contact> & contacts, unsigned int robotIndex)
 {
   auto maxForces = config_("surfacesMaxForces");
   Eigen::Vector3d acceleration;
@@ -746,19 +733,19 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
   contactSet_->mass(robots().robot(robotIndex).mass());
   contactSet_->setFrictionSides(6);
 
-  for(auto contact : contacts)
+  for(const auto & contact : contacts)
   {
     if(contact.r1Index() == robotIndex || contact.r2Index() == robotIndex)
     {
-      auto surface_name = (contact.r1Index() == robotIndex) ? contact.r1Surface()->name() : contact.r2Surface()->name();
+      const auto & surface_name =
+          (contact.r1Index() == robotIndex) ? contact.r1Surface()->name() : contact.r2Surface()->name();
       const auto & surface = robot.surface(surface_name);
 
-      std::string bodyName = surface.bodyName();
-      auto body_PT = robot.bodyPosW(bodyName);
+      const auto & bodyName = surface.bodyName();
+      const auto & body_PT = robot.bodyPosW(bodyName);
 
-      auto points = surface.points();
+      const auto & points = surface.points();
       int ptCpt = 0; // point counter
-      std::string ptName;
       double mu = contact.friction(); // get the friction coef h
 
       double fmax;
@@ -794,7 +781,7 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
         type = ContactType::support;
       }
 
-      for(auto point : points)
+      for(const auto & point : points)
       {
         auto pos = body_PT.rotation().transpose() * point.translation() + body_PT.translation();
 
@@ -802,7 +789,7 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
         homTrans.block<3, 3>(0, 0) = body_PT.rotation().transpose() * point.rotation().transpose();
         homTrans.block<3, 1>(0, 3) = pos;
 
-        ptName = surface.name() + "_" + std::to_string(ptCpt);
+        const auto ptName = surface.name() + "_" + std::to_string(ptCpt);
 
         // Not adding hand contacts to robot balance polytope (stabilizer issues)
         if(handContactsForBalance_)
@@ -847,8 +834,8 @@ void HelpUpController::updateContactSet(std::vector<mc_rbdyn::Contact> contacts,
   computed_ = false;
 }
 
-void HelpUpController::contactForces(std::map<std::string, double> contactFMax,
-                                     std::map<std::string, double> contactFMin)
+void HelpUpController::contactForces(const std::map<std::string, double> & contactFMax,
+                                     const std::map<std::string, double> & contactFMin)
 {
   contactFMax_ = contactFMax;
   contactFMin_ = contactFMin;
@@ -856,13 +843,13 @@ void HelpUpController::contactForces(std::map<std::string, double> contactFMax,
 
 void HelpUpController::updateContactForces()
 {
-  for(auto contactForce : contactFMax_)
+  for(const auto & [contactName, contactForceMax] : contactFMax_)
   {
-    contactSet_->setContactFMax(contactForce.second, contactForce.first);
+    contactSet_->setContactFMax(contactForceMax, contactName);
   }
-  for(auto contactForce : contactFMin_)
+  for(const auto & [contactName, contactForceMin] : contactFMin_)
   {
-    contactSet_->setContactFMin(contactForce.second, contactForce.first);
+    contactSet_->setContactFMin(contactForceMin, contactName);
   }
 }
 
@@ -905,7 +892,9 @@ void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
   }
 }
 
-bool HelpUpController::isVertexInPlanes(Eigen::Vector3d Vertex, std::vector<Eigen::Vector4d> planes, double eps)
+bool HelpUpController::isVertexInPlanes(const Eigen::Vector3d & Vertex,
+                                        const std::vector<Eigen::Vector4d> & planes,
+                                        double eps)
 {
   bool isInside = true;
   Eigen::Vector3d normal;
@@ -1075,7 +1064,7 @@ void HelpUpController::updateRealHumContacts()
 void HelpUpController::addRealHumContact(std::string humanSurfName, double fmin, double fmax, ContactType type)
 {
   const auto & surf = robot("human").surface(humanSurfName);
-  auto points = surf.points();
+  const auto & points = surf.points();
 
   int ptCpt = 0; // point counter
   std::string ptName;
@@ -1083,7 +1072,7 @@ void HelpUpController::addRealHumContact(std::string humanSurfName, double fmin,
 
   auto surf_PT = surf.X_0_s(robot("human"));
 
-  for(auto point : points)
+  for(const auto & point : points)
   {
     auto pos = surf_PT.rotation().transpose() * point.translation() + surf_PT.translation();
 
@@ -1098,7 +1087,9 @@ void HelpUpController::addRealHumContact(std::string humanSurfName, double fmin,
   }
 }
 
-sva::ForceVecd HelpUpController::getCurrentForceVec(std::vector<sva::ForceVecd> log, double startOffset, double freq)
+sva::ForceVecd HelpUpController::getCurrentForceVec(const std::vector<sva::ForceVecd> & log,
+                                                    double startOffset,
+                                                    double freq)
 {
   double acqTimeStep = 1 / freq;
   if(t_ < startOffset)

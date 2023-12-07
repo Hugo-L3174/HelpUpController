@@ -64,11 +64,11 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
   /*! \brief Set the planes for the CoMIncPlaneConstr
    */
-  void planes(std::vector<mc_rbdyn::Plane> constrPlanes, whatRobot rob);
+  void planes(const std::vector<mc_rbdyn::Plane> & constrPlanes, whatRobot rob);
 
   /*! \brief Set the planes for the CoMIncPlaneConstr
    */
-  void planes(std::vector<Eigen::Vector4d> constrPlanes, whatRobot rob);
+  void planes(const std::vector<Eigen::Vector4d> & constrPlanes, whatRobot rob);
 
   // /*! \brief Gives the planes currently used bu CoMIncPlaneConstr
   //  */
@@ -85,13 +85,14 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
   /*! \brief Update the contactSet with the given contacts
    */
   // void updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex, whatRobot rob);
-  void updateContactSet(std::vector<mc_rbdyn::Contact> contacts, unsigned int robotIndex);
+  void updateContactSet(const std::vector<mc_rbdyn::Contact> & contacts, unsigned int robotIndex);
 
   /*! \brief Update the normal contact force upper and lower bound in the contactSetObject
    * \param contactFMax map of the names of the contacts to update with the corresponding upper bounds
    * \param contactFMin map of the names of the contacts to update with the corresponding lower bounds
    */
-  void contactForces(std::map<std::string, double> contactFMax, std::map<std::string, double> contactFMin);
+  void contactForces(const std::map<std::string, double> & contactFMax,
+                     const std::map<std::string, double> & contactFMin);
 
   void updateContactForces();
 
@@ -99,7 +100,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
   /*! \brief Compute the equilibrium region stored in futurePolytope using contactSet as input
    */
-  void computeStabilityRegion(std::shared_ptr<ContactSet> contactset,
+  void computeStabilityRegion(const std::shared_ptr<ContactSet> & contactset,
                               whatRobot rob,
                               bool save = false,
                               int polIndex = 0,
@@ -110,7 +111,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
    * \param planes planes to test with
    * \param eps minimum distance from a plane for the vertex to be considered inside
    */
-  bool isVertexInPlanes(Eigen::Vector3d Vertex, std::vector<Eigen::Vector4d> planes, double eps = 0.01);
+  bool isVertexInPlanes(const Eigen::Vector3d & Vertex, const std::vector<Eigen::Vector4d> & planes, double eps = 0.01);
 
   std::map<std::string, double> getConfigFMax() const;
   std::map<std::string, double> getConfigFMin() const;
@@ -134,7 +135,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
   // Parametrized start offset of the log to sychronize. Default: start offset at 0, acquisition frequency of force
   // shoes at 100Hz
-  sva::ForceVecd getCurrentForceVec(std::vector<sva::ForceVecd> log, double startOffset = 0, double freq = 100);
+  sva::ForceVecd getCurrentForceVec(const std::vector<sva::ForceVecd> & log, double startOffset = 0, double freq = 100);
 
   sva::ForceVecd getLHWrenchComputed()
   {
@@ -243,9 +244,8 @@ private:
    */
   // std::vector<Eigen::Vector3d> edgesPoly_;
 
-  int polytopeIndex_;
-
-  int polytopeHumIndex_;
+  int polytopeIndex_ = 0;
+  int polytopeHumIndex_ = 0;
 
   /*! Bound the acceleration of the CoM
    * Home made constraint (Thanks Mohamed!)
@@ -309,25 +309,24 @@ private:
   std::thread stabThread_;
   std::thread stabThreadHum_;
 
-  bool polytopeReady_;
-
-  bool polytopeHumReady_;
+  bool polytopeReady_ = false;
+  bool polytopeHumReady_ = false;
 
   // Boolean flags
-  bool readyForComp_;
-  bool computing_;
-  bool computed_;
+  bool readyForComp_ = false;
+  bool computing_ = false;
+  bool computed_ = false;
 
-  bool firstPolyRobOK_;
+  bool firstPolyRobOK_ = false;
 
-  bool readyForCompHum_;
-  bool computingHum_;
-  bool computedHum_;
+  bool readyForCompHum_ = false;
+  bool computingHum_ = false;
+  bool computedHum_ = false;
 
-  bool firstPolyHumOK_;
+  bool firstPolyHumOK_ = false;
 
-  mc_filter::LowPass<sva::ForceVecd> lowPassLF_, lowPassRF_, lowPassLB_, lowPassRB_;
   double cutoffPeriodForceShoes_ = 0.05;
+  mc_filter::LowPass<sva::ForceVecd> lowPassLF_, lowPassRF_, lowPassLB_, lowPassRB_;
   std::vector<sva::ForceVecd> LFShoeVec_, RFShoeVec_, LBShoeVec_, RBShoeVec_;
   sva::ForceVecd LFShoe_, RFShoe_, LBShoe_, RBShoe_;
   sva::ForceVecd LCheekForce_, RCheekForce_ = sva::ForceVecd::Zero();

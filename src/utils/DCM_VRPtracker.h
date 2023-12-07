@@ -24,16 +24,16 @@ public:
      *
      */
   void updateTrackedValues();
-  void updateObjectiveValues(Eigen::Vector3d DCMobjective);
+  void updateObjectiveValues(const Eigen::Vector3d & DCMobjective);
 
-  void setCoMDyn(Eigen::Vector3d posCoM, Eigen::Vector3d velCoM, Eigen::Vector3d accCoM);
-  void setAppliedForces(std::vector<std::pair<sva::PTransformd, sva::ForceVecd>> forceContacts);
+  void setCoMDyn(const Eigen::Vector3d & posCoM, const Eigen::Vector3d & velCoM, const Eigen::Vector3d & accCoM);
+  void setAppliedForces(const std::vector<std::pair<sva::PTransformd, sva::ForceVecd>> & forceContacts);
 
   void resetTracker(Eigen::Vector3d posCoM, Eigen::Vector3d velCoM, Eigen::Vector3d accCoM);
 
   /*! \brief function called in the constructor to set up the GUI elements
    */
-  void addGuiElements(std::shared_ptr<mc_rtc::gui::StateBuilder> gui);
+  void addGuiElements(mc_rtc::gui::StateBuilder & gui);
 
   /*! \brief function called in the constructor to set up the log entries
    */

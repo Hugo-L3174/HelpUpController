@@ -60,29 +60,29 @@ public:
 
   // ----- Getters -----
 
-  inline bool computed() const
+  inline bool computed() const noexcept
   {
     return computed_;
   }
 
   /* \brief returns the triangles vector for gui polytope
    */
-  std::vector<std::array<Eigen::Vector3d, 3>> getTriangles() const
+  const std::vector<std::array<Eigen::Vector3d, 3>> & getTriangles() const noexcept
   {
     return triangles_;
   }
 
-  std::vector<std::vector<Eigen::Vector3d>> getEdges() const
+  const std::vector<std::vector<Eigen::Vector3d>> & getEdges() const noexcept
   {
     return edges_;
   }
 
-  std::shared_ptr<PointProjector> getProjector() const
+  const std::shared_ptr<PointProjector> & getProjector() const noexcept
   {
     return projector_;
   }
 
-  std::shared_ptr<RobustStabilityPolytope> getPolytope() const
+  const std::shared_ptr<RobustStabilityPolytope> & getPolytope() const noexcept
   {
     return polytope_;
   }
@@ -108,11 +108,11 @@ public:
    */
   Eigen::Vector3d computeGradient(Eigen::Vector3d CoM, double thres = 1e-5) const;
 
-  inline int index() const
+  inline int index() const noexcept
   {
     return index_;
   }
-  inline int computationTime() const
+  inline int computationTime() const noexcept
   {
     return computationTime_;
   }

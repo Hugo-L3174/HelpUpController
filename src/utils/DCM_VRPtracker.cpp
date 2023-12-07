@@ -11,14 +11,16 @@ void DCM_VRPtracker::resetTracker(Eigen::Vector3d posCoM, Eigen::Vector3d velCoM
   // TODO reset errors and targets to avoid high error in the beginning
 }
 
-void DCM_VRPtracker::setCoMDyn(Eigen::Vector3d posCoM, Eigen::Vector3d velCoM, Eigen::Vector3d accCoM)
+void DCM_VRPtracker::setCoMDyn(const Eigen::Vector3d & posCoM,
+                               const Eigen::Vector3d & velCoM,
+                               const Eigen::Vector3d & accCoM)
 {
   posCoM_ = posCoM;
   velCoM_ = velCoM;
   accCoM_ = accCoM;
 }
 
-void DCM_VRPtracker::setAppliedForces(std::vector<std::pair<sva::PTransformd, sva::ForceVecd>> forceContacts)
+void DCM_VRPtracker::setAppliedForces(const std::vector<std::pair<sva::PTransformd, sva::ForceVecd>> & forceContacts)
 {
   appliedForces_ = sva::ForceVecd::Zero();
   auto X_0_C = sva::PTransformd(posCoM_);
@@ -45,7 +47,7 @@ void DCM_VRPtracker::updateTrackedValues()
   computeForcesVRP(); // if model mode false?
 }
 
-void DCM_VRPtracker::updateObjectiveValues(Eigen::Vector3d DCMobjective)
+void DCM_VRPtracker::updateObjectiveValues(const Eigen::Vector3d & DCMobjective)
 {
   DCMobjective_ = DCMobjective;
   computeDCMerror();
@@ -136,7 +138,7 @@ void DCM_VRPtracker::computeMissingForces()
   }
 }
 
-void DCM_VRPtracker::addGuiElements(std::shared_ptr<mc_rtc::gui::StateBuilder> gui)
+void DCM_VRPtracker::addGuiElements(mc_rtc::gui::StateBuilder & gui)
 {
 
   const std::map<char, mc_rtc::gui::Color> COLORS = {
@@ -164,7 +166,7 @@ void DCM_VRPtracker::addGuiElements(std::shared_ptr<mc_rtc::gui::StateBuilder> g
   mc_rtc::gui::ArrowConfig MissingforceArrowConfig = forceArrowConfig;
   MissingforceArrowConfig.color = COLORS.at('g');
 
-  gui->addElement(
+  gui.addElement(
       {"Points", "DCM dynamics"},
       mc_rtc::gui::Point3D("DCM", mc_rtc::gui::PointConfig(COLORS.at('c'), 0.015), [this]() { return DCM_; }),
       mc_rtc::gui::Point3D("VRP acceleration model", mc_rtc::gui::PointConfig(COLORS.at('y'), 0.015),

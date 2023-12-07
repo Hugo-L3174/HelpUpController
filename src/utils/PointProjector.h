@@ -12,6 +12,24 @@
 #include <sch-core/S_Polyhedron.h>
 #include <sch/CD/CD_Pair.h>
 
+inline bool isVertexInPlanes(const Eigen::Vector3d & Vertex, const std::vector<Eigen::Vector4d> & planes, double eps)
+{
+  bool isInside = true;
+  Eigen::Vector3d normal;
+  double offset;
+  for(auto plane : planes)
+  {
+    normal << plane(0), plane(1), plane(2);
+    offset = plane(3);
+    if(normal.transpose() * Vertex > offset - eps)
+    {
+      isInside = false;
+      break;
+    }
+  }
+  return isInside;
+}
+
 class PointProjector
 {
 public:

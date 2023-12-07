@@ -16,7 +16,7 @@ void PointProjector::setPolytope(std::shared_ptr<RobustStabilityPolytope> poly)
     - add it the S_Polyhedron object using the right method
   */
 
-  sch::S_PolyhedronVertex * v;
+  sch::S_PolyhedronVertex * v; // FIXME memory leak?
   Eigen::Vector3d coord;
   std::map<int, int> indexToPos;
 

@@ -17,6 +17,8 @@
 #include <mc_filter/LowPass.h>
 #include <mc_rtc/gui/plot.h>
 #include <mc_tasks/lipm_stabilizer/Contact.h>
+#include "MCStabilityPolytope.h"
+#include "utils/PointProjector.h"
 #include <gram_savitzky_golay/gram_savitzky_golay.h>
 
 #include <boost/circular_buffer.hpp>
@@ -149,23 +151,14 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
   // This should: compute the polytope with the current contact set, update the DCM objective and give it to the
   // stabilizer task associated to the robot
-  void computePolytope(bool & computing,
-                       bool & readyToComp,
-                       bool & computed,
-                       bool & transitionning,
-                       bool & polyReady,
-                       std::thread & thread,
-                       std::shared_ptr<ContactSet> contactSet,
-                       std::shared_ptr<ComputationPoint> & futureCompPoint,
-                       std::shared_ptr<ComputationPoint> & balanceCompPoint,
-                       whatRobot rob);
+  void computePolytope(const Eigen::Vector3d & currentPos, bool & firstPolyOK_, whatRobot rob);
 
   // Todo: add options in both functions to choose if we check CoM or DCM, wether to update the objective or the robot
   // stabilizer via datastore, and which update contacts function to use (human is real contacts + hard written surfaces)
 
   // Update the objective: if the currentPos is in the balance polytope, then objective stays current CoM/DCM, otherwise
   // closest polytope point
-  void updateObjective(std::shared_ptr<ComputationPoint> & balanceCompPoint,
+  void updateObjective(MCStabilityPolytope & polytope,
                        Eigen::Vector3d currentPos,
                        Eigen::Vector3d & objective,
                        whatRobot rob);
@@ -297,6 +290,10 @@ private:
   /*! computed polytope for display (no constraint on the CoM)
    */
   std::shared_ptr<ComputationPoint> balanceHumCompPoint_;
+
+  MCStabilityPolytope robotPolytope_;
+  MCStabilityPolytope humanPolytope_;
+  PointProjector projector_;
 
   // /*! vector of tolerated accelerations for human polytope
   // */

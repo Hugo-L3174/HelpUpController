@@ -1,6 +1,7 @@
 #include "HelpUpController.h"
 #include <mc_observers/ObserverPipeline.h>
 
+#include "MCStabilityPolytope.h"
 #include "config.h"
 
 static inline mc_rbdyn::RobotModulePtr patch_rm(mc_rbdyn::RobotModulePtr rm, const mc_rtc::Configuration & config)
@@ -23,9 +24,10 @@ static inline mc_rbdyn::RobotModulePtr patch_rm(mc_rbdyn::RobotModulePtr rm, con
 }
 
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
-: mc_control::fsm::Controller(patch_rm(rm, config), dt, config), accLowPass_(dt, cutoffPeriod_),
-  lowPassLB_(dt, cutoffPeriodForceShoes_), lowPassRB_(dt, cutoffPeriodForceShoes_),
-  lowPassLF_(dt, cutoffPeriodForceShoes_), lowPassRF_(dt, cutoffPeriodForceShoes_)
+: mc_control::fsm::Controller(patch_rm(rm, config), dt, config), robotPolytope_(robot().name()),
+  humanPolytope_("human"), accLowPass_(dt, cutoffPeriod_), lowPassLB_(dt, cutoffPeriodForceShoes_),
+  lowPassRB_(dt, cutoffPeriodForceShoes_), lowPassLF_(dt, cutoffPeriodForceShoes_),
+  lowPassRF_(dt, cutoffPeriodForceShoes_)
 {
   // Load entire controller configuration file
   config_.load(config);
@@ -184,8 +186,7 @@ bool HelpUpController::run()
     pandaTransform_->targetSurface(robot("human").robotIndex(), "Back", sva::PTransformd::Identity());
   }
 
-  computePolytope(computing_, readyForComp_, computed_, firstPolyRobOK_, polytopeReady_, stabThread_, contactSet_,
-                  futureCompPoint_, balanceCompPoint_, mainRob);
+  computePolytope(robMeasuredDCM_, firstPolyRobOK_, mainRob);
 
   /* We update the objective only if the first polytope at least was computed
   Then it is updated every control iteration using the last computed polytope
@@ -194,16 +195,15 @@ bool HelpUpController::run()
   {
     // for now we use the stabilizer computed DCM and not the VRP tracker
     robMeasuredDCM_ = datastore().call<Eigen::Vector3d>("RobotStabilizer::getMeasuredDCM");
-    updateObjective(balanceCompPoint_, robMeasuredDCM_, robDCMobjective_, mainRob);
+    updateObjective(robotPolytope_, robMeasuredDCM_, robDCMobjective_, mainRob);
   }
 
   // Same process with human
-  computePolytope(computingHum_, readyForCompHum_, computedHum_, firstPolyHumOK_, polytopeHumReady_, stabThreadHum_,
-                  contactSetHum_, futureHumCompPoint_, balanceHumCompPoint_, human);
+  computePolytope(humanDCMTracker_->getDCM(), firstPolyHumOK_, human);
 
   if(firstPolyHumOK_)
   {
-    updateObjective(balanceHumCompPoint_, humanDCMTracker_->getDCM(), DCMobjective_, human);
+    updateObjective(humanPolytope_, humanDCMTracker_->getDCM(), DCMobjective_, human);
   }
 
   if(contactSetHum_->numberOfContacts() / 4 > 2)
@@ -349,120 +349,40 @@ void HelpUpController::computeStabilityRegion(const std::shared_ptr<ContactSet> 
   }
 }
 
-void HelpUpController::computePolytope(bool & computing,
-                                       bool & readyToComp,
-                                       bool & computed,
-                                       bool & firstPolyOK,
-                                       bool & polyReady,
-                                       std::thread & thread,
-                                       std::shared_ptr<ContactSet> contactSet,
-                                       std::shared_ptr<ComputationPoint> & futureCompPoint,
-                                       std::shared_ptr<ComputationPoint> & balanceCompPoint,
-                                       whatRobot rob)
+void HelpUpController::computePolytope(const Eigen::Vector3d & currentPos, bool & firstPolyOK, whatRobot rob)
 {
-  // setting robot index
-  unsigned int robotIndex;
   switch(rob)
   {
     case mainRob:
-      robotIndex = robot().robotIndex();
+      updateContactSet(robot().robotIndex());
+      updateContactForces();
+      if(contactSet_->numberOfContacts() > 0)
+      {
+        robotPolytope_.update(contactSet_, currentPos);
+      }
+      firstPolyOK = robotPolytope_.computed();
       break;
 
     case human:
-      robotIndex = robot("human").robotIndex();
+      updateRealHumContacts();
+      if(contactSetHum_->numberOfContacts() > 0)
+      {
+        humanPolytope_.update(contactSetHum_, currentPos);
+      }
+      firstPolyOK = humanPolytope_.computed();
       break;
     default:
       break;
   }
-
-  // ------------------------------------- Computation polytope
-
-  if(!computing)
-  {
-    // update the contact set
-    if(!readyToComp)
-    {
-      computed = false;
-      switch(rob)
-      {
-        case mainRob:
-          updateContactSet(robotIndex);
-          updateContactForces();
-          break;
-
-        case human:
-          updateRealHumContacts();
-          break;
-        default:
-          break;
-      }
-      readyToComp = true;
-    }
-
-    // start the computation
-    if(!computed and readyToComp and !computing)
-    {
-      polyReady = false;
-
-      if(contactSet->numberOfContacts() > 0)
-      {
-        auto contactSetPtr = std::make_shared<ContactSet>(*contactSet);
-        thread = std::thread(
-            [this, &polyReady, contactSetPtr, rob]()
-            {
-              this->computeStabilityRegion(contactSetPtr, rob, false);
-              polyReady = true;
-            });
-        computing = true;
-        readyToComp = false;
-      }
-      else
-      {
-        readyToComp = false;
-      }
-    }
-  }
-  else // computing_ == true => currently computing
-  {
-    // check if the computation is finished
-    if(polyReady and thread.joinable())
-    {
-      thread.join();
-      computing = false;
-      computed = true;
-      balanceCompPoint = futureCompPoint;
-      firstPolyOK = true;
-    }
-  }
 }
 
-void HelpUpController::updateObjective(std::shared_ptr<ComputationPoint> & balanceCompPoint,
+void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
                                        Eigen::Vector3d currentPos,
                                        Eigen::Vector3d & objective,
                                        whatRobot rob)
 {
-  // checking if DCM/CoM (whatever was given) is in robust balance polytope
-  if(!isVertexInPlanes(currentPos, balanceCompPoint->constraintPlanes(), 0.03))
-  {
-    // if not in polytope, project closest point from the objective belonging to the polytope and give this as objective
-    try
-    {
-      auto projector = balanceCompPoint->getProjector();
-      projector->setPolytope(balanceCompPoint->getPolytope());
-      projector->setPoint(currentPos);
-      projector->project();
-      objective = projector->projectedPoint();
-    }
-    catch(...)
-    {
-      mc_rtc::log::error("failed to project");
-    }
-  }
-  else
-  {
-    // if in polytope, then give current DCM/CoM as objective (because dynamic balance ok)
-    objective = currentPos;
-  }
+  objective = polytope_.objective();
+  // objective.z() = std::max((0.78*robot("human").com().z())/0.87 , 0.5);
 
   // Update objective to stabilizer or human assistance
   switch(rob)
@@ -556,6 +476,9 @@ void HelpUpController::addLogEntries()
 
 void HelpUpController::addGuiElements()
 {
+  robotPolytope_.addToGUI(*gui());
+  humanPolytope_.addToGUI(*gui());
+
   constexpr double DCM_POINT_SIZE = 0.015;
   constexpr double COM_POINT_SIZE = 0.02;
   constexpr double ARROW_HEAD_DIAM = 0.015;
@@ -639,39 +562,6 @@ void HelpUpController::addGuiElements()
   //     humaccelerations_; })
   // );
 
-  mc_rtc::gui::PolyhedronConfig pconfig;
-  pconfig.triangle_color = mc_rtc::gui::Color(0.2, 0.2, 0.2, 0.3);
-  pconfig.use_triangle_color = true;
-  pconfig.show_triangle = true;
-  pconfig.show_vertices = false;
-  pconfig.show_edges = false;
-  pconfig.fixed_edge_color = true;
-  pconfig.edge_config.color = mc_rtc::gui::Color::LightGray;
-  pconfig.edge_config.width = 0.003;
-  static bool publish_as_vertices_triangles = false;
-
-  mc_rtc::gui::PolyhedronConfig pconfig_rob = pconfig;
-  pconfig_rob.triangle_color = mc_rtc::gui::Color(1, 0, 0, 0.3);
-
-  mc_rtc::gui::PolyhedronConfig pconfig_hum = pconfig;
-  pconfig_hum.triangle_color = mc_rtc::gui::Color(0, 1, 0, 0.3);
-  ;
-
-  gui()->addElement({"Polytopes", "Polyhedrons"},
-                    mc_rtc::gui::Polyhedron("Robot balance region", pconfig_rob,
-                                            [this]() -> const std::vector<std::array<Eigen::Vector3d, 3>> &
-                                            { return balanceCompPoint_->getTriangles(); }),
-                    mc_rtc::gui::Polyhedron("Human balance region", pconfig_hum,
-                                            [this]() -> const std::vector<std::array<Eigen::Vector3d, 3>> &
-                                            { return balanceHumCompPoint_->getTriangles(); }));
-
-  gui()->addElement({"Polytopes", "Triangles"},
-                    mc_rtc::gui::Polygon("Robot balance region", COLORS.at('r'),
-                                         [this]() -> const std::vector<std::vector<Eigen::Vector3d>> &
-                                         { return balanceCompPoint_->getEdges(); }),
-                    mc_rtc::gui::Polygon("Human balance region", COLORS.at('g'),
-                                         [this]() -> const std::vector<std::vector<Eigen::Vector3d>> &
-                                         { return balanceHumCompPoint_->getEdges(); }));
   // gui()->addPlot(
   //   "Applied force",
   //   mc_rtc::gui::plot::X("t", [this]() { return t_; }),
@@ -890,26 +780,6 @@ void HelpUpController::desiredCoM(Eigen::Vector3d desiredCoM, whatRobot rob)
 
       break;
   }
-}
-
-bool HelpUpController::isVertexInPlanes(const Eigen::Vector3d & Vertex,
-                                        const std::vector<Eigen::Vector4d> & planes,
-                                        double eps)
-{
-  bool isInside = true;
-  Eigen::Vector3d normal;
-  double offset;
-  for(auto plane : planes)
-  {
-    normal << plane(0), plane(1), plane(2);
-    offset = plane(3);
-    if(normal.transpose() * Vertex > offset - eps)
-    {
-      isInside = false;
-      break;
-    }
-  }
-  return isInside;
 }
 
 std::map<std::string, double> HelpUpController::getConfigFMax() const

@@ -25,6 +25,13 @@ init_pos:
   # translation: [0, -1, 0.77] # e2dr
   translation: [0, -1, 0.75] # hrp4
 
+Limits:
+  hrp4:
+    # Lower joint limits for knees to prevent overstretching
+    R_KNEE_P:
+      lower: 0.411
+    L_KNEE_P:
+      lower: 0.411
 
 # Additional robots to load
 robots:

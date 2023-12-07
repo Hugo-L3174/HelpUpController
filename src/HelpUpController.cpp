@@ -3,10 +3,29 @@
 
 #include "config.h"
 
+static inline mc_rbdyn::RobotModulePtr patch_rm(mc_rbdyn::RobotModulePtr rm, const mc_rtc::Configuration & config)
+{
+  auto limits = config("Limits", mc_rtc::Configuration{})(rm->name, mc_rtc::Configuration{})
+                    .
+                operator std::map<std::string, mc_rtc::Configuration>();
+  for(const auto & [joint, overwrite] : limits)
+  {
+    if(overwrite.has("lower"))
+    {
+      rm->_bounds[0].at(joint)[0] = overwrite("lower").operator double();
+    }
+    if(overwrite.has("upper"))
+    {
+      rm->_bounds[1].at(joint)[0] = overwrite("upper").operator double();
+    }
+  }
+  return rm;
+}
+
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
-: mc_control::fsm::Controller(rm, dt, config), polytopeIndex_(0), polytopeHumIndex_(0), computed_(false),
-  computedHum_(false), computing_(false), computingHum_(false), firstPolyRobOK_(false), firstPolyHumOK_(false),
-  readyForComp_(false), readyForCompHum_(false), accLowPass_(dt, cutoffPeriod_),
+: mc_control::fsm::Controller(patch_rm(rm, config), dt, config), polytopeIndex_(0), polytopeHumIndex_(0),
+  computed_(false), computedHum_(false), computing_(false), computingHum_(false), firstPolyRobOK_(false),
+  firstPolyHumOK_(false), readyForComp_(false), readyForCompHum_(false), accLowPass_(dt, cutoffPeriod_),
   lowPassLB_(dt, cutoffPeriodForceShoes_), lowPassRB_(dt, cutoffPeriodForceShoes_),
   lowPassLF_(dt, cutoffPeriodForceShoes_), lowPassRF_(dt, cutoffPeriodForceShoes_)
 {

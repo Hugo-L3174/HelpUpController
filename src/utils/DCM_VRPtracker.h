@@ -47,47 +47,47 @@ public:
 
   /********************Getters*********************/
 
-  Eigen::Vector3d getDCM()
+  const Eigen::Vector3d & getDCM()
   {
     return DCM_;
   }
 
-  double getOmega()
+  const double & getOmega()
   {
     return omega_;
   }
 
-  sva::ForceVecd getAppliedForcesSum()
+  const sva::ForceVecd & getAppliedForcesSum()
   {
     return appliedForces_;
   }
 
-  Eigen::Vector3d getModelVRP()
+  const Eigen::Vector3d & getModelVRP()
   {
     return modelVRP_;
   }
 
-  Eigen::Vector3d getForcesVRP()
+  const Eigen::Vector3d & getForcesVRP()
   {
     return measuredForcesVRP_;
   }
 
-  sva::ForceVecd getMissingForces()
+  const sva::ForceVecd & getMissingForces()
   {
     return missingForces_;
   }
 
-  Eigen::Vector3d getDCMerror()
+  const Eigen::Vector3d & getDCMerror()
   {
     return DCMerror_;
   }
 
-  Eigen::Vector3d getVRPerror()
+  const Eigen::Vector3d & getVRPerror()
   {
     return VRPerror_;
   }
 
-  Eigen::Vector3d getCommandVRP()
+  const Eigen::Vector3d & getCommandVRP()
   {
     return commandVRP_;
   }

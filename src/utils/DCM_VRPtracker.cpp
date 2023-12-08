@@ -168,50 +168,40 @@ void DCM_VRPtracker::addGuiElements(mc_rtc::gui::StateBuilder & gui)
 
   gui.addElement(
       {"Points", "DCM dynamics"},
-      mc_rtc::gui::Point3D("DCM", mc_rtc::gui::PointConfig(COLORS.at('c'), 0.015), [this]() { return DCM_; }),
+      mc_rtc::gui::Point3D("DCM", mc_rtc::gui::PointConfig(COLORS.at('c'), 0.015),
+                           [this]() -> const Eigen::Vector3d & { return DCM_; }),
       mc_rtc::gui::Point3D("VRP acceleration model", mc_rtc::gui::PointConfig(COLORS.at('y'), 0.015),
-                           [this]() { return modelVRP_; }),
+                           [this]() -> const Eigen::Vector3d & { return modelVRP_; }),
       mc_rtc::gui::Point3D("VRP forces model", mc_rtc::gui::PointConfig(COLORS.at('r'), 0.015),
-                           [this]() { return measuredForcesVRP_; }),
+                           [this]() -> const Eigen::Vector3d & { return measuredForcesVRP_; }),
       // this is the computed vrp to achieve the desired xsensFinalpos_ (not sure)
       // mc_rtc::gui::Arrow("missingForces", MissingforceArrowConfig, [this]() -> Eigen::Vector3d { return desiredVRP();
       // }, [this]() -> Eigen::Vector3d { return xsensCoMpos_; }),
       mc_rtc::gui::Arrow(
-          "DCM-VRP", VRPforceArrowConfig, [this]() -> Eigen::Vector3d { return modelVRP_; },
-          [this]() -> Eigen::Vector3d { return DCM_; })
+          "DCM-VRP", VRPforceArrowConfig, [this]() -> const Eigen::Vector3d & { return modelVRP_; },
+          [this]() -> const Eigen::Vector3d & { return DCM_; })
 
   );
 }
 
 void DCM_VRPtracker::addLogEntries(std::string robotName, mc_rtc::Logger & logger)
 {
-  auto logDCMhum = [this]() { return DCM_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_DCM", robotName), logDCMhum);
-
-  auto logDCMobjhum = [this]() { return DCMobjective_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_DCM objective", robotName), logDCMobjhum);
-
-  auto logDCMerror = [this]() { return DCMerror_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_DCM error", robotName), logDCMerror);
-
-  auto logVRPerror = [this]() { return VRPerror_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP error", robotName), logVRPerror);
-
-  auto logVRPhumModel = [this]() { return modelVRP_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP acceleration model", robotName), logVRPhumModel);
-
-  auto logVRPhumMeasured = [this]() { return measuredForcesVRP_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP forces model", robotName), logVRPhumMeasured);
-
-  auto logOmega = [this]() { return omega_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_omega", robotName), logOmega);
-
-  auto commandVRP = [this]() { return commandVRP_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_desired VRP command", robotName), commandVRP);
-
-  auto CoMforces = [this]() { return appliedForces_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_applied forces sum at CoM", robotName), CoMforces);
-
-  auto Missingforces = [this]() { return missingForces_; };
-  logger.addLogEntry(fmt::format("DCMtracker_{}_Missing forces", robotName), Missingforces);
+  logger.addLogEntry(fmt::format("DCMtracker_{}_DCM", robotName), [this]() -> const Eigen::Vector3d & { return DCM_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_DCM objective", robotName),
+                     [this]() -> const Eigen::Vector3d & { return DCMobjective_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_DCM error", robotName),
+                     [this]() -> const Eigen::Vector3d & { return DCMerror_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP error", robotName),
+                     [this]() -> const Eigen::Vector3d & { return VRPerror_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP acceleration model", robotName),
+                     [this]() -> const Eigen::Vector3d & { return modelVRP_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP forces model", robotName),
+                     [this]() -> const Eigen::Vector3d & { return measuredForcesVRP_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_omega", robotName), [this]() -> const double & { return omega_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_desired VRP command", robotName),
+                     [this]() -> const Eigen::Vector3d & { return commandVRP_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_applied forces sum at CoM", robotName),
+                     [this]() -> const sva::ForceVecd & { return appliedForces_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_Missing forces", robotName),
+                     [this]() -> const sva::ForceVecd & { return missingForces_; });
 }

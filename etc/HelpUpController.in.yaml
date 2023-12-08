@@ -1018,11 +1018,15 @@ Xsens:
     bodies:
       HipsLink:
         segment: "Pelvis"
+        stiffness: 1000
+        weight: 1000
         offset:
           # translation: [0.05, 0, 0.1]
           translation: [0, 0, 0]
       TorsoLink:
         segment: "T8" # Sternum
+        stiffness: 1000
+        weight: 1000
         offset:
           # translation: [0, 0, -0.31] # torso is 31cm higher than pelvis for celia model, but urdf orig is same as pelvis
           # translation: [0.1, 0, -0.27]
@@ -1030,6 +1034,8 @@ Xsens:
           rotation: [0, 0, 0]
       HeadLink:
         segment: "Head"
+        stiffness: 1000
+        weight: 1000
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
@@ -1046,11 +1052,15 @@ Xsens:
       #     rotation: [0, 0, 0]
       RForearmLink:
         segment: "Right Forearm"
+        stiffness: 1000
+        weight: 1000
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
       RHandLink:
         segment: "Right Hand"
+        stiffness: 1000
+        weight: 1000
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
@@ -1066,43 +1076,59 @@ Xsens:
       #     rotation: [0, 0, 0]
       LForearmLink:
         segment: "Left Forearm"
+        stiffness: 1000
+        weight: 1000
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
       LHandLink:
         segment: "Left Hand"
+        stiffness: 1000
+        weight: 1000
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
       RLegLink:
         segment: "Right Upper Leg"
+        stiffness: 1000
+        weight: 1000
         offset:
           # translation: [0, 0, -0.12] # 10cm lower for celia
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
       RShinLink:
         segment: "Right Lower Leg"
+        stiffness: 1000
+        weight: 1000
         offset:
           translation: [0, 0, 0] # 5cm higher for celia
           rotation: [0, 0, 0]
       RAnkleLink:
         segment: "Right Foot"
+        stiffness: 1000
+        weight: 1000
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
       LLegLink:
         segment: "Left Upper Leg"
+        stiffness: 1000
+        weight: 1000
         offset:
           # translation: [0, 0, -0.12]
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
       LShinLink:
         segment: "Left Lower Leg"
+        stiffness: 1000
+        weight: 1000
         offset:
           translation: [0, 0, 0] # 5cm higher for celia
           rotation: [0, 0, 0]
       LAnkleLink:
         segment: "Left Foot"
+        stiffness: 1000
+        weight: 1000
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]

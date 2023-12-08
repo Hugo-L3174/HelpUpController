@@ -1,5 +1,11 @@
 #include "HelpUpController.h"
+#include <mc_control/SimulationContactPair.h>
 #include <mc_observers/ObserverPipeline.h>
+#include <mc_rtc/gui/plot.h>
+#include <mc_solver/CoMIncPlaneConstr.h>
+#include <mc_tasks/MetaTaskLoader.h>
+#include <mc_tasks/TransformTask.h>
+#include <mc_tasks/lipm_stabilizer/StabilizerTask.h>
 
 #include "MCStabilityPolytope.h"
 #include "config.h"
@@ -62,14 +68,6 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
       std::make_shared<mc_solver::CoMIncPlaneConstr>(realRobots(), realRobots().robotIndex(), dt);
   comIncPlaneConstraintHumPtr_ =
       std::make_shared<mc_solver::CoMIncPlaneConstr>(robots(), robots().robotIndex("human"), dt);
-
-  // initialize the current computation point:
-  balanceCompPoint_ = std::make_shared<ComputationPoint>(-1, std::make_shared<ContactSet>(false));
-  balanceHumCompPoint_ = std::make_shared<ComputationPoint>(-1, std::make_shared<ContactSet>(false));
-
-  // // init display regions
-  // balanceCompPoint_ = currentCompPoint_;
-  // balanceHumCompPoint_ = currentHumCompPoint_;
 
   // init DCM objective
   DCMobjective_ = robot("human").com();
@@ -316,39 +314,6 @@ void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
   // solver().updateConstrSize();
 }
 
-void HelpUpController::computeStabilityRegion(const std::shared_ptr<ContactSet> & contactset,
-                                              whatRobot rob,
-                                              bool save,
-                                              int polIndex,
-                                              std::string suffix)
-{
-  switch(rob)
-  {
-    case mainRob:
-      futureCompPoint_ = std::make_shared<ComputationPoint>(polIndex, contactset);
-      futureCompPoint_->computeEquilibriumRegion();
-      // futureCompPoint_->chebichevCenter(); // compute and store the chebichev center to avoid having glpk being
-      // called twice at the same time
-      if(save)
-      {
-        futureCompPoint_->save("");
-      }
-      break;
-
-    case human:
-      futureHumCompPoint_ = std::make_shared<ComputationPoint>(polIndex, contactset);
-      futureHumCompPoint_->computeEquilibriumRegion();
-      // futureHumCompPoint_->chebichevCenter();
-      if(save)
-      {
-        futureHumCompPoint_->save("");
-      }
-      break;
-    default:
-      break;
-  }
-}
-
 void HelpUpController::computePolytope(const Eigen::Vector3d & currentPos, bool & firstPolyOK, whatRobot rob)
 {
   switch(rob)
@@ -444,8 +409,6 @@ void HelpUpController::updateCombinedCoM()
 void HelpUpController::addLogEntries()
 {
   // logger().addLogEntry("polytope_computationTime", [this]() -> const int { return
-  // balanceCompPoint_->computationTime();}); logger().addLogEntry("humPolytope_computationTime", [this]() -> const int
-  // { return balanceHumCompPoint_->computationTime();});
 
   auto & logger = this->logger();
   logger.addLogEntry("HelpUp_robot measured DCM", [this]() -> const Eigen::Vector3d & { return robMeasuredDCM_; });
@@ -618,7 +581,7 @@ void HelpUpController::updateContactSet(const std::vector<mc_rbdyn::Contact> & c
   Eigen::Vector3d acceleration;
   const auto & robot = robots().robot(robotIndex);
 
-  // accelerations_.resize(0);
+  // XXX can we avoid allocating a new contact set every time?
   contactSet_ = std::make_shared<ContactSet>(false);
   contactSet_->mass(robots().robot(robotIndex).mass());
   contactSet_->setFrictionSides(6);
@@ -719,9 +682,6 @@ void HelpUpController::updateContactSet(const std::vector<mc_rbdyn::Contact> & c
 
   acceleration << 0, -0.6, -9.81;
   contactSet_->addCoMAcc(acceleration);
-
-  readyForComp_ = false;
-  computed_ = false;
 }
 
 void HelpUpController::contactForces(const std::map<std::string, double> & contactFMax,
@@ -927,8 +887,6 @@ void HelpUpController::updateRealHumContacts()
 
   acceleration << 0, -0.5, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
-
-  computedHum_ = false;
 }
 
 void HelpUpController::addRealHumContact(std::string humanSurfName, double fmin, double fmax, ContactType type)

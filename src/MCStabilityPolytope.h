@@ -1,5 +1,7 @@
 #pragma once
 
+#include "utils/PointProjector.h"
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -7,9 +9,6 @@
 #include <polytope/stabilityPolytope.h>
 #include <problemDescriptor/contactSet.h>
 #include <thread>
-#include <condition_variable>
-#include <atomic>
-#include "utils/PointProjector.h"
 
 #include <mc_control/fsm/Controller.h>
 #include <mc_rtc/gui.h>
@@ -25,9 +24,9 @@ struct PolytopeResult
 struct MCStabilityPolytope
 {
   MCStabilityPolytope(const std::string & name) : name_(name)
-  { 
-  thread_ = std::thread(&MCStabilityPolytope::compute, this);
-  #ifndef WIN32
+  {
+    thread_ = std::thread(&MCStabilityPolytope::compute, this);
+#ifndef WIN32
     // Lower thread priority so that it has a lesser priority than the real time
     // thread
     auto th_handle = thread_.native_handle();
@@ -41,7 +40,7 @@ struct MCStabilityPolytope
                            "this might cause latency to the real-time loop.",
                            name_);
     }
-  #endif
+#endif
   }
 
   ~MCStabilityPolytope()
@@ -61,7 +60,7 @@ struct MCStabilityPolytope
   }
 
   void update(const std::shared_ptr<ContactSet> & contactSet, const Eigen::Vector3d & currentPos)
-  {   
+  {
     std::lock_guard<std::mutex> lock(contactMutex_);
     contactSet_ = contactSet;
     currentPos_ = currentPos;
@@ -77,7 +76,7 @@ struct MCStabilityPolytope
    *
    * If you only need a specific element, prefer using the individual accessors (triangles, edges, projector)
    */
-  PolytopeResult polytopeResult() 
+  PolytopeResult polytopeResult()
   {
     /* std::lock_guard<std::mutex> lock(resultMutex_); */
     return polytopeResult_;
@@ -103,7 +102,7 @@ struct MCStabilityPolytope
 
   bool computed() const noexcept
   {
-    return computedFirst_; 
+    return computedFirst_;
   }
 
   void addToGUI(mc_rtc::gui::StateBuilder & gui, std::vector<std::string> category = {"Polytopes"})
@@ -124,25 +123,14 @@ struct MCStabilityPolytope
 
     auto cat = category;
     category.push_back("Polyhedrons");
-    gui.addElement(this,
-        category,
-        mc_rtc::gui::Polyhedron(fmt::format("{} balance region", name_), pconfig_rob,
-                                [this]()
-                                { 
-                                  return triangles(); 
-                                }));
-
+    gui.addElement(this, category,
+                   mc_rtc::gui::Polyhedron(fmt::format("{} balance region", name_), pconfig_rob,
+                                           [this]() { return triangles(); }));
 
     cat.push_back("Triangles");
-    gui.addElement(this,
-        cat,
-        mc_rtc::gui::Polygon(fmt::format("{} balance region", name_), 
-              mc_rtc::gui::Color::Red,
-              [this]()
-              { 
-              return edges(); 
-              }
-        ));
+    gui.addElement(this, cat,
+                   mc_rtc::gui::Polygon(fmt::format("{} balance region", name_), mc_rtc::gui::Color::Red,
+                                        [this]() { return edges(); }));
   }
 
   void removeFromGUI(mc_rtc::gui::StateBuilder & gui)
@@ -188,7 +176,7 @@ protected:
       {
         result.objective = objectiveInPolytope(currentPos_);
         result.constraintPlanes = computationPolytope_->constraintPlanes();
-        result.triangles = computationPolytope_->triangles(); 
+        result.triangles = computationPolytope_->triangles();
         result.edges = updateEdges();
         {
           std::lock_guard<std::mutex> lock(resultMutex_);
@@ -198,16 +186,17 @@ protected:
       }
       else
       {
-        std::cout << "error: " << computationPolytope_->getError() << " num iter: " << computationPolytope_->getIteration() << std::endl;
+        std::cout << "error: " << computationPolytope_->getError()
+                  << " num iter: " << computationPolytope_->getIteration() << std::endl;
       }
     }
   }
 
   /** @brief Project the point onto the polytope if it is outside
    *
-   * When currentPos is outside of the polyhedron this is a heavy computation 
+   * When currentPos is outside of the polyhedron this is a heavy computation
    *
-  * @note There is room for optimization by avoiding converting to sch::S_Polyhedron in PointProjector
+   * @note There is room for optimization by avoiding converting to sch::S_Polyhedron in PointProjector
    */
   Eigen::Vector3d objectiveInPolytope(const Eigen::Vector3d & currentPos)
   {
@@ -225,33 +214,33 @@ protected:
     }
   }
 
-  protected:
-    std::string name_;
+protected:
+  std::string name_;
 
-    //{ Thread internals
-    std::thread thread_;
-    std::condition_variable cv_;
-    std::atomic<bool> computing_{false};
-    std::atomic<bool> computedFirst_{false};
-    std::shared_ptr<RobustStabilityPolytope> computationPolytope_ = nullptr;
-    PointProjector projector_;
-    //}
-    
-    //{ Thread inputs
-    std::mutex contactMutex_;
-    std::shared_ptr<ContactSet> contactSet_;
-    Eigen::Vector3d currentPos_;
-    //}
+  //{ Thread internals
+  std::thread thread_;
+  std::condition_variable cv_;
+  std::atomic<bool> computing_{false};
+  std::atomic<bool> computedFirst_{false};
+  std::shared_ptr<RobustStabilityPolytope> computationPolytope_ = nullptr;
+  PointProjector projector_;
+  //}
 
-    //{ Thread outputs
-    mutable std::mutex resultMutex_;
-    //< Result of the polytope computation that may be of use to other modules
-    // This should be returned by copy and protected by resultMutex_
-    PolytopeResult polytopeResult_;
-    
-    //{ Configuration
-    // TODO load from config
-    double precision_ = 0.1;
-    // Load config for GUI
-    //}
+  //{ Thread inputs
+  std::mutex contactMutex_;
+  std::shared_ptr<ContactSet> contactSet_;
+  Eigen::Vector3d currentPos_;
+  //}
+
+  //{ Thread outputs
+  mutable std::mutex resultMutex_;
+  //< Result of the polytope computation that may be of use to other modules
+  // This should be returned by copy and protected by resultMutex_
+  PolytopeResult polytopeResult_;
+
+  //{ Configuration
+  // TODO load from config
+  double precision_ = 0.1;
+  // Load config for GUI
+  //}
 };

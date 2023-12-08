@@ -2,32 +2,40 @@
 
 #include <mc_control/fsm/Controller.h>
 #include <mc_control/mc_controller.h>
-#include <mc_solver/CoMIncPlaneConstr.h>
-#include <mc_tasks/AdmittanceTask.h>
-#include <mc_tasks/CoMTask.h>
-#include <mc_tasks/lipm_stabilizer/StabilizerTask.h>
-
-// #include "Tasks/BoundCoMAcceleration.h"
-// #include "Tasks/CoMAccelerationTask.h"
-// #include "Tasks/BoundCoMVelocity.h"
-#include <mc_tasks/MetaTaskLoader.h>
-
-#include <mc_control/SimulationContactPair.h>
 #include <mc_filter/LeakyIntegrator.h>
 #include <mc_filter/LowPass.h>
-#include <mc_rtc/gui/plot.h>
-#include <mc_tasks/lipm_stabilizer/Contact.h>
 #include "MCStabilityPolytope.h"
-#include "utils/PointProjector.h"
+#include "api.h"
+#include "problemDescriptor/contactPoints.h" // for ContactType enum
+#include "problemDescriptor/contactSet.h"
+#include <eigen-quadprog/QuadProg.h>
 #include <gram_savitzky_golay/gram_savitzky_golay.h>
 
-#include <boost/circular_buffer.hpp>
-#include <atomic>
-#include <thread>
-
-#include "api.h"
-#include "utils/ComputationPoint.h"
 #include "utils/DCM_VRPtracker.h"
+
+struct MCStabilityPolytope;
+namespace mc_tasks
+{
+struct TransformTask;
+namespace lipm_stabilizer
+{
+struct StabilizerTask;
+namespace internal
+{
+struct Contact;
+}
+} // namespace lipm_stabilizer
+} // namespace mc_tasks
+
+namespace mc_solver
+{
+struct CoMIncPlaneConstr;
+}
+
+namespace mc_control
+{
+struct SimulationContactPair;
+}
 
 enum whatRobot
 {
@@ -64,7 +72,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
    */
   void addGuiElements();
 
-  /*! \brief Set the planes for the CoMIncPlaneConstr
+  /*! \brief Seta the planes for the CoMIncPlaneConstr
    */
   void planes(const std::vector<mc_rbdyn::Plane> & constrPlanes, whatRobot rob);
 
@@ -100,14 +108,6 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
 
   void updateCombinedCoM();
 
-  /*! \brief Compute the equilibrium region stored in futurePolytope using contactSet as input
-   */
-  void computeStabilityRegion(const std::shared_ptr<ContactSet> & contactset,
-                              whatRobot rob,
-                              bool save = false,
-                              int polIndex = 0,
-                              std::string suffix = "");
-
   /*! \brief Utility function to check if a vertex is inside a set of planes
    * \param Vertex vertex to test
    * \param planes planes to test with
@@ -121,7 +121,7 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
   std::optional<double> override_CoMz;
 
   // Checking if distance between real human feet/ground - butt/chair - (robot hands/back and shoulder? maybe robotside)
-  // is low enough to consider a contact
+  // is low enough to considenr a contact
   void updateRealHumContacts();
 
   void addRealHumContact(std::string humanSurfName, double fmin, double fmax, ContactType type);
@@ -259,68 +259,20 @@ private:
   std::shared_ptr<ContactSet> contactSetHum_ =
       std::make_shared<ContactSet>(true); // probably not necessary? contactSet updated everytime
 
-  /*! computed currently used planes
+  /** @name Threaded polytope computation
+   *  @{
    */
-  std::shared_ptr<ComputationPoint> currentCompPoint_;
-  /*! computed planes that will be used next
-   */
-  std::shared_ptr<ComputationPoint> nextCompPoint_;
-  // std::shared_ptr<StabilityPolytope> nextPolytope_;
-  /*! planes to be computed or currently computed
-   */
-  std::shared_ptr<ComputationPoint> futureCompPoint_;
-  /*! computed polytope for display (no constraint on the CoM)
-   */
-  std::shared_ptr<ComputationPoint> balanceCompPoint_;
-
-  // /*! vector of tolerated accelerations for hrp4 polytope
-  // */
-  // std::vector<Eigen::Vector3d> accelerations_;
-
-  /*! computed currently used planes
-   */
-  std::shared_ptr<ComputationPoint> currentHumCompPoint_;
-  /*! computed planes that will be used next
-   */
-  std::shared_ptr<ComputationPoint> nextHumCompPoint_;
-  // std::shared_ptr<StabilityPolytope> nextPolytope_;
-  /*! planes to be computed or currently computed
-   */
-  std::shared_ptr<ComputationPoint> futureHumCompPoint_;
-  /*! computed polytope for display (no constraint on the CoM)
-   */
-  std::shared_ptr<ComputationPoint> balanceHumCompPoint_;
-
   MCStabilityPolytope robotPolytope_;
   MCStabilityPolytope humanPolytope_;
-  PointProjector projector_;
+  bool firstPolyRobOK_ = false;
+  bool firstPolyHumOK_ = false;
+  /** @} */
 
   // /*! vector of tolerated accelerations for human polytope
   // */
   // std::vector<Eigen::Vector3d> humaccelerations_;
 
   Eigen::Vector3d combinedCoM_;
-
-  /*! Thread stuff
-   */
-  std::thread stabThread_;
-  std::thread stabThreadHum_;
-
-  bool polytopeReady_ = false;
-  bool polytopeHumReady_ = false;
-
-  // Boolean flags
-  bool readyForComp_ = false;
-  bool computing_ = false;
-  bool computed_ = false;
-
-  bool firstPolyRobOK_ = false;
-
-  bool readyForCompHum_ = false;
-  bool computingHum_ = false;
-  bool computedHum_ = false;
-
-  bool firstPolyHumOK_ = false;
 
   double cutoffPeriodForceShoes_ = 0.05;
   mc_filter::LowPass<sva::ForceVecd> lowPassLF_, lowPassRF_, lowPassLB_, lowPassRB_;

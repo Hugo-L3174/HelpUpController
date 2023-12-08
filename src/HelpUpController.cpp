@@ -46,6 +46,9 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   measuredPerson("withLegs", withLegs_);
   measuredPerson("withWrists", withWrists_);
 
+  humanPolytope_.load(config("StabilityPolytope")("human"));
+  robotPolytope_.load(config("StabilityPolytope")(robot().name()));
+
   if(withSuit_) humanMass_ += vestMass_;
   if(withLegs_) humanMass_ += (2 * legsMass_);
   if(withShoes_) humanMass_ += (2 * shoesMass_);

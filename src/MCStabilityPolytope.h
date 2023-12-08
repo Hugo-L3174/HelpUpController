@@ -128,6 +128,6 @@ protected:
   //{ Configuration
   // TODO load from config
   double precision_ = 0.1;
-  // Load config for GUI
+  mc_rtc::gui::PolyhedronConfig guiConfig_;
   //}
 };

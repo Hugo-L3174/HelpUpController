@@ -1106,3 +1106,26 @@ Xsens:
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
+
+
+StabilityPolytope:
+  hrp4:
+    polyhedron: &polyhedron
+      triangle_color: [1.0, 0.0, 0.0, 0.3]
+      show_triangle: true
+      use_triangle_color: true
+      edges:
+        color: [0.75, 0.75, 0.75, 1.0]
+        width: 0.003
+        style: solid
+      show_edges: false
+      fixed_edge_color: true
+      vertices:
+        color: [1.0, 0.0, 0.0, 1.0]
+        scale: 0.02
+      show_vertices: false
+      fixed_vertices_color: true
+  human:
+    polyhedron:
+      <<: *polyhedron
+      triangle_color: [0.0, 1.0, 0.0, 0.3]

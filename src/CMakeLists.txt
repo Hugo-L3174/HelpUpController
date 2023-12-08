@@ -1,5 +1,6 @@
 set(controller_SRC
   HelpUpController.cpp
+  MCStabilityPolytope.cpp
   utils/ComputationPoint.cpp
   utils/PointProjector.cpp
   utils/CoMQP.cpp
@@ -12,6 +13,7 @@ set(controller_SRC
 
 set(controller_HDR
   HelpUpController.h
+  MCStabilityPolytope.h
   utils/ComputationPoint.h
   utils/PointProjector.h
   utils/CoMQP.h

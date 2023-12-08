@@ -300,8 +300,6 @@ private:
   // Eigen::Vector3d LHForceAdmittanceCoef_, LHWrenchAdmittanceCoef_;
   // Eigen::Vector3d RHForceAdmittanceCoef_, RHWrenchAdmittanceCoef_;
 
-  // std::shared_ptr<mc_rbdyn::Frame> Back, RightShoulder, RCheek, LCheek, RFoot, LFoot;
-
   // Surfaces to check collisions
   std::shared_ptr<mc_rbdyn::Surface> BackSurf, RightShoulderSurf, RCheekSurf, LCheekSurf, RFootSurf, LFootSurf, TopSurf,
       RHandSurf, LHandSurf, GroundSurf;

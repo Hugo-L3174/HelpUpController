@@ -63,7 +63,7 @@ public:
 
 private:
   std::shared_ptr<RobustStabilityPolytope> polytope_;
-  sch::S_Polyhedron polyhedron_;
+  std::unique_ptr<sch::S_Polyhedron> polyhedron_;
   sch::S_Point point_;
 
   double distance_;

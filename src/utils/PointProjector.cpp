@@ -5,9 +5,9 @@ PointProjector::PointProjector() : isSet_(false) {}
 void PointProjector::setPolytope(std::shared_ptr<RobustStabilityPolytope> poly)
 {
   polytope_ = poly;
+  polyhedron_.reset(new sch::S_Polyhedron());
   // create the sch-core S_Polyhedron object
-
-  auto polyAlgo = polyhedron_.getPolyhedronAlgorithm();
+  auto polyAlgo = polyhedron_->getPolyhedronAlgorithm();
 
   /*
     First add the vertices:
@@ -16,7 +16,7 @@ void PointProjector::setPolytope(std::shared_ptr<RobustStabilityPolytope> poly)
     - add it the S_Polyhedron object using the right method
   */
 
-  sch::S_PolyhedronVertex * v; // FIXME memory leak?
+  sch::S_PolyhedronVertex * v; // removed when polyhedron_ is destroyed
   Eigen::Vector3d coord;
   std::map<int, int> indexToPos;
 
@@ -89,7 +89,7 @@ void PointProjector::setPoint(Eigen::Vector3d point)
 
 void PointProjector::project()
 {
-  sch::CD_Pair pair_(&polyhedron_, &point_);
+  sch::CD_Pair pair_(polyhedron_.get(), &point_);
   // pair_.setRelativePrecision(1e-5);
 
   distance_ = std::sqrt(std::fabs(pair_.getDistance()));
@@ -105,7 +105,7 @@ void PointProjector::project()
 
 void PointProjector::displaySqueleton()
 {
-  auto const polyAlgo = polyhedron_.getPolyhedronAlgorithm();
+  auto const polyAlgo = polyhedron_->getPolyhedronAlgorithm();
 
   std::vector<Eigen::Vector3d> points;
   Eigen::Vector3d point;

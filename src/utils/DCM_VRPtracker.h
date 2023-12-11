@@ -35,9 +35,13 @@ public:
    */
   void addGuiElements(mc_rtc::gui::StateBuilder & gui);
 
+  void removeFromGUI(mc_rtc::gui::StateBuilder & gui);
+
   /*! \brief function called in the constructor to set up the log entries
    */
   void addLogEntries(std::string robotName, mc_rtc::Logger & logger);
+
+  void removeLogEntries(mc_rtc::Logger & logger);
 
   // CAREFUL is this the right way or should it be -9.81?
   Eigen::Vector3d gravityVec()

@@ -123,8 +123,6 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
 
   addLogEntries();
   addGuiElements();
-  humanDCMTracker_->addGuiElements(*gui_);
-  humanDCMTracker_->addLogEntries("human", logger());
   addTasksToSolver();
 
   mc_rtc::log::success("HelpUpController init done ");
@@ -132,6 +130,13 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
 
 bool HelpUpController::run()
 {
+  // LFShoe_ = sva::ForceVecd::Zero();
+  // LBShoe_ = sva::ForceVecd::Zero();
+  // RFShoe_ = sva::ForceVecd::Zero();
+  // RBShoe_ = sva::ForceVecd::Zero();
+
+  // FIXME: The first iterations of the datastore calls are invalid, and the measuredForcesVRP_ entry of the DCM tracker
+  // GUI breaks rviz maybe add gui after force shoe plugin is running?
 
   LFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLFForce");
   LBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLBForce");
@@ -414,6 +419,8 @@ void HelpUpController::addLogEntries()
   // logger().addLogEntry("polytope_computationTime", [this]() -> const int { return
 
   auto & logger = this->logger();
+  humanDCMTracker_->addLogEntries("human", logger);
+
   logger.addLogEntry("HelpUp_robot measured DCM", [this]() -> const Eigen::Vector3d & { return robMeasuredDCM_; });
   // MC_RTC_LOG_HELPER("HelpUp_robot measured DCM", robMeasuredDCM_);
   logger.addLogEntry("HelpUp_robot DCM objective", [this]() -> const Eigen::Vector3d & { return robDCMobjective_; });
@@ -444,6 +451,8 @@ void HelpUpController::addGuiElements()
 {
   robotPolytope_.addToGUI(*gui());
   humanPolytope_.addToGUI(*gui());
+
+  humanDCMTracker_->addGuiElements(*gui());
 
   constexpr double DCM_POINT_SIZE = 0.015;
   constexpr double COM_POINT_SIZE = 0.02;

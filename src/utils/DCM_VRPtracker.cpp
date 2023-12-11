@@ -184,6 +184,11 @@ void DCM_VRPtracker::addGuiElements(mc_rtc::gui::StateBuilder & gui)
   );
 }
 
+void DCM_VRPtracker::removeFromGUI(mc_rtc::gui::StateBuilder & gui)
+{
+  gui.removeElements(this);
+}
+
 void DCM_VRPtracker::addLogEntries(std::string robotName, mc_rtc::Logger & logger)
 {
   logger.addLogEntry(fmt::format("DCMtracker_{}_DCM", robotName), [this]() -> const Eigen::Vector3d & { return DCM_; });
@@ -204,4 +209,9 @@ void DCM_VRPtracker::addLogEntries(std::string robotName, mc_rtc::Logger & logge
                      [this]() -> const sva::ForceVecd & { return appliedForces_; });
   logger.addLogEntry(fmt::format("DCMtracker_{}_Missing forces", robotName),
                      [this]() -> const sva::ForceVecd & { return missingForces_; });
+}
+
+void DCM_VRPtracker::removeLogEntries(mc_rtc::Logger & logger)
+{
+  logger.removeLogEntries(this);
 }

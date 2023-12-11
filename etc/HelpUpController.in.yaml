@@ -91,16 +91,20 @@ collisions:
       iDist: 0.03
       sDist: 0.001
       damping: 0
+      r2UnactiveJoints: &unactiveJoints
+        [Root, base, Torso_0, Torso_1, Torso_2, Head_0, Head_1, Head_2, LArm_0, LArm_1, LArm_2, LElbow, LForearm, LWrist_0, LWrist_1, LHand, LHandThumbLink1, LHandThumbLink2, LHandThumbLink3, LHandIndexLink1, LHandIndexLink2, LHandIndexLink3, LHandMiddleLink1, LHandMiddleLink2, LHandMiddleLink3, LHandRingLink1, LHandRingLink2, LHandRingLink3, LHandBabyLink1, LHandBabyLink2, LHandBabyLink3, RArm_0, RArm_1, RArm_2, RElbow, RForearm, RWrist_0, RWrist_1, RHand, RHandThumbLink1, RHandThumbLink2, RHandThumbLink3, RHandIndexLink1, RHandIndexLink2, RHandIndexLink3, RHandMiddleLink1, RHandMiddleLink2, RHandMiddleLink3, RHandRingLink1, RHandRingLink2, RHandRingLink3, RHandBabyLink1, RHandBabyLink2, RHandBabyLink3, LLeg_0, LLeg_1, LLeg_2, LShin_0, LAnkle_0, LAnkle_1, RLeg_0, RLeg_1, RLeg_2, RShin_0, RAnkle_0, RAnkle_1]
     - body1: L_WRIST_Y_LINK
       body2: TorsoLink
       iDist: 0.03
       sDist: 0.001
       damping: 0
+      r2UnactiveJoints: *unactiveJoints
     - body1: l_wrist
       body2: TorsoLink
       iDist: 0.003
       sDist: 0.0001
       damping: 0
+      r2UnactiveJoints: *unactiveJoints
 #     # robot right wrist collision with human torso and right arm
 #     - body1: r_wrist
 #       body2: TorsoLink

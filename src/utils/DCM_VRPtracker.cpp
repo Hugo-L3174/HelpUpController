@@ -100,6 +100,12 @@ void DCM_VRPtracker::computeModelVRP()
 void DCM_VRPtracker::computeForcesVRP()
 {
   // should this be a vector3d or a forcevecd?
+  if(appliedForces_.force().array().isNaN().any())
+  {
+    mc_rtc::log::error("[DCM_VRPtracker] Applied forces are NaN ({}), using [0, 0, 0] instead",
+                       appliedForces_.force().transpose());
+    appliedForces_.force() = Eigen::Vector3d::Zero();
+  }
   measuredForcesVRP_ =
       posCoM_ - (appliedForces_.force() - mass_ * gravityVec()) / (mass_ * (omega_ * omega_ - dotOmega_));
 }

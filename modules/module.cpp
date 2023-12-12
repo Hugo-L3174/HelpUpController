@@ -48,6 +48,13 @@ inertia: [0.00013625, 0.0, 0.0, 0.00013625, 0.0, 0.00000042]
     _collisionObjects[name] = {name, std::make_shared<sch::S_Box>(box.size.x(), box.size.y(), box.size.z())};
     _collisionTransforms[name] = sva::PTransformd::Identity();
 
+    // FIXME: insufficient: need to add surfaces to use for wrench distribution
+    _frames.emplace_back("HumanBack", "torso_box",
+                         sva::PTransformd(sva::RotY(1.57), Eigen::Vector3d(box.size.x() / 2, 0, 0)));
+    _frames.emplace_back(
+        "HumanFront", "torso_box",
+        sva::PTransformd(sva::RotY(-1.57), Eigen::Vector3d(-box.size.x() / 2, -box.size.y() / 4, -box.size.z() / 4)));
+
     mbg.addBody({mass, com, inertiaM, name});
     mbg.addJoint({rbd::Joint::Type::Fixed, true, "link8_to_box"});
     mbg.linkBodies("panda_link8", sva::PTransformd(Eigen::Vector3d{0, 0, box.size.z() / 2}), name,

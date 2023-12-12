@@ -133,7 +133,17 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
     xsensCoMacc_ = acc;
   };
 
-  void distributeHandsWrench(const sva::ForceVecd & desiredWrench);
+  // TODO: maybe find a cleaner way than hard writing which surface is right and left
+  /*! \brief Distribute missing computed wrench on the desired surfaces
+   * \param desiredWrench missing 6d wrench at CoM
+   * \param targetRobot "robot" to assist (can be human model)
+   * \param leftSurface surface on which force can be applied by robot left hand
+   * \param rightSurface surface on which force can be applied by robot right hand
+   */
+  void distributeHandsWrench(const sva::ForceVecd & desiredWrench,
+                             const mc_rbdyn::Robot & targetRobot,
+                             const std::string & leftSurface,
+                             const std::string & rightSurface);
 
   // Parametrized start offset of the log to sychronize. Default: start offset at 0, acquisition frequency of force
   // shoes at 100Hz

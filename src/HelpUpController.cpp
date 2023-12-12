@@ -228,7 +228,8 @@ bool HelpUpController::run()
   robotDCMTracker_->updateObjectiveValues(robDCMobjective_);
 
   auto desiredCoMWrench = humanDCMTracker_->getMissingForces();
-  distributeHandsWrench(desiredCoMWrench);
+  distributeHandsWrench(desiredCoMWrench, robot("human"), "Back", "RightShoulder");
+  // distributeHandsWrench(desiredCoMWrench, robot("panda"), "HumanBack", "HumanFront");
   t_ += solver().dt();
   bool ok = mc_control::fsm::Controller::run();
   return ok;
@@ -850,13 +851,13 @@ void HelpUpController::updateRealHumContacts()
   // We switch to a force shoes condition
   if(RFShoe_.force().z() + RBShoe_.force().z() >= 10.) // Vertical force is high enough to consider contact
   {
-    addRealHumContact("RightSole_ForceShoe", 0, humanMass_ * 9.81, ContactType::support);
+    addRealHumContact("RightSole", 0, humanMass_ * 9.81, ContactType::support);
     // std::cout<<"adding right sole"<<std::endl;
   }
 
   if(LFShoe_.force().z() + LBShoe_.force().z() >= 10.)
   {
-    addRealHumContact("LeftSole_ForceShoe", 0, humanMass_ * 9.81, ContactType::support);
+    addRealHumContact("LeftSole", 0, humanMass_ * 9.81, ContactType::support);
     // std::cout<<"adding left sole"<<std::endl;
   }
 
@@ -950,7 +951,10 @@ sva::ForceVecd HelpUpController::getCurrentForceVec(const std::vector<sva::Force
   }
 }
 
-void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrench)
+void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrench,
+                                             const mc_rbdyn::Robot & targetRobot,
+                                             const std::string & leftSurface,
+                                             const std::string & rightSurface)
 {
   // Variables
   // ---------
@@ -983,9 +987,9 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
   // leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "LeftHand", 0.7);
   // rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "RightHand", 0.7);
 
-  leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot("human"), "Back", 0.7);
-  rightHandContact_ =
-      std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot("human"), "RightShoulder", 0.7);
+  // FIXME: what was the point of making a pointer then dereferencing?... test
+  leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(targetRobot, leftSurface, 0.7);
+  rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(targetRobot, rightSurface, 0.7);
 
   const auto & leftHandContact = *leftHandContact_;
   const auto & rightHandContact = *rightHandContact_;

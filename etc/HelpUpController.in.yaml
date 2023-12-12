@@ -47,12 +47,6 @@ robots:
     module: env/ground
   panda:
     module: PandaHelpUp
-    frames:
-      - name: HumanBack
-        parent: panda_link7
-        X_p_f:
-          translation: [0.07, 0, 0.25]
-          rotation: [0.0, 1.57, 0.0]
 
 # General constraints, always on
 constraints:
@@ -475,7 +469,7 @@ states:
         r2Surface: Back
         dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
 
-  TakePositionHRP4:
+  TakePositionHRP4Human:
     base: RobotTakePoseObserved
     RHandTrajectory:
       type: bspline_trajectory
@@ -518,17 +512,18 @@ states:
     RemoveCollisionsAfter:
       - r1: hrp4
         r2: human
-    # AddContactsAfter:
-    #   - r1: hrp4
-    #     r2: human
-    #     r1Surface: RightHand
-    #     r2Surface: RightShoulder
-    #     # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
-    #   - r1: hrp4
-    #     r2: human
-    #     r1Surface: LeftHand
-    #     r2Surface: Back
-    #     # dof: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+
+
+  TakePositionHRP4Panda:
+    base: TakePositionHRP4Human
+    RHandTrajectory:
+      targetFrame:
+        robot: panda
+        frame: HumanFront
+    LHandTrajectory:
+      targetFrame:
+        robot: panda
+        frame: HumanBack
 
 
 
@@ -605,7 +600,7 @@ states:
 
 
 
-  KeepPositionHRP4:
+  KeepPositionHRP4Human:
     base: RobotHolding
     # weight: 10000
     # stiffness: 1500
@@ -673,6 +668,17 @@ states:
           - AND:
               - eval: 0.015
               - speed: 0.01
+
+  KeepPositionHRP4Panda:
+    base: KeepPositionHRP4Human
+    RightHandImped:
+      targetFrame:
+        robot: panda
+        frame: HumanFront
+    LeftHandImped:
+      targetFrame:
+        robot: panda
+        frame: HumanBack
 
 
 
@@ -826,16 +832,21 @@ states:
     states: [XsensHumanPose, Pause_inf]
 
 
-  HelpFSM_HRP4:
+  HelpFSM_HRP4Human:
     base: Meta
     transitions:
     - [Pause_2s, OK, RightStepFSMHRP4, Strict]
-    - [RightStepFSMHRP4, OK, TakePositionHRP4, Auto]
-    # - [TakePositionHRP4, OK, MakeHandContactsHRP4, Strict]
-    # - [MakeHandContactsHRP4, OK, KeepPositionHRP4, Strict]
-    - [TakePositionHRP4, OK, KeepPositionHRP4, Strict]
-    - [KeepPositionHRP4, OK, GoBackInitFSMHRP4, Strict]
-    # - [GoBackInitHRP4, OK, HRP4pos, Strict]
+    - [RightStepFSMHRP4, OK, TakePositionHRP4Human, Auto]
+    - [TakePositionHRP4Human, OK, KeepPositionHRP4Human, Strict]
+    - [KeepPositionHRP4Human, OK, GoBackInitFSMHRP4, Strict]
+
+  HelpFSM_HRP4Panda:
+    base: Meta
+    transitions:
+    - [Pause_2s, OK, RightStepFSMHRP4, Strict]
+    - [RightStepFSMHRP4, OK, TakePositionHRP4Panda, Auto]
+    - [TakePositionHRP4Panda, OK, KeepPositionHRP4Panda, Strict]
+    - [KeepPositionHRP4Panda, OK, GoBackInitFSMHRP4, Strict]
 
   HelpFSM_E2DR:
     base: Meta
@@ -848,7 +859,7 @@ states:
 
   HelpDemoHRP4:
     base: Parallel
-    states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_HRP4] #AddCollisionWithHuman,
+    states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_HRP4Human] #AddCollisionWithHuman,
 
   HelpDemoE2DR:
     base: Parallel
@@ -957,8 +968,8 @@ ObserverPipelines:
 
 
 # Plugins: [XsensPlugin]
-Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate, UDPPlugin]
-Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate] #, UDPPlugin]
+#Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate, UDPPlugin]
+Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate]
 
 UDPPlugin:
   # Global configuration options for UDPPlugin

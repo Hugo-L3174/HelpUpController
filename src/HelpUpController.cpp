@@ -194,6 +194,7 @@ bool HelpUpController::run()
   */
   if(firstPolyRobOK_)
   {
+    // XXX this causes drift as the com follows the measured value (in choreonoid)
     // for now we use the stabilizer computed DCM and not the VRP tracker
     robMeasuredDCM_ = datastore().call<Eigen::Vector3d>("RobotStabilizer::getMeasuredDCM");
     updateObjective(robotPolytope_, robMeasuredDCM_, robDCMobjective_, mainRob);

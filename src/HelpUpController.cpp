@@ -356,7 +356,7 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
                                        Eigen::Vector3d & objective,
                                        whatRobot rob)
 {
-  objective = polytope_.objective();
+  objective = polytope_.objectiveInPolytope(currentPos);
   // objective.z() = std::max((0.78*robot("human").com().z())/0.87 , 0.5);
 
   // Update objective to stabilizer or human assistance
@@ -418,10 +418,13 @@ void HelpUpController::updateCombinedCoM()
 
 void HelpUpController::addLogEntries()
 {
+  robotPolytope_.addToLogger(logger());
+  humanPolytope_.addToLogger(logger());
   // logger().addLogEntry("polytope_computationTime", [this]() -> const int { return
 
   auto & logger = this->logger();
   humanDCMTracker_->addLogEntries("human", logger);
+  robotDCMTracker_->addLogEntries("robot", logger);
 
   logger.addLogEntry("HelpUp_robot measured DCM", [this]() -> const Eigen::Vector3d & { return robMeasuredDCM_; });
   // MC_RTC_LOG_HELPER("HelpUp_robot measured DCM", robMeasuredDCM_);

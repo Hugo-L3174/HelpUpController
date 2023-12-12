@@ -1,13 +1,14 @@
 #include "PointProjector.h"
+#include <sch/S_Polyhedron/Polyhedron_algorithms.h>
+#include <strings.h>
 
-PointProjector::PointProjector() : isSet_(false) {}
+PointProjector::PointProjector() : isSet_(false), polyhedron_(new sch::S_Polyhedron()) {}
 
-void PointProjector::setPolytope(std::shared_ptr<RobustStabilityPolytope> poly)
+void PointProjector::setPolytope(const std::shared_ptr<RobustStabilityPolytope> & poly)
 {
-  polytope_ = poly;
-  polyhedron_.reset(new sch::S_Polyhedron());
-  // create the sch-core S_Polyhedron object
-  auto polyAlgo = polyhedron_->getPolyhedronAlgorithm();
+  auto & polytope = *poly;
+  polyhedron_->clear();
+  auto & polyAlgo = *polyhedron_->getPolyhedronAlgorithm();
 
   /*
     First add the vertices:
@@ -16,17 +17,20 @@ void PointProjector::setPolytope(std::shared_ptr<RobustStabilityPolytope> poly)
     - add it the S_Polyhedron object using the right method
   */
 
+  const auto & fullVertices = polytope.fullVertices();
   sch::S_PolyhedronVertex * v; // removed when polyhedron_ is destroyed
   Eigen::Vector3d coord;
   std::map<int, int> indexToPos;
 
-  for(auto vertex : polytope_->fullVertices())
+  for(size_t i = 0; i < fullVertices.size(); ++i)
   {
+    auto & vertex = *fullVertices[i];
+    coord = vertex.get_coordinates();
+
     v = new sch::S_PolyhedronVertex();
-    coord = vertex->get_coordinates();
     v->setCoordinates(coord[0], coord[1], coord[2]);
-    indexToPos[vertex->get_index()] = polyAlgo->vertexes_.size();
-    polyAlgo->vertexes_.push_back(v);
+    indexToPos[vertex.get_index()] = i; // polyAlgo.vertexes_.size();
+    polyAlgo.vertexes_.push_back(v);
   }
 
   /*
@@ -45,34 +49,29 @@ void PointProjector::setPolytope(std::shared_ptr<RobustStabilityPolytope> poly)
   int a, b, c;
   sch::S_PolyhedronVertex *va, *vb, *vc;
 
-  for(auto face : polytope_->fullFaces())
+  const auto & fullFaces = polytope.fullFaces();
+  for(size_t i = 0; i < fullFaces.size(); ++i)
   {
-    sch::PolyhedronTriangle t;
-    coord = face->get_normal();
-    // std::cout << "The normal is " << coord.transpose() << " and offset " << face->get_offset()<< std::endl;
-    t.normal.Set(coord[0], coord[1], coord[2]);
-    t.normal.normalize();
+    auto & face = *fullFaces[i];
+    coord = face.get_normal();
 
-    a = face->get_vertex1()->get_index();
-    b = face->get_vertex2()->get_index();
-    c = face->get_vertex3()->get_index();
-
-    t.a = indexToPos[a];
-    t.b = indexToPos[b];
-    t.c = indexToPos[c];
-
-    polyAlgo->triangles_.push_back(t);
+    sch::PolyhedronTriangle triangle;
+    triangle.a = indexToPos[face.get_vertex1()->get_index()];
+    triangle.b = indexToPos[face.get_vertex2()->get_index()];
+    triangle.c = indexToPos[face.get_vertex3()->get_index()];
+    triangle.normal = sch::Vector3{coord[0], coord[1], coord[2]}.normalized();
+    polyAlgo.triangles_.push_back(triangle);
   }
 
-  polyAlgo->updateVertexNeighbors();
+  polyAlgo.updateVertexNeighbors();
   /*
     Forth apply the finishing method
     - updateFastArrays
     - deleteVertexesWithoutNeighbors
   */
 
-  polyAlgo->deleteVertexesWithoutNeighbors();
-  polyAlgo->updateFastArrays();
+  polyAlgo.deleteVertexesWithoutNeighbors(); // XXX try not to do this, looks heavy
+  polyAlgo.updateFastArrays();
 
   // polyhedron_.updateVertexNeighbors();
   // polyhedron_.updateFastArrays();
@@ -81,9 +80,8 @@ void PointProjector::setPolytope(std::shared_ptr<RobustStabilityPolytope> poly)
   isSet_ = true;
 }
 
-void PointProjector::setPoint(Eigen::Vector3d point)
+void PointProjector::setPoint(const Eigen::Vector3d & point)
 {
-  // point_ = sch::S_Point();
   point_.setPosition(point[0], point[1], point[2]);
 }
 
@@ -92,9 +90,6 @@ void PointProjector::project()
   sch::CD_Pair pair_(polyhedron_.get(), &point_);
   // pair_.setRelativePrecision(1e-5);
 
-  distance_ = std::sqrt(std::fabs(pair_.getDistance()));
-  // std::cout << "The distance between the point and the polytope is " << distance_ << std::endl;
-  isInside_ = pair_.isInCollision();
   sch::Point3 p1, p2;
   pair_.getClosestPoints(p1, p2);
 

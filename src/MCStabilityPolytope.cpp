@@ -68,6 +68,24 @@ void MCStabilityPolytope::removeFromGUI(mc_rtc::gui::StateBuilder & gui)
   gui.removeElements(this);
 }
 
+void MCStabilityPolytope::addToLogger(mc_rtc::Logger & logger, const std::string & prefix)
+{
+  auto p = prefix + "_" + name_;
+  logger.addLogEntry(p + "_dt_build_polytope", this, [this]() { return dt_build_polytope().count(); });
+  logger.addLogEntry(p + "_dt_init_solver", this, [this]() { return dt_init_solver().count(); });
+  logger.addLogEntry(p + "_dt_compute_stability_polyhedron", this,
+                     [this]() { return dt_compute_stability_polyhedron().count(); });
+  logger.addLogEntry(p + "_dt_end_solver", this, [this]() { return dt_end_solver().count(); });
+  logger.addLogEntry(p + "_dt_project_in_polytope", this, [this]() { return dt_project_in_polytope().count(); });
+  logger.addLogEntry(p + "_dt_swap_result", this, [this]() { return dt_swap_result().count(); });
+  logger.addLogEntry(p + "_objectiveInPolytope", this, [this]() { return objectiveInPolytope_; });
+}
+
+void MCStabilityPolytope::removeFromLogger(mc_rtc::Logger & logger)
+{
+  logger.removeLogEntries(this);
+}
+
 void MCStabilityPolytope::compute()
 {
   std::mutex mutex;
@@ -78,23 +96,35 @@ void MCStabilityPolytope::compute()
   PolytopeResult result;
   while(computing_)
   {
+    auto start_loop_time = mc_rtc::clock::now();
+    auto start_build_polytope = mc_rtc::clock::now();
     {
       std::lock_guard<std::mutex> lock(contactMutex_);
       computationPolytope_ = std::make_shared<RobustStabilityPolytope>(contactSet_, 20, precision_, ::GLPK);
       currentPos = currentPos_;
     }
+    result.dt_build_polytope = mc_rtc::clock::now() - start_build_polytope;
+    auto start_init_solver = mc_rtc::clock::now();
     computationPolytope_->initSolver();
-    bool ok = computationPolytope_->computeProjectionStabilityPolyhedron();
+    result.dt_init_solver = mc_rtc::clock::now() - start_init_solver;
+    auto start_compute_stability_polyhedron = mc_rtc::clock::now();
+    computePolyhedronSuccess_ = computationPolytope_->computeProjectionStabilityPolyhedron();
+    result.dt_compute_stability_polyhedron = mc_rtc::clock::now() - start_compute_stability_polyhedron;
+    auto start_end_solver = mc_rtc::clock::now();
     computationPolytope_->endSolver();
-    if(ok)
+    result.dt_end_solver = mc_rtc::clock::now() - start_end_solver;
+    if(computePolyhedronSuccess_)
     {
-      result.objective = objectiveInPolytope(currentPos_);
       result.constraintPlanes = computationPolytope_->constraintPlanes();
       result.triangles = computationPolytope_->triangles();
       result.edges = updateEdges();
+      result.polytope = computationPolytope_;
       {
+        auto start_swap_result = mc_rtc::clock::now();
         std::lock_guard<std::mutex> lock(resultMutex_);
         polytopeResult_ = result;
+        result.dt_swap_result = mc_rtc::clock::now() - start_swap_result;
+        result.dt_loop_total = mc_rtc::clock::now() - start_loop_time;
       }
       computedFirst_ = true;
     }
@@ -108,16 +138,26 @@ void MCStabilityPolytope::compute()
 
 Eigen::Vector3d MCStabilityPolytope::objectiveInPolytope(const Eigen::Vector3d & currentPos)
 {
-  if(!isVertexInPlanes(currentPos, computationPolytope_->constraintPlanes(), 0.03))
+  auto start_project_in_polytope = mc_rtc::clock::now();
+  auto objective = Eigen::Vector3d::Zero().eval();
+  if(!isVertexInPlanes(currentPos, constraintPlanes(), 0.03))
   {
-    // Heavy computation
-    projector_.setPolytope(computationPolytope_);
+    objectiveInPolytope_ = false;
+    std::shared_ptr<RobustStabilityPolytope> polytope;
+    {
+      std::lock_guard<std::mutex> lock(resultMutex_);
+      polytope = polytopeResult_.polytope;
+    }
+    projector_.setPolytope(polytope);
     projector_.setPoint(currentPos);
     projector_.project();
-    return projector_.projectedPoint();
+    objective = projector_.projectedPoint();
   }
   else
   {
-    return currentPos;
+    objectiveInPolytope_ = true;
+    objective = currentPos;
   }
+  dt_project_in_polytope_ = mc_rtc::clock::now() - start_project_in_polytope;
+  return objective;
 }

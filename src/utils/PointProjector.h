@@ -35,26 +35,21 @@ class PointProjector
 public:
   PointProjector();
 
-  void setPolytope(std::shared_ptr<RobustStabilityPolytope> poly);
-  void setPoint(Eigen::Vector3d point);
+  void setPolytope(const std::shared_ptr<RobustStabilityPolytope> & poly);
+  void setPoint(const Eigen::Vector3d & point);
   void project();
 
-  inline Eigen::Vector3d projectedPoint() const
+  inline const Eigen::Vector3d & projectedPoint() const noexcept
   {
     return projectedPoint_;
   }
 
-  inline double distance() const
+  inline double distance() const noexcept
   {
     return distance_;
   }
 
-  inline bool isInside() const
-  {
-    return isInside_;
-  }
-
-  inline bool isSet() const
+  inline bool isSet() const noexcept
   {
     return isSet_;
   }
@@ -62,12 +57,10 @@ public:
   void displaySqueleton();
 
 private:
-  std::shared_ptr<RobustStabilityPolytope> polytope_;
   std::unique_ptr<sch::S_Polyhedron> polyhedron_;
   sch::S_Point point_;
 
   double distance_;
   Eigen::Vector3d projectedPoint_;
-  bool isInside_;
   bool isSet_;
 };

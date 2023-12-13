@@ -20,6 +20,7 @@ struct PolytopeResult
   std::vector<std::vector<Eigen::Vector3d>> edges;
   std::vector<Eigen::Vector4d> constraintPlanes;
   std::shared_ptr<RobustStabilityPolytope> polytope;
+  Eigen::Vector3d chebichevCenter;
 
   mc_rtc::duration_ms dt_loop_total;
   mc_rtc::duration_ms dt_build_polytope;
@@ -70,6 +71,12 @@ struct MCStabilityPolytope
   {
     std::lock_guard<std::mutex> lock(resultMutex_);
     return polytopeResult_.constraintPlanes;
+  }
+
+  inline auto chebichevCenter() const
+  {
+    std::lock_guard<std::mutex> lock(resultMutex_);
+    return polytopeResult_.chebichevCenter;
   }
 
   inline bool computed() const noexcept

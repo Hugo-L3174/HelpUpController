@@ -967,9 +967,7 @@ ObserverPipelines:
   #     bodySensor: Accelerometer
 
 
-# Plugins: [XsensPlugin]
-#Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate, UDPPlugin]
-Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate]
+Plugins: [Replay, XsensPlugin, ForceShoePlugin] # RobotModelUpdate, UDPPlugin]
 
 UDPPlugin:
   # Global configuration options for UDPPlugin

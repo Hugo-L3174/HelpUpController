@@ -119,6 +119,7 @@ void MCStabilityPolytope::compute()
       result.triangles = computationPolytope_->triangles();
       result.edges = updateEdges();
       result.polytope = computationPolytope_;
+      result.chebichevCenter = computationPolytope_->chebichevCenter();
       {
         auto start_swap_result = mc_rtc::clock::now();
         std::lock_guard<std::mutex> lock(resultMutex_);

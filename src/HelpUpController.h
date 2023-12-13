@@ -284,6 +284,8 @@ private:
 
   Eigen::Vector3d combinedCoM_;
 
+  double chebichevCoef_ = 0.9;
+
   double cutoffPeriodForceShoes_ = 0.05;
   mc_filter::LowPass<sva::ForceVecd> lowPassLF_, lowPassRF_, lowPassLB_, lowPassRB_;
   std::vector<sva::ForceVecd> LFShoeVec_, RFShoeVec_, LBShoeVec_, RBShoeVec_;

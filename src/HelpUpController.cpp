@@ -356,13 +356,16 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
                                        Eigen::Vector3d & objective,
                                        whatRobot rob)
 {
-  objective = polytope_.objectiveInPolytope(currentPos);
-  // objective.z() = std::max((0.78*robot("human").com().z())/0.87 , 0.5);
 
   // Update objective to stabilizer or human assistance
   switch(rob)
   {
     case mainRob:
+    {
+      Eigen::Vector3d chebichev = polytope_.chebichevCenter();
+      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * chebichev;
+      filteredObjective.z() = 0.78;
+      objective = polytope_.objectiveInPolytope(filteredObjective);
       if(datastore().has("RobotStabilizer::setCoMTarget"))
       {
         // if the mode is not set to manual objective, update automatically using balance regions
@@ -373,10 +376,15 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
         }
       }
       break;
+    }
 
     case human:
+    {
       // do nothing for now : already wrote objective in DCMobjective_ var used in VRP control law
+      objective = polytope_.objectiveInPolytope(currentPos);
       break;
+    }
+
     default:
       break;
   }
@@ -491,7 +499,9 @@ void HelpUpController::addGuiElements()
   mc_rtc::gui::ArrowConfig MissingforceArrowConfig = forceArrowConfig;
   MissingforceArrowConfig.color = COLORS.at('g');
 
-  gui()->addElement({"Points", "CoM"},
+  gui()->addElement({"HelpUp"}, mc_rtc::gui::Input("Chebichev Coeff [0-1]", chebichevCoef_));
+
+  gui()->addElement({"HelpUp", "Points", "CoM"},
                     mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE),
                                          [this]() { return robot().com(); }),
                     mc_rtc::gui::Point3D("mainCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE),

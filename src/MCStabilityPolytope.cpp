@@ -79,6 +79,9 @@ void MCStabilityPolytope::addToLogger(mc_rtc::Logger & logger, const std::string
   logger.addLogEntry(p + "_dt_project_in_polytope", this, [this]() { return dt_project_in_polytope().count(); });
   logger.addLogEntry(p + "_dt_swap_result", this, [this]() { return dt_swap_result().count(); });
   logger.addLogEntry(p + "_objectiveInPolytope", this, [this]() { return objectiveInPolytope_; });
+  logger.addLogEntry(p + "_dt_stabiliplus_lp", this, [this]() { return dt_stabiliplus_lp().count(); });
+  logger.addLogEntry(p + "_dt_stabiliplus_init", this, [this]() { return dt_stabiliplus_init().count(); });
+  logger.addLogEntry(p + "_dt_stabiliplus_struct", this, [this]() { return dt_stabiliplus_struct().count(); });
 }
 
 void MCStabilityPolytope::removeFromLogger(mc_rtc::Logger & logger)
@@ -120,12 +123,15 @@ void MCStabilityPolytope::compute()
       result.edges = updateEdges();
       result.polytope = computationPolytope_;
       result.chebichevCenter = computationPolytope_->chebichevCenter();
+      result.dt_stabiliplus_lp = mc_rtc::duration_ms(computationPolytope_->LPTime() / 1000);
+      result.dt_stabiliplus_init = mc_rtc::duration_ms(computationPolytope_->initTime() / 1000);
+      result.dt_stabiliplus_struct = mc_rtc::duration_ms(computationPolytope_->structTime() / 1000);
       {
         auto start_swap_result = mc_rtc::clock::now();
         std::lock_guard<std::mutex> lock(resultMutex_);
-        polytopeResult_ = result;
         result.dt_swap_result = mc_rtc::clock::now() - start_swap_result;
         result.dt_loop_total = mc_rtc::clock::now() - start_loop_time;
+        polytopeResult_ = result;
       }
       computedFirst_ = true;
     }

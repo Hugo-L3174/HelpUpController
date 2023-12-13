@@ -28,6 +28,9 @@ struct PolytopeResult
   mc_rtc::duration_ms dt_compute_stability_polyhedron;
   mc_rtc::duration_ms dt_end_solver;
   mc_rtc::duration_ms dt_swap_result;
+  mc_rtc::duration_ms dt_stabiliplus_lp;
+  mc_rtc::duration_ms dt_stabiliplus_init;
+  mc_rtc::duration_ms dt_stabiliplus_struct;
 };
 
 struct MCStabilityPolytope
@@ -117,6 +120,24 @@ struct MCStabilityPolytope
   {
     std::lock_guard<std::mutex> lock(resultMutex_);
     return polytopeResult_.dt_swap_result;
+  }
+
+  inline mc_rtc::duration_ms dt_stabiliplus_lp() const noexcept
+  {
+    std::lock_guard<std::mutex> lock(resultMutex_);
+    return polytopeResult_.dt_stabiliplus_lp;
+  }
+
+  inline mc_rtc::duration_ms dt_stabiliplus_init() const noexcept
+  {
+    std::lock_guard<std::mutex> lock(resultMutex_);
+    return polytopeResult_.dt_stabiliplus_init;
+  }
+
+  inline mc_rtc::duration_ms dt_stabiliplus_struct() const noexcept
+  {
+    std::lock_guard<std::mutex> lock(resultMutex_);
+    return polytopeResult_.dt_stabiliplus_struct;
   }
 
   void addToGUI(mc_rtc::gui::StateBuilder & gui, std::vector<std::string> category = {"Polytopes"});

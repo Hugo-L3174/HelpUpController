@@ -2,8 +2,12 @@
 
 DCM_VRPtracker::DCM_VRPtracker(double timeStep, double cutoffPeriod, double mass, double propGain, double integGain)
 : timeStep_(timeStep), mass_(mass), propGain_(propGain), integGain_(integGain), omegaBuffer_(19),
-  omegaLowPass_(timeStep, cutoffPeriod)
+  omegaLowPass_(timeStep, cutoffPeriod), VRPestimator_(timeStep, 1.)
 {
+  for(size_t i = 0; i < omegaBuffer_.capacity(); i++)
+  {
+    omegaBuffer_.push_back(std::sqrt(9.81));
+  }
 }
 
 void DCM_VRPtracker::resetTracker(Eigen::Vector3d posCoM, Eigen::Vector3d velCoM, Eigen::Vector3d accCoM)
@@ -45,6 +49,10 @@ void DCM_VRPtracker::updateTrackedValues()
   computeDCM();
   computeModelVRP();
   computeForcesVRP(); // if model mode false?
+  if(!modelMode_)
+  {
+    computeCombinedVRP();
+  }
 }
 
 void DCM_VRPtracker::updateObjectiveValues(const Eigen::Vector3d & DCMobjective)
@@ -110,6 +118,12 @@ void DCM_VRPtracker::computeForcesVRP()
       posCoM_ - (appliedForces_.force() - mass_ * gravityVec()) / (mass_ * (omega_ * omega_ - dotOmega_));
 }
 
+void DCM_VRPtracker::computeCombinedVRP()
+{
+  VRPestimator_.update(modelVRP_, measuredForcesVRP_);
+  combinedVRP_ = VRPestimator_.eval();
+}
+
 void DCM_VRPtracker::computeCommandVRP(double P, double I)
 {
   // TODO fix feedforward term
@@ -121,27 +135,30 @@ void DCM_VRPtracker::computeCommandVRP(double P, double I)
 
 void DCM_VRPtracker::computeVRPerror()
 {
-  if(modelMode_)
-  {
-    VRPerror_ = commandVRP_ - modelVRP_;
-  }
-  else
-  {
-    VRPerror_ = commandVRP_ - measuredForcesVRP_;
-  }
+  VRPerror_ = commandVRP_ - modelVRP_;
+  // for now only using acc model
+  // if(modelMode_)
+  // {
+  //   VRPerror_ = commandVRP_ - modelVRP_;
+  // }
+  // else
+  // {
+  //   VRPerror_ = commandVRP_ - measuredForcesVRP_;
+  // }
 }
 
 void DCM_VRPtracker::computeMissingForces()
 {
-  if(modelMode_)
-  {
-    missingForces_.force() = mass_ * (omega_ * omega_ - dotOmega_) * (posCoM_ - commandVRP_) - mass_ * accCoM_;
-  }
-  else
-  {
-    missingForces_.force() = mass_ * (omega_ * omega_ - dotOmega_) * (posCoM_ - commandVRP_) + mass_ * gravityVec()
-                             - appliedForces_.force(); /*Missing butt contact force !*/
-  }
+  missingForces_.force() = mass_ * (omega_ * omega_ - dotOmega_) * (posCoM_ - commandVRP_) - mass_ * accCoM_;
+  // if(modelMode_)
+  // {
+  //   missingForces_.force() = mass_ * (omega_ * omega_ - dotOmega_) * (posCoM_ - commandVRP_) - mass_ * accCoM_;
+  // }
+  // else
+  // {
+  //   missingForces_.force() = mass_ * (omega_ * omega_ - dotOmega_) * (posCoM_ - commandVRP_) + mass_ * gravityVec()
+  //                            - appliedForces_.force(); /*Missing butt contact force !*/
+  // }
 }
 
 void DCM_VRPtracker::addGuiElements(mc_rtc::gui::StateBuilder & gui)
@@ -208,6 +225,8 @@ void DCM_VRPtracker::addLogEntries(std::string robotName, mc_rtc::Logger & logge
                      [this]() -> const Eigen::Vector3d & { return modelVRP_; });
   logger.addLogEntry(fmt::format("DCMtracker_{}_VRP forces model", robotName),
                      [this]() -> const Eigen::Vector3d & { return measuredForcesVRP_; });
+  logger.addLogEntry(fmt::format("DCMtracker_{}_VRP combined", robotName),
+                     [this]() -> const Eigen::Vector3d & { return combinedVRP_; });
   logger.addLogEntry(fmt::format("DCMtracker_{}_omega", robotName), [this]() -> const double & { return omega_; });
   logger.addLogEntry(fmt::format("DCMtracker_{}_desired VRP command", robotName),
                      [this]() -> const Eigen::Vector3d & { return commandVRP_; });

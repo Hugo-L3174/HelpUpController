@@ -1,6 +1,5 @@
 #include "RobotTakePoseObserved.h"
 
-// #include "../HelpUpController.h"
 #include <mc_control/fsm/Controller.h>
 
 void RobotTakePoseObserved::configure(const mc_rtc::Configuration & config)
@@ -12,8 +11,6 @@ void RobotTakePoseObserved::configure(const mc_rtc::Configuration & config)
 
 void RobotTakePoseObserved::start(mc_control::fsm::Controller & ctl)
 {
-  // auto & ctl = static_cast<HelpUpController &>(ctl_);
-
   if(config_.has("RHandTrajectory"))
   {
     RHandTrajectoryTask_ =
@@ -56,15 +53,15 @@ void RobotTakePoseObserved::start(mc_control::fsm::Controller & ctl)
 
 bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl)
 {
-  // auto & ctl = static_cast<HelpUpController &>(ctl_);
   auto RHtargetFrame = config_("RHandTrajectory")("targetFrame");
   auto LHtargetFrame = config_("LHandTrajectory")("targetFrame");
 
   // get world frame objective
-  // auto updatedObjectiveRH = ctl.robot(RHtargetFrame("robot")).frame(RHtargetFrame("frame")).position();
-  // cheating for now and get real pose to test
   auto updatedObjectiveRH =
-      RHobjectiveOffset_ * ctl.realRobot(RHtargetFrame("robot")).frame(RHtargetFrame("frame")).position();
+      RHobjectiveOffset_ * ctl.robot(RHtargetFrame("robot")).frame(RHtargetFrame("frame")).position();
+  // cheating for now and get real pose to test
+  // auto updatedObjectiveRH =
+  //     RHobjectiveOffset_ * ctl.realRobot(RHtargetFrame("robot")).frame(RHtargetFrame("frame")).position();
   // update offset of objective (transform between control frame and observed frame)
   auto controlledFrameRH =
       ctl.robot(config_("RHandTrajectory")("robot")).frame(config_("RHandTrajectory")("frame")).position();
@@ -76,10 +73,11 @@ bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl)
   RHandTrajectoryTask_->target(updatedObjectiveRH);
 
   // same with left hand
-  // auto updatedObjectiveLH = ctl.robot(LHtargetFrame("robot")).frame(LHtargetFrame("frame")).position();
-  // cheating for now and get real pose to test
   auto updatedObjectiveLH =
-      LHobjectiveOffset_ * ctl.realRobot(LHtargetFrame("robot")).frame(LHtargetFrame("frame")).position();
+      LHobjectiveOffset_ * ctl.robot(LHtargetFrame("robot")).frame(LHtargetFrame("frame")).position();
+  // cheating for now and get real pose to test
+  // auto updatedObjectiveLH =
+  //     LHobjectiveOffset_ * ctl.realRobot(LHtargetFrame("robot")).frame(LHtargetFrame("frame")).position();
   // update offset of objective (transform between control frame and observed frame)
   auto controlledFrameLH =
       ctl.robot(config_("LHandTrajectory")("robot")).frame(config_("LHandTrajectory")("frame")).position();

@@ -3,6 +3,7 @@
 
 #include <mc_filter/LeakyIntegrator.h>
 #include <mc_filter/LowPass.h>
+#include <mc_filter/LowPassCompose.h>
 #include <SpaceVecAlg/SpaceVecAlg>
 #include <boost/circular_buffer.hpp>
 #include <gram_savitzky_golay/gram_savitzky_golay.h>
@@ -136,6 +137,8 @@ protected:
    */
   void computeForcesVRP();
 
+  void computeCombinedVRP();
+
   /* \brief Compute the VRP command necessary to achieve the desired DCM
    *
    */
@@ -176,6 +179,10 @@ private:
    */
   mc_filter::LeakyIntegrator<Eigen::Vector3d> DCMintegrator_;
 
+  /* composing filter for VRP measured through forces and VRP measured through accelerations
+   */
+  mc_filter::LowPassCompose<Eigen::Vector3d> VRPestimator_;
+
   /* lowPass for dot omega filtering
    */
   mc_filter::LowPass<Eigen::Vector3d> omegaLowPass_;
@@ -197,6 +204,10 @@ private:
      careful: this assumes all forces acting on the CoM are accounted for !
   */
   Eigen::Vector3d measuredForcesVRP_ = Eigen::Vector3d::Zero();
+
+  /* combined estimation of VRP using high pass on model VRP and low pass on forces VRP
+   */
+  Eigen::Vector3d combinedVRP_ = Eigen::Vector3d::Zero();
 
   sva::ForceVecd appliedForces_ = sva::ForceVecd::Zero();
 

@@ -98,12 +98,12 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl)
         ctl.realRobots().robot("human").posW(HumanHipsPose);
 
         // adjust human position in mujoco
-        mc_rtc::log::info("[ResetPoses state] Resetting human mujoco position");
-        auto dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot("human").name());
-        if(ctl.datastore().has(dsEntry))
-        {
-          ctl.datastore().call<void, const sva::PTransformd &>(dsEntry, HumanHipsPose);
-        }
+        // mc_rtc::log::info("[ResetPoses state] Resetting human mujoco position");
+        // auto dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot("human").name());
+        // if(ctl.datastore().has(dsEntry))
+        // {
+        //   ctl.datastore().call<void, const sva::PTransformd &>(dsEntry, HumanHipsPose);
+        // }
       }
 
       // Adjust main robot position relative to chair

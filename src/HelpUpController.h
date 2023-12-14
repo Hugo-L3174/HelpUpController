@@ -193,6 +193,8 @@ private:
   bool OmegaZAcc_ = true;
   bool FilteredDerivation_ = true;
 
+  mc_rtc::Configuration wrenchDistributionTarget_;
+
   Eigen::Vector3d DCMobjective_; // formerly constant xsensFinalpos_
   Eigen::Vector3d robDCMobjective_;
 

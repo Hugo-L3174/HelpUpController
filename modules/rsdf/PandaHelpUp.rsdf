@@ -14,7 +14,7 @@
 
 
   <planar_surface name="HumanFront" link="torso_box">
-    <origin rpy="0.0 -1.57 0.0" xyz="-0.0685 -0.096 -0.105" />
+    <origin rpy="-3.14 1.57 0.0" xyz="-0.0685 -0.096 -0.105" />
     <points>
       <point xy="-0.1 0.1" />
       <point xy="-0.1 -0.1" />

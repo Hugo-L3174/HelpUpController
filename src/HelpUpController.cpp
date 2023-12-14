@@ -38,6 +38,7 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   // Load entire controller configuration file
   config_.load(config);
   // trajectories_ = std::make_shared<TrajectoryModel> (/*path*/);
+  config_("wrenchDistributionTarget", wrenchDistributionTarget_);
   config_("handContactsForBalance", handContactsForBalance_);
   auto measuredPerson = config_("measuredPerson");
   measuredPerson("mass", humanMass_);
@@ -189,7 +190,7 @@ bool HelpUpController::run()
   {
     // pandaTransform_->refAccel(robot("human").frame("Back").)
     pandaTransform_->refVelB(robot("human").frame("Back").velocity());
-    pandaTransform_->targetSurface(robot("human").robotIndex(), "Back", sva::PTransformd::Identity());
+    pandaTransform_->targetSurface(robot("human").robotIndex(), "Back", sva::PTransformd(Eigen::Vector3d(0, 0, -0.05)));
   }
 
   computePolytope(robMeasuredDCM_, firstPolyRobOK_, mainRob);
@@ -222,15 +223,15 @@ bool HelpUpController::run()
   else
   {
     // two contacts or less: only feet contacts -> we can switch to force measurements
-    modelMode_ = true;
+    modelMode_ = false;
   }
 
   humanDCMTracker_->updateObjectiveValues(DCMobjective_);
   robotDCMTracker_->updateObjectiveValues(robDCMobjective_);
 
   auto desiredCoMWrench = humanDCMTracker_->getMissingForces();
-  distributeHandsWrench(desiredCoMWrench, robot("human"), "Back", "RightShoulder");
-  // distributeHandsWrench(desiredCoMWrench, robot("panda"), "HumanBack", "HumanFront");
+  distributeHandsWrench(desiredCoMWrench, robot(wrenchDistributionTarget_("robot")),
+                        wrenchDistributionTarget_("helpSurfaceLH"), wrenchDistributionTarget_("helpSurfaceRH"));
   t_ += solver().dt();
   bool ok = mc_control::fsm::Controller::run();
   return ok;
@@ -362,8 +363,10 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
   {
     case mainRob:
     {
+      auto planes = polytope_.constraintPlanes();
       Eigen::Vector3d chebichev = polytope_.chebichevCenter();
-      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * chebichev;
+      Eigen::Vector3d bary = polytope_.baryCenter();
+      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * bary;
       filteredObjective.z() = 0.78;
       objective = polytope_.objectiveInPolytope(filteredObjective);
       if(datastore().has("RobotStabilizer::setCoMTarget"))
@@ -828,63 +831,24 @@ void HelpUpController::updateRealHumContacts()
   double distThreshold = 0.002;
   double speedThreshold = 1e-4;
 
-  // for (auto contact:solver().contacts())
-  // {
-  //  std::cout<<contact.contactId(robots())<<std::endl;
-  // }
-
-  // std::cout<<"-------------------------------- human contacts"<<std::endl;
-
-  // std::cout<<"top pose is"<<robot("chair").surfacePose("Top").translation()<<std::endl;
-  // std::cout<<"rcheek pose is"<<robot("human").surfacePose("RCheek").translation()<<std::endl;
-  // std::cout<<"rcheek error is"<<RCheekError.translation().norm()<<std::endl;
+  auto prevContactNb = contactSetHum_->numberOfContacts() / 4;
 
   contactSetHum_ = std::make_shared<ContactSet>(false);
   contactSetHum_->mass(humanMass_);
   contactSetHum_->setFrictionSides(6);
 
-  // std::cout<<RFootGround->pair.getDistance()<<std::endl;
-  // std::cout<<LFootGround->pair.getDistance()<<std::endl;
-  // std::cout<<RCheekChair->pair.getDistance()<<std::endl;
-  // std::cout<<LCheekChair->pair.getDistance()<<std::endl;
-  // std::cout<<RHandShoulder->pair.getDistance()<<std::endl;
-  // std::cout<<LHandBack->pair.getDistance()<<std::endl;
+  // adding feet contacts in any case
+  addRealHumContact("RightSole", 0, humanMass_ * 9.81, ContactType::support);
+  addRealHumContact("LeftSole", 0, humanMass_ * 9.81, ContactType::support);
 
-  // if (RFootGround->pair.getDistance()<=distThreshold)   // Distance is low enough to consider contact
-  // {
-  //   addRealHumContact("RightSole", 0, humanMass_*9.81, ContactType::support);
-  //   // std::cout<<"adding right sole"<<std::endl;
-  // }
-
-  // if (LFootGround->pair.getDistance()<=distThreshold)
-  // {
-  //   addRealHumContact("LeftSole", 0, humanMass_*9.81, ContactType::support);
-  //   // std::cout<<"adding left sole"<<std::endl;
-  // }
-
-  // We switch to a force shoes condition
-  if(RFShoe_.force().z() + RBShoe_.force().z() >= 10.) // Vertical force is high enough to consider contact
-  {
-    addRealHumContact("RightSole", 0, humanMass_ * 9.81, ContactType::support);
-    // std::cout<<"adding right sole"<<std::endl;
-  }
-
-  if(LFShoe_.force().z() + LBShoe_.force().z() >= 10.)
-  {
-    addRealHumContact("LeftSole", 0, humanMass_ * 9.81, ContactType::support);
-    // std::cout<<"adding left sole"<<std::endl;
-  }
-
-  if(RCheekChair->pair.getDistance() <= distThreshold && (humanDCMTracker_->getAppliedForcesSum().force().z() < 300))
+  if(RCheekChair->pair.getDistance() <= distThreshold)
   {
     addRealHumContact("RCheek", 0, humanMass_ * 9.81, ContactType::support);
-    // std::cout<<"adding right cheek"<<std::endl;
   }
 
-  if(LCheekChair->pair.getDistance() <= distThreshold && (humanDCMTracker_->getAppliedForcesSum().force().z() < 300))
+  if(LCheekChair->pair.getDistance() <= distThreshold)
   {
     addRealHumContact("LCheek", 0, humanMass_ * 9.81, ContactType::support);
-    // std::cout<<"adding left cheek"<<std::endl;
   }
 
   // if (LHandBack->pair.getDistance()<=distThreshold)

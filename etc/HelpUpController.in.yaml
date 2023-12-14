@@ -530,10 +530,19 @@ states:
       targetFrame:
         robot: panda
         frame: HumanFront
+        controlPoints:
+          - [0.0, 0.0, 0.2]
+        oriWaypoints:
+          - [4.0, [0.0, 0.0, 0.0]]
     LHandTrajectory:
       targetFrame:
         robot: panda
         frame: HumanBack
+        translation: [0.0, -0.05, 0.0]
+        controlPoints: # in target frame !
+          - [-0.1, -0.2, 0.1]
+        oriWaypoints:
+          - [4.0, [0.0, 0.0, 0.0]]
 
 
 
@@ -730,15 +739,6 @@ states:
 
   RemoveHandsHRP4:
     base: MetaTasks
-    # RemoveContacts:
-    #   - r1: hrp4 #e2dr
-    #     r2: human
-    #     r1Surface: LeftHand #Flat
-    #     r2Surface: Back
-    #   - r1: hrp4 #e2dr
-    #     r2: human
-    #     r1Surface: RightHand #Flat
-    #     r2Surface: RightShoulder
     # make bsplines to get away from human
     tasks:
       RHandTrajectory:
@@ -773,9 +773,6 @@ states:
             - [0.3, 0.35, 0.1]
         completion:
           timeElapsed: true
-#buttock is at 0 0 0.72 ori 0
-#rhand is at 0.11 -0.22 0.68 ori 0.21 -0.2 0.1 w:0.95 equi: 0.68 -0.65 -0.32
-#lhand is at 0.11 0.22 0.68 ori -0.21 -0.2 -0.1 w:0.95 equi: -0.68 -0.65 -0.32
 
 
   HRP4pos:
@@ -878,7 +875,7 @@ states:
 
   HelpDemoHRP4:
     base: Parallel
-    states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_HRP4Human] #AddCollisionWithHuman,
+    states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_HRP4Panda] #AddCollisionWithHuman,
 
   HelpDemoE2DR:
     base: Parallel
@@ -1035,6 +1032,16 @@ measuredPerson:
   withLegs: false        # 2*2.3kg
   # withLegs: false
   withWrists: false      # 2*1.5kg
+
+wrenchDistributionTarget:
+  # robot: human
+  # helpSurfaceLH: Back
+  # helpSurfaceRH: RightShoulder
+
+  robot: panda
+  helpSurfaceLH: HumanBack
+  helpSurfaceRH: HumanFront
+
 
 Omega:
   WithVerticalAcc: true

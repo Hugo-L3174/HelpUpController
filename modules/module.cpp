@@ -1,8 +1,6 @@
 #include "module.h"
-
-#include "config.h"
-
 #include <RBDyn/parsers/urdf.h>
+#include "config.h"
 #include <sch/S_Object/S_Box.h>
 
 #include <boost/filesystem.hpp>
@@ -109,8 +107,9 @@ inertia: [0.00013625, 0.0, 0.0, 0.00013625, 0.0, 0.00000042]
     ofs << rbd::parsers::to_urdf({mb, mbc, mbg, limits, _visual, _collision, "PandaHelpUp"});
   }
   this->urdf_path = urdf_path.string();
-  this->calib_dir = panda_prosthesis::calib_DIR;
-  this->name = "panda_default";
+  this->calib_dir = mc_robots::panda_DESCRIPTION_PATH + std::string{"/calib_panda_helpup"};
+  this->rsdf_dir = mc_robots::panda_DESCRIPTION_PATH + std::string{"/rsdf/panda_helpup"};
+  this->name = "panda_helpup";
   mc_rtc::log::info("Wrote URDF to {}", urdf_path.string());
 }
 

@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<robot name="panda_default">
+
+  <planar_surface name="HumanBack" link="torso_box">
+    <origin rpy="0.0 1.57 0.0" xyz="0.685 0.0 0.0" />
+    <points>
+      <point xy="-0.1 0.1" />
+      <point xy="-0.1 -0.1" />
+      <point xy="0.1 -0.1" />
+      <point xy="0.1 0.1" />
+    </points>
+    <material name="plastic" />
+  </planar_surface>
+
+
+  <planar_surface name="HumanFront" link="torso_box">
+    <origin rpy="0.0 -1.57 0.0" xyz="-0.685 -0.096 -0.105" />
+    <points>
+      <point xy="-0.1 0.1" />
+      <point xy="-0.1 -0.1" />
+      <point xy="0.1 -0.1" />
+      <point xy="0.1 0.1" />
+    </points>
+    <material name="plastic" />
+  </planar_surface>
+
+</robot>

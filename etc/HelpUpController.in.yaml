@@ -476,14 +476,19 @@ states:
       robot: hrp4
       frame: RightHand
       weight: 10000.0
-      stiffness: 300
+      stiffness: 50
       duration: 5.0
+      gainsInterpolation:
+        stiffness:
+          - [3.5, [50, 50, 50, 500, 500, 500]]
       targetFrame:
         robot: human
         frame:  RightShoulder
         # translation: [0.0, 0.0, 0.02]
         controlPoints:
-          - [0, 0, 0.1]
+          - [0.2, 0.0, 0.2]
+        oriWaypoints:
+          - [4.0, [0.0, 0.0, 0.0]]
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 10]
@@ -495,14 +500,19 @@ states:
       robot: hrp4
       frame: LeftHand
       weight: 10000.0
-      stiffness: 300
+      stiffness: 50
       duration: 5.0
+      gainsInterpolation:
+        stiffness:
+          - [3.5, [50, 50, 50, 500, 500, 500]]
       targetFrame:
         robot: human
         frame: Back
-        # translation: [0.0, 0.0, 0.02]
+        translation: [0.0, -0.05, 0.0]
         controlPoints: # in target frame !
-          - [0, 0, 0.3]
+          - [-0.1, -0.2, 0.1]
+        oriWaypoints:
+          - [4.0, [0.0, 0.0, 0.0]]
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 10]
@@ -641,8 +651,8 @@ states:
       targetFrame:
         robot: human
         frame: Back
-        # offset:
-        #   translation: [0, 0, -0.02]
+        offset:
+          translation: [0.0, -0.05, 0.0]
         #   rotation: [0, 0, -1.57]
       weight: 10000.0
       stiffness: 40
@@ -720,15 +730,15 @@ states:
 
   RemoveHandsHRP4:
     base: MetaTasks
-    RemoveContacts:
-      - r1: hrp4 #e2dr
-        r2: human
-        r1Surface: LeftHand #Flat
-        r2Surface: Back
-      - r1: hrp4 #e2dr
-        r2: human
-        r1Surface: RightHand #Flat
-        r2Surface: RightShoulder
+    # RemoveContacts:
+    #   - r1: hrp4 #e2dr
+    #     r2: human
+    #     r1Surface: LeftHand #Flat
+    #     r2Surface: Back
+    #   - r1: hrp4 #e2dr
+    #     r2: human
+    #     r1Surface: RightHand #Flat
+    #     r2Surface: RightShoulder
     # make bsplines to get away from human
     tasks:
       RHandTrajectory:
@@ -737,27 +747,36 @@ states:
         frame: RightHand #Flat
         weight: 500.0
         stiffness: 100.0
-        duration: 2.0
+        duration: 4.0
         targetFrame:
-          robot: human
-          frame: RightShoulder
-          translation: [0.2, 0.5, 0]
-          rotation: [0, 1.5, 0]
+          robot: hrp4
+          frame: Buttock
+          translation: [0.11, -0.22, 0.0]
+          rotation : [0.68, -0.65, -0.32]
           controlPoints:
-            - [0, 0.2, 0.2]
+            - [0.3, -0.35, 0.1]
+        completion:
+          timeElapsed: true
       LHandTrajectory:
         type: bspline_trajectory
         robot: hrp4 #e2dr
         frame: LeftHand #Flat
         weight: 500.0
         stiffness: 100.0
-        duration: 2.0
+        duration: 4.0
         targetFrame:
-          robot: human
-          frame: Back
-          translation: [-0.2, -0.2, 0.2]
+          robot: hrp4
+          frame: Buttock
+          translation: [0.11, 0.22, 0.0]
+          rotation : [-0.68, -0.65, -0.32]
           controlPoints:
-            - [0, 0, 0.2]
+            - [0.3, 0.35, 0.1]
+        completion:
+          timeElapsed: true
+#buttock is at 0 0 0.72 ori 0
+#rhand is at 0.11 -0.22 0.68 ori 0.21 -0.2 0.1 w:0.95 equi: 0.68 -0.65 -0.32
+#lhand is at 0.11 0.22 0.68 ori -0.21 -0.2 -0.1 w:0.95 equi: -0.68 -0.65 -0.32
+
 
   HRP4pos:
     base: MetaTasks
@@ -837,7 +856,7 @@ states:
     transitions:
     - [Pause_2s, OK, RightStepFSMHRP4, Strict]
     - [RightStepFSMHRP4, OK, TakePositionHRP4Human, Auto]
-    - [TakePositionHRP4Human, OK, KeepPositionHRP4Human, Strict]
+    - [TakePositionHRP4Human, OK, KeepPositionHRP4Human, Auto]
     - [KeepPositionHRP4Human, OK, GoBackInitFSMHRP4, Strict]
 
   HelpFSM_HRP4Panda:
@@ -875,7 +894,7 @@ states:
   GoBackInitFSMHRP4:
     base: Meta
     transitions:
-    - [RemoveHandsHRP4, OK, RobotStabilizer::GoCenter, Strict]
+    - [RemoveHandsHRP4, OK, RobotStabilizer::GoCenter, Auto]
     - [RobotStabilizer::GoCenter, OK, HRP4pos, Auto]
 
 # OK between the states is the transition if the state output is OK -> I can branch with
@@ -997,6 +1016,9 @@ Replay:
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes1.bin
   log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin
+
+  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_alone_2023-07-03.bin
+  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_perturbed_2023-07-03.bin
   with-inputs: false
   with-outputs: false
   with-gui-inputs: false

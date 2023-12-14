@@ -49,11 +49,11 @@ inertia: [0.00013625, 0.0, 0.0, 0.00013625, 0.0, 0.00000042]
     _collisionTransforms[name] = sva::PTransformd::Identity();
 
     // FIXME: insufficient: need to add surfaces to use for wrench distribution
-    _frames.emplace_back("HumanBack", "torso_box",
-                         sva::PTransformd(sva::RotY(1.57), Eigen::Vector3d(box.size.x() / 2, 0, 0)));
-    _frames.emplace_back(
-        "HumanFront", "torso_box",
-        sva::PTransformd(sva::RotY(-1.57), Eigen::Vector3d(-box.size.x() / 2, -box.size.y() / 4, -box.size.z() / 4)));
+    // _frames.emplace_back("HumanBack", "torso_box",
+    //                      sva::PTransformd(sva::RotY(1.57), Eigen::Vector3d(box.size.x() / 2, 0, 0)));
+    // _frames.emplace_back(
+    //     "HumanFront", "torso_box",
+    //     sva::PTransformd(sva::RotY(-1.57), Eigen::Vector3d(-box.size.x() / 2, -box.size.y() / 4, -box.size.z() / 4)));
 
     mbg.addBody({mass, com, inertiaM, name});
     mbg.addJoint({rbd::Joint::Type::Fixed, true, "link8_to_box"});
@@ -97,6 +97,7 @@ inertia: [0.00013625, 0.0, 0.0, 0.00013625, 0.0, 0.00000042]
   mbc = rbd::MultiBodyConfig(mb);
   mbc.zero(mb);
 
+  // this->rsdf_dir =
   auto urdf_path = bfs::temp_directory_path() / ("PandaHelpUp.urdf");
   {
     rbd::parsers::Limits limits;

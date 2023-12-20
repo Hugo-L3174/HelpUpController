@@ -131,6 +131,11 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
   if(config_.has("RightHandImped"))
   {
     rightHandImpedancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
+    if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
+    {
+      rightHandImpedancePtr_->targetWrench(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedRHWrench"));
+    }
+
     RHgains_ = sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
     gainsVec.push_back(RHgains_);
     surfVec.push_back(config_("RightHandImped")("frame"));
@@ -139,6 +144,10 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
   if(config_.has("LeftHandImped"))
   {
     leftHandImpedancePtr_->targetPose(LHtargetOffset_ * ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).position());
+    if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
+    {
+      leftHandImpedancePtr_->targetWrench(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedLHWrench"));
+    }
     LHgains_ = sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
     gainsVec.push_back(LHgains_);
     surfVec.push_back(config_("LeftHandImped")("frame"));

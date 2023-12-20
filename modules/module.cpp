@@ -16,7 +16,7 @@ PandaHelpUpRobotModule::PandaHelpUpRobotModule() : mc_robots::PandaRobotModule(f
 ---
 # DUMMY DATA, 50 grams solid cylinder, length 18 cm, radius 1cm
 # Mass (in kilograms)
-mass: 0.05
+mass: 1.2
 # Center of mass (in meters)
 com: [0.0, 0.0, 0.09]
 # Inertia (kg.meters²) [Ixx, Ixy, Ixz, Iyy, Iyz, Izz]
@@ -43,6 +43,7 @@ inertia: [0.00013625, 0.0, 0.0, 0.00013625, 0.0, 0.00000042]
     geom.data = box;
     geom.type = rbd::parsers::Geometry::BOX;
     _visual[name] = {{name, sva::PTransformd::Identity(), geom, {}}};
+    // TODO: create a collision object smaller to enforce force limited collisions
     _collisionObjects[name] = {name, std::make_shared<sch::S_Box>(box.size.x(), box.size.y(), box.size.z())};
     _collisionTransforms[name] = sva::PTransformd::Identity();
 

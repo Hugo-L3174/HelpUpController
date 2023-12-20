@@ -99,6 +99,37 @@ collisions:
       sDist: 0.0001
       damping: 0
       r2UnactiveJoints: *unactiveJoints
+- type: collision
+  r1: hrp4 #e2dr
+  r2: panda
+  collisions:
+    - body1: R_WRIST_Y_LINK
+      body2: torso_box
+      iDist: 0.03
+      sDist: 0.001
+      damping: 0
+      r2UnactiveJoints: &pandaUnactiveJoints
+        [panda_joint0, panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7]
+    - body1: R_WRIST_P_LINK
+      body2: torso_box
+      iDist: 0.03
+      sDist: 0.001
+      damping: 0
+      r2UnactiveJoints: *pandaUnactiveJoints
+    - body1: L_WRIST_Y_LINK
+      body2: torso_box
+      iDist: 0.03
+      sDist: 0.001
+      damping: 0
+      r2UnactiveJoints: *pandaUnactiveJoints
+    - body1: L_WRIST_Y_LINK
+      body2: torso_box
+      iDist: 0.03
+      sDist: 0.001
+      damping: 0
+      r2UnactiveJoints: *pandaUnactiveJoints
+
+
 #     # robot right wrist collision with human torso and right arm
 #     - body1: r_wrist
 #       body2: TorsoLink
@@ -261,7 +292,7 @@ states:
       translation: [0.1, -0.55, 0.75]
       rotation: [0.0, 0.0, 1.6]
     pandaOffset: # in chair frame
-      translation: [0.3, 0.6, 0.725]
+      translation: [0.3, 0.6, 0.75]
       rotation: [0.0, 0.0, -1.57]
     AddContactsAfter:
       - r1: hrp4
@@ -334,24 +365,28 @@ states:
     above: LeftSurface
     completion:
       dcmEval: [0.003, 0.003, 0.05]
+    stayManualAfter: true
 
   RobotStabilizer::LeftSupport:
     base: ChangeBalanceConfig
     # completion: {}
     StabilizerConfig:
       contacts: [Left]
+    stayManualAfter: true
 
   RobotStabilizer::GoRight:
     base: ChangeBalanceConfig
     above: RightSurface
     completion:
       dcmEval: [0.003, 0.003, 0.05]
+    stayManualAfter: true
 
   RobotStabilizer::RightSupport:
     base: RobotStabilizer::GoRight
     completion: {}
     StabilizerConfig:
       contacts: [Right]
+    stayManualAfter: true
 
 # This state makes the step to the right while keeping the CoM above the left contact
   RobotStabilizer::MakeRightStepHRP4:
@@ -526,6 +561,9 @@ states:
 
   TakePositionHRP4Panda:
     base: TakePositionHRP4Human
+    RemoveCollisions: # removing default collisions with the human model, not needed in panda case
+      - r1: hrp4
+        r2: human
     RHandTrajectory:
       targetFrame:
         robot: panda
@@ -538,9 +576,9 @@ states:
       targetFrame:
         robot: panda
         frame: HumanBack
-        translation: [0.0, -0.05, 0.0]
+        translation: [0.0, -0.1, 0.05]
         controlPoints: # in target frame !
-          - [-0.1, -0.2, 0.1]
+          - [-0.1, -0.2, 0.15]
         oriWaypoints:
           - [4.0, [0.0, 0.0, 0.0]]
 
@@ -634,7 +672,7 @@ states:
       stiffness: 40
       wrench:
         couple: [0.0, 0.0, 0.0]
-        force: [0.0, 0.0, 10.0]
+        force: [0.0, 0.0, 5.0]
       gains:
         mass:
           angular: [10, 10, 10]
@@ -644,7 +682,7 @@ states:
           linear: [1000, 1000, 1000]
         spring:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 10]
+          linear: [1000, 1000, 1000]
         wrench:
           angular: [0, 0, 0]
           linear: [0, 0, 1]
@@ -667,7 +705,7 @@ states:
       stiffness: 40
       wrench:
         couple: [0.0, 0.0, 0.0]
-        force: [0.0, 0.0, 10.0]
+        force: [0.0, 0.0, 5.0]
       gains:
         mass:
           angular: [10, 10, 10]
@@ -677,7 +715,7 @@ states:
           linear: [1000, 1000, 1000]
         spring:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 10]
+          linear: [1000, 1000, 1000]
         wrench:
           angular: [0, 0, 0]
           linear: [0, 0, 1]
@@ -860,7 +898,7 @@ states:
     base: Meta
     transitions:
     - [Pause_2s, OK, RightStepFSMHRP4, Strict]
-    - [RightStepFSMHRP4, OK, TakePositionHRP4Panda, Auto]
+    - [RightStepFSMHRP4, OK, TakePositionHRP4Panda, Strict]
     - [TakePositionHRP4Panda, OK, KeepPositionHRP4Panda, Strict]
     - [KeepPositionHRP4Panda, OK, GoBackInitFSMHRP4, Strict]
 
@@ -983,7 +1021,7 @@ ObserverPipelines:
   #     bodySensor: Accelerometer
 
 
-Plugins: [Replay, XsensPlugin, ForceShoePlugin] # RobotModelUpdate, UDPPlugin]
+Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate, UDPPlugin] # RobotModelUpdate, UDPPlugin]
 
 UDPPlugin:
   # Global configuration options for UDPPlugin
@@ -991,7 +1029,8 @@ UDPPlugin:
   # See https://jrl-umi3218.github.io/mc_rtc/tutorials/usage/global-plugins.html for more details
   robots:
     hrp4:
-      host: localhost
+      # host: localhost
+      host: hrp4
       port: 4444
       ignoredJoints:
         #joints: [CHEST_P, CHEST_Y, R_HIP_Y, R_HIP_R, R_HIP_P, L_HIP_Y, L_HIP_R, L_HIP_P, R_HAND_J0, R_HAND_J1, L_HAND_J0, L_HAND_J1, L_SHOULDER_R]
@@ -1013,6 +1052,7 @@ Replay:
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes1.bin
   log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin
+  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/18dec2023.bin
 
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_alone_2023-07-03.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_perturbed_2023-07-03.bin
@@ -1023,8 +1063,9 @@ Replay:
 
 
 measuredPerson:
-  # mass: 42 # Wanchen
-  mass: 52 # Celia
+  mass: 42 # Wanchen
+  # mass: 52 # Celia
+  # mass: 75
   withSuit: true        # 10kg
   # withSuit: false
   withShoes: true       # 2*1.1kg

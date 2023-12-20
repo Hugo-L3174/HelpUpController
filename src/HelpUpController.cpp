@@ -1,6 +1,7 @@
 #include "HelpUpController.h"
 #include <mc_control/SimulationContactPair.h>
 #include <mc_observers/ObserverPipeline.h>
+#include <mc_panda/devices/Robot.h>
 #include <mc_rtc/gui/plot.h>
 #include <mc_solver/CoMIncPlaneConstr.h>
 #include <mc_tasks/MetaTaskLoader.h>
@@ -119,6 +120,10 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   humanDCMTracker_ = std::make_shared<DCM_VRPtracker>(dt, cutoffPeriod_, humanMass_, DCMpropgain_, DCMinteggain_);
   robotDCMTracker_ = std::make_shared<DCM_VRPtracker>(dt, cutoffPeriod_, robot().mass(), DCMpropgain_, DCMinteggain_);
 
+  datastore().make_call("HelpUp::ForceMode", [this]() { return computedForceMode_; });
+  datastore().make_call("HelpUp::ComputedLHWrench", [this]() { return getLHWrenchComputed(); });
+  datastore().make_call("HelpUp::ComputedRHWrench", [this]() { return getRHWrenchComputed(); });
+
   // accLowPass_.dt(dt);
   // accLowPass_.cutoffPeriod(cutoffPeriod_);
 
@@ -180,7 +185,8 @@ bool HelpUpController::run()
   // Assume positions have been reset when first poly is computed (only ran once)
   if(firstPolyHumOK_ && !pandaTaskAdded_ && robots().hasRobot("panda"))
   {
-    pandaTransform_ = std::make_shared<mc_tasks::TransformTask>(robot("panda").frame("HumanBack"), 10, 1000);
+    pandaTransform_ = std::make_shared<mc_tasks::TransformTask>(robot("panda").frame("HumanBack"), 1, 1000);
+    // pandaTransform_->stiffness(sva::MotionVecd(Eigen::Vector3d(100, 100, 100), Eigen::Vector3d(10, 10, 10)));
     solver().addTask(pandaTransform_);
     pandaTaskAdded_ = true;
   }
@@ -241,6 +247,27 @@ void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
 {
   mc_control::fsm::Controller::reset(reset_data);
 
+  // Overwrite the low default interaction thresholds: this causes problems when running in mujoco
+  mc_panda::Robot * robot_ptr = mc_panda::Robot::get(robot("panda")); // nullptr if not a panda
+  if(robot_ptr)
+  {
+    mc_rtc::log::info("Robot {} has a Robot-device", robot("panda").name());
+    robot_ptr->setJointImpedance(
+        {{3000, 3000, 3000, 2500, 2500, 2000,
+          2000}}); // values taken from
+                   // https://github.com/frankaemika/libfranka/blob/master/examples/examples_common.cpp#L18
+    // robot_ptr->setCollisionBehavior( //values taken from
+    // https://github.com/frankaemika/libfranka/blob/master/examples/generate_joint_velocity_motion.cpp#L39
+    //   {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}}, {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}},
+    //   {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}}, {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}},
+    //   {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}}, {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}},
+    //   {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}}, {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}});
+    robot_ptr->setCollisionBehavior( // TODO: be careful with this mode!
+        {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}}, {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}},
+        {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}}, {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}},
+        {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}}, {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}},
+        {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}}, {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}});
+  }
   /**
    * The observer pipeline for HRP4 will be initialized once the
    * position of all robots have been reset in ResetPoses state
@@ -502,7 +529,15 @@ void HelpUpController::addGuiElements()
   mc_rtc::gui::ArrowConfig MissingforceArrowConfig = forceArrowConfig;
   MissingforceArrowConfig.color = COLORS.at('g');
 
-  gui()->addElement({"HelpUp"}, mc_rtc::gui::Input("Chebichev Coeff [0-1]", chebichevCoef_));
+  gui()->addElement({"HelpUp"}, mc_rtc::gui::Input("Chebichev Coeff [0-1]", chebichevCoef_),
+                    mc_rtc::gui::Button("Panda high stiffness mode",
+                                        [this]() {
+                                          pandaTransform_->stiffness(sva::MotionVecd(Eigen::Vector3d(100, 100, 100),
+                                                                                     Eigen::Vector3d(50, 50, 50)));
+                                        }),
+                    mc_rtc::gui::Button("Panda low stiffness mode", [this]() { pandaTransform_->stiffness(1); }),
+                    mc_rtc::gui::Button("Add computed force mode", [this]() { computedForceMode_ = true; }),
+                    mc_rtc::gui::Button("Follow only mode", [this]() { computedForceMode_ = false; }));
 
   gui()->addElement({"HelpUp", "Points", "CoM"},
                     mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE),

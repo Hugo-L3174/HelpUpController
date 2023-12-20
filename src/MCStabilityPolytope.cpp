@@ -123,6 +123,7 @@ void MCStabilityPolytope::compute()
       result.edges = updateEdges();
       result.polytope = computationPolytope_;
       result.chebichevCenter = computationPolytope_->chebichevCenter();
+      result.baryCenter = computationPolytope_->baryPoint();
       result.dt_stabiliplus_lp = mc_rtc::duration_ms(computationPolytope_->LPTime() / 1000);
       result.dt_stabiliplus_init = mc_rtc::duration_ms(computationPolytope_->initTime() / 1000);
       result.dt_stabiliplus_struct = mc_rtc::duration_ms(computationPolytope_->structTime() / 1000);

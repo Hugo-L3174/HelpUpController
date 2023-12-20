@@ -187,6 +187,9 @@ private:
   bool pandaTaskAdded_ = false;
   std::shared_ptr<mc_tasks::TransformTask> pandaTransform_;
 
+  // mode to send or not the required computed force for balance to force control
+  bool computedForceMode_ = false;
+
   // model mode to choose to compute VRP using CoM acceleration (true) or contact forces (false)
   bool modelMode_ = true;
 

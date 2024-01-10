@@ -868,7 +868,7 @@ states:
     log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
     start_time: 8.0
     # end_time: 15.0
-    skip_iter: 10
+    skip_iter: 2
     pause: true
     Xsens:
       human:

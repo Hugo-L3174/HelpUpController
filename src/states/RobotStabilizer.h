@@ -65,6 +65,8 @@ protected:
    */
   void targetCoM(const Eigen::Vector3d & com);
 
+  void targetDCM(const Eigen::Vector3d & dcm);
+
   /**
    * @brief CoP height from contacts
    * - double support: average of both contact heights
@@ -102,6 +104,7 @@ protected:
   double comHeight_ = 0; /**< Desired height of the CoM above the CoP target */
   Eigen::Vector3d comTarget_ = Eigen::Vector3d::Zero(); /**< World target for the CoM */
   Eigen::Vector3d copTarget_ = Eigen::Vector3d::Zero(); /**< World target for the CoP */
+  Eigen::Vector3d dcmTarget_ = Eigen::Vector3d::Zero();
 
   bool optionalGUI_ = true; /**< Controls whether optional GUI elements are displayed */
 

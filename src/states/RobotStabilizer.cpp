@@ -280,6 +280,11 @@ void RobotStabilizer::targetCoM(const Eigen::Vector3d & com)
   copTarget_ = Eigen::Vector3d{comTarget_.x(), comTarget_.y(), copHeight};
 }
 
+void RobotStabilizer::targetDCM(const Eigen::Vector3d & dcm)
+{
+  dcmTarget_ = dcm;
+}
+
 bool RobotStabilizer::run(mc_control::fsm::Controller & ctl)
 {
   // auto & ctl = static_cast<HelpUpController &>(ctl_);

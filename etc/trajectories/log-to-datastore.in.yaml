@@ -59,6 +59,55 @@ XsensPlugin_raw_segments_Right Upper Leg_acceleration: ReplayPlugin::GetSegmentA
 XsensPlugin_raw_segments_Right Lower Leg_acceleration: ReplayPlugin::GetSegmentAcc::Right Lower Leg
 XsensPlugin_raw_segments_T8_acceleration: ReplayPlugin::GetSegmentAcc::T8
 
+
+# xsensCoMpose: ReplayPlugin::GetCoMpos
+# xsensCoMvel: ReplayPlugin::GetCoMvel
+# xsensCoMacc: ReplayPlugin::GetCoMacc
+
+
+# transform_human_HeadLink_target_pose: ReplayPlugin::GetSegmentPose::Head
+# transform_human_HipsLink_target_pose: ReplayPlugin::GetSegmentPose::Pelvis
+# transform_human_LAnkleLink_target_pose: ReplayPlugin::GetSegmentPose::Left Foot
+# transform_human_LForearmLink_target_pose: ReplayPlugin::GetSegmentPose::Left Forearm
+# transform_human_LHandLink_target_pose: ReplayPlugin::GetSegmentPose::Left Hand
+# transform_human_LLegLink_target_pose: ReplayPlugin::GetSegmentPose::Left Upper Leg
+# transform_human_LShinLink_target_pose: ReplayPlugin::GetSegmentPose::Left Lower Leg
+# transform_human_RAnkleLink_target_pose: ReplayPlugin::GetSegmentPose::Right Foot
+# transform_human_RForearmLink_target_pose: ReplayPlugin::GetSegmentPose::Right Forearm
+# transform_human_RHandLink_target_pose: ReplayPlugin::GetSegmentPose::Right Hand
+# transform_human_RLegLink_target_pose: ReplayPlugin::GetSegmentPose::Right Upper Leg
+# transform_human_RShinLink_target_pose: ReplayPlugin::GetSegmentPose::Right Lower Leg
+# transform_human_TorsoLink_target_pose: ReplayPlugin::GetSegmentPose::T8
+
+# transform_human_HeadLink_refVel: ReplayPlugin::GetSegmentVel::Head
+# transform_human_HipsLink_refVel: ReplayPlugin::GetSegmentVel::Pelvis
+# transform_human_LAnkleLink_refVel: ReplayPlugin::GetSegmentVel::Left Foot
+# transform_human_LForearmLink_refVel: ReplayPlugin::GetSegmentVel::Left Forearm
+# transform_human_LHandLink_refVel: ReplayPlugin::GetSegmentVel::Left Hand
+# transform_human_LLegLink_refVel: ReplayPlugin::GetSegmentVel::Left Upper Leg
+# transform_human_LShinLink_refVel: ReplayPlugin::GetSegmentVel::Left Lower Leg
+# transform_human_RAnkleLink_refVel: ReplayPlugin::GetSegmentVel::Right Foot
+# transform_human_RForearmLink_refVel: ReplayPlugin::GetSegmentVel::Right Forearm
+# transform_human_RHandLink_refVel: ReplayPlugin::GetSegmentVel::Right Hand
+# transform_human_RLegLink_refVel: ReplayPlugin::GetSegmentVel::Right Upper Leg
+# transform_human_RShinLink_refVel: ReplayPlugin::GetSegmentVel::Right Lower Leg
+# transform_human_TorsoLink_refVel: ReplayPlugin::GetSegmentVel::T8
+
+# transform_human_HeadLink_refAccel: ReplayPlugin::GetSegmentAcc::Head
+# transform_human_HipsLink_refAccel: ReplayPlugin::GetSegmentAcc::Pelvis
+# transform_human_LAnkleLink_refAccel: ReplayPlugin::GetSegmentAcc::Left Foot
+# transform_human_LForearmLink_refAccel: ReplayPlugin::GetSegmentAcc::Left Forearm
+# transform_human_LHandLink_refAccel: ReplayPlugin::GetSegmentAcc::Left Hand
+# transform_human_LLegLink_refAccel: ReplayPlugin::GetSegmentAcc::Left Upper Leg
+# transform_human_LShinLink_refAccel: ReplayPlugin::GetSegmentAcc::Left Lower Leg
+# transform_human_RAnkleLink_refAccel: ReplayPlugin::GetSegmentAcc::Right Foot
+# transform_human_RForearmLink_refAccel: ReplayPlugin::GetSegmentAcc::Right Forearm
+# transform_human_RHandLink_refAccel: ReplayPlugin::GetSegmentAcc::Right Hand
+# transform_human_RLegLink_refAccel: ReplayPlugin::GetSegmentAcc::Right Upper Leg
+# transform_human_RShinLink_refAccel: ReplayPlugin::GetSegmentAcc::Right Lower Leg
+# transform_human_TorsoLink_refAccel: ReplayPlugin::GetSegmentAcc::T8
+
+
 # Forceshoes logs
 ForceShoes_LBShoeMeasure: ReplayPlugin::LBForce
 ForceShoes_LFShoeMeasure: ReplayPlugin::LFForce

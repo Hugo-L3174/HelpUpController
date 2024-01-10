@@ -682,10 +682,10 @@ states:
           linear: [1000, 1000, 1000]
         spring:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 1000]
+          linear: [1000, 1000, 10]
         wrench:
           angular: [0, 0, 0]
-          linear: [0, 0, 1]
+          linear: [0, 0, 1] #careful
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
@@ -715,10 +715,10 @@ states:
           linear: [1000, 1000, 1000]
         spring:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 1000]
+          linear: [1000, 1000, 10]
         wrench:
           angular: [0, 0, 0]
-          linear: [0, 0, 1]
+          linear: [0, 0, 1] #careful
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]

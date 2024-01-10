@@ -2,8 +2,8 @@
 
 #include <mc_solver/TasksQPSolver.h>
 
-// #include "../HelpUpController.h"
 #include <mc_control/fsm/Controller.h>
+#include "../HelpUpController.h"
 
 void RobotHolding::configure(const mc_rtc::Configuration & config)
 {
@@ -81,7 +81,7 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl)
 
 bool RobotHolding::run(mc_control::fsm::Controller & ctl)
 {
-  // auto & ctl = static_cast<HelpUpController &>(ctl_);
+  auto & HelpUp = static_cast<HelpUpController &>(ctl);
 
   // rightHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(RHtarget_));
   // rightHandImpedancePtr_->targetWrench(ctl.getRHWrenchComputed());
@@ -93,6 +93,15 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
   // gain << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
   // gain for setExternalWrenches is used only if we use the measured forces (might vibrate, thus gains)
   // auto handGains = sva::MotionVecd(gain);
+
+  // getting ref vel from human back, to be transformed in objective frame
+  auto backRefVel = HelpUp.robot("human").frame("Back").velocity();
+  auto X_back_0 = HelpUp.robot("human").frame("Back").position();
+  // getting ref acc same principle
+  auto backRefAcc = sva::PTransformd(X_back_0.rotation()).inv()
+                    * HelpUp.robot("human").bodyAccB("TorsoLink"); // is this transformed correctly? should it be body
+                                                                   // into world into frame instead of body into frame?
+  backRefAcc.linear() += backRefVel.angular().cross(backRefVel.linear()); // coriolis term
 
   std::vector<sva::MotionVecd> gainsVec;
   std::vector<std::string> surfVec;
@@ -131,6 +140,10 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
   if(config_.has("RightHandImped"))
   {
     rightHandImpedancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
+    auto X_RHtarget_0 = rightHandImpedancePtr_->targetPose();
+    auto X_RHtarget_back = X_RHtarget_0 * X_back_0.inv();
+    rightHandImpedancePtr_->targetVel(X_RHtarget_back * backRefVel);
+    rightHandImpedancePtr_->targetAccel(X_RHtarget_back * backRefAcc);
     if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
     {
       rightHandImpedancePtr_->targetWrench(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedRHWrench"));
@@ -144,6 +157,10 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
   if(config_.has("LeftHandImped"))
   {
     leftHandImpedancePtr_->targetPose(LHtargetOffset_ * ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).position());
+    auto X_LHtarget_0 = leftHandImpedancePtr_->targetPose();
+    auto X_LHtarget_back = X_LHtarget_0 * X_back_0.inv();
+    leftHandImpedancePtr_->targetVel(X_LHtarget_back * backRefVel);
+    leftHandImpedancePtr_->targetAccel(X_LHtarget_back * backRefAcc);
     if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
     {
       leftHandImpedancePtr_->targetWrench(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedLHWrench"));

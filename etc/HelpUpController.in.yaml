@@ -116,16 +116,28 @@ collisions:
       sDist: 0.001
       damping: 0
       r2UnactiveJoints: *pandaUnactiveJoints
-    - body1: L_WRIST_Y_LINK
+    - body1: r_wrist
       body2: torso_box
       iDist: 0.03
-      sDist: 0.001
+      sDist: -0.01
       damping: 0
       r2UnactiveJoints: *pandaUnactiveJoints
     - body1: L_WRIST_Y_LINK
       body2: torso_box
       iDist: 0.03
       sDist: 0.001
+      damping: 0
+      r2UnactiveJoints: *pandaUnactiveJoints
+    - body1: L_WRIST_P_LINK
+      body2: torso_box
+      iDist: 0.03
+      sDist: 0.001
+      damping: 0
+      r2UnactiveJoints: *pandaUnactiveJoints
+    - body1: l_wrist
+      body2: torso_box
+      iDist: 0.03
+      sDist: -0.01
       damping: 0
       r2UnactiveJoints: *pandaUnactiveJoints
 
@@ -289,7 +301,7 @@ states:
       rotation: [0.0, 0.0, 0.0]
     robotOffset: # in chair frame
       # translation: [0.2, -0.55, 0.75]
-      translation: [0.1, -0.55, 0.75]
+      translation: [0.1, -0.45, 0.75]
       rotation: [0.0, 0.0, 1.6]
     pandaOffset: # in chair frame
       translation: [0.3, 0.6, 0.75]
@@ -576,7 +588,7 @@ states:
       targetFrame:
         robot: panda
         frame: HumanBack
-        translation: [0.0, -0.1, 0.05]
+        translation: [0.0, -0.12, 0.05]
         controlPoints: # in target frame !
           - [-0.1, -0.2, 0.15]
         oriWaypoints:
@@ -669,7 +681,7 @@ states:
         robot: human
         frame: RightShoulder
       weight: 10000.0
-      stiffness: 40
+      stiffness: 200
       wrench:
         couple: [0.0, 0.0, 0.0]
         force: [0.0, 0.0, 5.0]
@@ -682,10 +694,10 @@ states:
           linear: [1000, 1000, 1000]
         spring:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 10]
+          linear: [1000, 1000, 1000]
         wrench:
           angular: [0, 0, 0]
-          linear: [0, 0, 1] #careful
+          linear: [0, 0, 0] #careful
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
@@ -702,7 +714,7 @@ states:
           translation: [0.0, -0.05, 0.0]
         #   rotation: [0, 0, -1.57]
       weight: 10000.0
-      stiffness: 40
+      stiffness: 200
       wrench:
         couple: [0.0, 0.0, 0.0]
         force: [0.0, 0.0, 5.0]
@@ -715,10 +727,10 @@ states:
           linear: [1000, 1000, 1000]
         spring:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 10]
+          linear: [1000, 1000, 1000]
         wrench:
           angular: [0, 0, 0]
-          linear: [0, 0, 1] #careful
+          linear: [0, 0, 0] #careful
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
@@ -736,6 +748,8 @@ states:
       targetFrame:
         robot: panda
         frame: HumanBack
+        offset:
+          translation: [0.0, -0.12, 0.0]
 
 
 
@@ -969,8 +983,8 @@ HRP4ObserverPipeline:
     config:
       robot: hrp4
       updateRobot: hrp4
-      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
-      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
+      position: control #encoderValues            #    - Sets joint position from encoder sensor values (default)
+      velocity: control #encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
       computeFV: true                    # We now have the estimation of each joint position and velocity and the corresponding body positions and velocities, but we are still missing the floating base
     # config:
     #   robot: e2dr
@@ -1026,7 +1040,7 @@ ObserverPipelines:
   #     bodySensor: Accelerometer
 
 
-Plugins: [XsensReplay, XsensPlugin, ForceShoePlugin, RobotModelUpdate] #, UDPPlugin] # RobotModelUpdate, UDPPlugin]
+Plugins: [XsensReplay, XsensPlugin, ForceShoePlugin, RobotModelUpdate] # , UDPPlugin] # RobotModelUpdate, UDPPlugin]
 
 UDPPlugin:
   # Global configuration options for UDPPlugin

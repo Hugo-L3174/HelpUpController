@@ -194,9 +194,16 @@ bool HelpUpController::run()
   // set target every run
   if(pandaTaskAdded_ && robots().hasRobot("panda"))
   {
-    // pandaTransform_->refAccel(robot("human").frame("Back").)
-    pandaTransform_->refVelB(robot("human").frame("Back").velocity());
     pandaTransform_->targetSurface(robot("human").robotIndex(), "Back", sva::PTransformd(Eigen::Vector3d(0, 0, -0.05)));
+    auto X_back_0 = robot("human").frame("Back").position();
+    auto backRefVel = robot("human").frame("Back").velocity();
+    // transform from world frame to back frame
+    backRefVel = sva::PTransformd(X_back_0.rotation()) * backRefVel;
+    pandaTransform_->refVelB(backRefVel);
+    // getting ref acc same principle
+    auto backRefAcc = sva::PTransformd(X_back_0.rotation()) * robot("human").bodyAccB("TorsoLink");
+    backRefAcc.linear() += backRefVel.angular().cross(backRefVel.linear()); // coriolis term
+    pandaTransform_->refAccel(backRefAcc);
   }
 
   computePolytope(robMeasuredDCM_, firstPolyRobOK_, mainRob);
@@ -393,7 +400,7 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       auto planes = polytope_.constraintPlanes();
       Eigen::Vector3d chebichev = polytope_.chebichevCenter();
       Eigen::Vector3d bary = polytope_.baryCenter();
-      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * bary;
+      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * chebichev;
       filteredObjective.z() = 0.78;
       objective = polytope_.objectiveInPolytope(filteredObjective);
       if(datastore().has("RobotStabilizer::setCoMTarget"))

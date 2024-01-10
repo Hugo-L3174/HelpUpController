@@ -20,6 +20,7 @@ find_package(XsensPlugin REQUIRED)
 
 add_subdirectory(src)
 add_subdirectory(modules)
+add_subdirectory(plugins)
 
 set(AROBASE "@")
 configure_file(etc/HelpUpController.in.yaml "${CMAKE_CURRENT_BINARY_DIR}/etc/HelpUpController.yaml")

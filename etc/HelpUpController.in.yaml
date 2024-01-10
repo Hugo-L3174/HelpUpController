@@ -865,6 +865,11 @@ states:
     robot: human
     stiffness: 1000
     weight: 10000
+    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
+    start_time: 8.0
+    # end_time: 15.0
+    skip_iter: 10
+    pause: true
     Xsens:
       human:
         bodies:
@@ -1021,7 +1026,7 @@ ObserverPipelines:
   #     bodySensor: Accelerometer
 
 
-Plugins: [Replay, XsensPlugin, ForceShoePlugin, RobotModelUpdate, UDPPlugin] # RobotModelUpdate, UDPPlugin]
+Plugins: [XsensReplay, XsensPlugin, ForceShoePlugin, RobotModelUpdate] #, UDPPlugin] # RobotModelUpdate, UDPPlugin]
 
 UDPPlugin:
   # Global configuration options for UDPPlugin
@@ -1043,7 +1048,10 @@ UDPPlugin:
 RobotModelUpdate:
   robot: human
 # configuration for Replay plugin
-Replay:
+XsensReplay:
+  preload_logs:
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
+
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_nosuit2.bin #  forceshoes1.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit3.bin
@@ -1051,7 +1059,7 @@ Replay:
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes_celia.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes1.bin
-  log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin
+  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/18dec2023.bin
 
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_alone_2023-07-03.bin
@@ -1059,8 +1067,8 @@ Replay:
   with-inputs: false
   with-outputs: false
   with-gui-inputs: false
-  with-datastore-config: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/log-to-datastore.yaml
-
+  with-datastore-config: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/log-to-datastore.yaml"
+  pause: false
 
 measuredPerson:
   mass: 42 # Wanchen

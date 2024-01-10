@@ -18,6 +18,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS "-DHelpUpControll
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
   mc_rtc::mc_control_fsm
+  mc_panda::devices
   Stabiliplus::ProblemDescriptor
   Stabiliplus::StabilityPolytope
   eigen-quadprog::eigen-quadprog

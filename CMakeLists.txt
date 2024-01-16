@@ -35,3 +35,6 @@ install(FILES etc/force_shoes/celia/tests-17nov/nosuit1.bin etc/force_shoes/celi
 
 # install(FILES etc/force_shoes/celia/test-perturb-03jul/QP_alone_2023-07-03.bin etc/force_shoes/celia/test-perturb-03jul/QP_perturbed_2023-07-03.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/celia03jul/")
 # install(FILES etc/force_shoes/hugo/18dec2023.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/hugo/")
+install(FILES etc/force_shoes/hugo/NoSuitHelpBack.bin etc/force_shoes/hugo/NoSuitHelpFront.bin etc/force_shoes/hugo/NoSuitNormal1.bin etc/force_shoes/hugo/NoSuitNormal2.bin
+              etc/force_shoes/hugo/SuitHelpBack.bin etc/force_shoes/hugo/SuitHelpFront.bin etc/force_shoes/hugo/SuitNormal1.bin etc/force_shoes/hugo/SuitNormal2.bin
+        DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/hugo/")

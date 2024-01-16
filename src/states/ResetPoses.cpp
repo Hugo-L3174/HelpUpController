@@ -26,102 +26,50 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl)
   }
 
   auto HipsPose = sva::PTransformd::Identity();
+  auto HumanHipsPose = sva::PTransformd::Identity();
   const std::string & segmentName = "Pelvis";
 
   if(ctl.datastore().has("XsensPlugin"))
   {
     HipsPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName);
-
+    HumanHipsPose = HipsPose;
     // Keeping rotation yaw but setting roll and pitch to zero (basically keeping chair horizontal)
     HipsPose.rotation() = stateObservation::kine::mergeRoll1Pitch1WithYaw2AxisAgnostic(
         sva::PTransformd::Identity().rotation(), HipsPose.rotation());
     // Initializing at zero height (easier)
     HipsPose.translation().z() = sva::PTransformd::Identity().translation().z();
 
-    // adjust human position in mujoco
-    mc_rtc::log::info("[ResetPoses state] Resetting human mujoco position");
-
-    // if (ctl.datastore().has(fmt::format("{}::SetPosW", ctl.robots().robot("human").name())))
-    // {
-    //   // Explicit arguments in call to have automatic cast to const
-    //   ctl.datastore().call<void, const sva::PTransformd &>(fmt::format("{}::SetPosW",
-    //   ctl.robots().robot("human").name()), HipsPose);
-    // }
-
     if(ctl.robots().hasRobot("chair"))
     {
-      // Adjust chair position relative to human model
-      mc_rtc::log::info("[ResetPoses state] Resetting chair control position");
-      ctl.robots().robot("chair").posW(HipsPose * chairOffset_);
-
-      // Adjust observed chair position relative to human model
-      mc_rtc::log::info("[ResetPoses state] Resetting observed chair control position");
-      ctl.realRobots().robot("chair").posW(HipsPose * chairOffset_);
-
-      // adjust chair position in mujoco
-      mc_rtc::log::info("[ResetPoses state] Resetting chair mujoco position");
-      auto dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot("chair").name());
-      if(ctl.datastore().has(dsEntry))
-      {
-        ctl.datastore().call<void, const sva::PTransformd &>(dsEntry, HipsPose * chairOffset_);
-      }
+      adjustPoses(ctl, HipsPose, "chair",
+                  chairOffset_); // ref pose and offset are inverted because we want to offset the starting position
 
       if(ctl.robots().hasRobot("panda"))
       {
-        // Adjust panda position relative to chair model
-        mc_rtc::log::info("[ResetPoses state] Resetting panda control position");
-        ctl.robots().robot("panda").posW(pandaOffset_ * ctl.robots().robot("chair").posW());
-
-        // Adjust observed pabda position relative to chair model
-        mc_rtc::log::info("[ResetPoses state] Resetting observed panda control position");
-        ctl.realRobots().robot("panda").posW(pandaOffset_ * ctl.robots().robot("chair").posW());
-
-        // adjust panda position in mujoco
-        mc_rtc::log::info("[ResetPoses state] Resetting panda mujoco position");
-        dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot("panda").name());
-        if(ctl.datastore().has(dsEntry))
-        {
-          ctl.datastore().call<void, const sva::PTransformd &>(dsEntry,
-                                                               pandaOffset_ * ctl.robots().robot("chair").posW());
-        }
+        adjustPoses(ctl, pandaOffset_, "panda", ctl.robots().robot("chair").posW());
       }
 
       if(ctl.robots().hasRobot("human"))
       {
-        auto HumanHipsPose = ctl.datastore().call<sva::PTransformd>("XsensPlugin::GetSegmentPose", segmentName);
-        // Adjust human position relative to human model
-        mc_rtc::log::info("[ResetPoses state] Resetting human control position");
-        ctl.robots().robot("human").posW(HumanHipsPose);
-
-        // Adjust observed human position relative to human model
-        mc_rtc::log::info("[ResetPoses state] Resetting observed human control position");
-        ctl.realRobots().robot("human").posW(HumanHipsPose);
-
-        // adjust human position in mujoco
-        // mc_rtc::log::info("[ResetPoses state] Resetting human mujoco position");
-        // auto dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot("human").name());
-        // if(ctl.datastore().has(dsEntry))
-        // {
-        //   ctl.datastore().call<void, const sva::PTransformd &>(dsEntry, HumanHipsPose);
-        // }
+        // careful: adjusting mujoco position might make robot fall in physics bc of retargetting
+        adjustPoses(ctl, sva::PTransformd::Identity(), "human", HumanHipsPose);
       }
 
       // Adjust main robot position relative to chair
-      mc_rtc::log::info("[ResetPoses state] Resetting main robot control position");
-      ctl.robots().robot().posW(robotOffset_ * ctl.robots().robot("chair").posW());
+      adjustPoses(ctl, robotOffset_, ctl.robot().name(), ctl.robots().robot("chair").posW());
 
-      // Adjust observed main robot position relative to chair
-      mc_rtc::log::info("[ResetPoses state] Resetting observed main robot control position");
-      ctl.realRobots().robot().posW(robotOffset_ * ctl.robots().robot("chair").posW());
+      // After everything is finalized relative to the chair oriented from the hips pose, re adjust chair height from
+      // human hips pose (useful for contact distance)
+      sva::PTransformd chairHeightOffset = sva::PTransformd::Identity();
+      chairHeightOffset.translation().z() =
+          HumanHipsPose.translation().z() - 0.4
+          - 0.15; // chair surface from origin is 0.4 high, hips to back of legs is around 0.15
+      adjustPoses(ctl, chairHeightOffset, "chair", ctl.robots().robot("chair").posW());
 
-      // adjust main robot position in mujoco
-      mc_rtc::log::info("[ResetPoses state] Resetting main robot mujoco position");
-      dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot().name());
-      if(ctl.datastore().has(dsEntry))
-      {
-        ctl.datastore().call<void, const sva::PTransformd &>(dsEntry,
-                                                             robotOffset_ * ctl.robots().robot("chair").posW());
-      }
+      // TODO:
+      // investiguer external wrenches qui agissent quand même
+      // investiguer mauvaise main pour appliquer la force
+      // faire mini etape fsm damping avec completion force
     }
   }
   else
@@ -135,6 +83,28 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl)
 
   output("OK");
   return true;
+}
+
+void ResetPoses::adjustPoses(mc_control::fsm::Controller & ctl,
+                             sva::PTransformd offset,
+                             std::string robotName,
+                             sva::PTransformd refPose)
+{
+  // Adjust main robot position relative to chair
+  mc_rtc::log::info("[ResetPoses state] Resetting {} control position", robotName);
+  ctl.robots().robot(robotName).posW(offset * refPose);
+
+  // Adjust observed main robot position relative to reference robot
+  mc_rtc::log::info("[ResetPoses state] Resetting observed {} control position", robotName);
+  ctl.realRobots().robot(robotName).posW(offset * refPose);
+
+  // adjust robot position in mujoco
+  auto dsEntry = fmt::format("{}::SetPosW", ctl.robots().robot(robotName).name());
+  if(ctl.datastore().has(dsEntry))
+  {
+    mc_rtc::log::info("[ResetPoses state] Resetting {} mujoco position", robotName);
+    ctl.datastore().call<void, const sva::PTransformd &>(dsEntry, offset * refPose);
+  }
 }
 
 void ResetPoses::teardown(mc_control::fsm::Controller & ctl)

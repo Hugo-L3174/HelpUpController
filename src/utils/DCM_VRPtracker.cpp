@@ -49,10 +49,7 @@ void DCM_VRPtracker::updateTrackedValues()
   computeDCM();
   computeModelVRP();
   computeForcesVRP(); // if model mode false?
-  if(!modelMode_)
-  {
-    computeCombinedVRP();
-  }
+  computeCombinedVRP();
 }
 
 void DCM_VRPtracker::updateObjectiveValues(const Eigen::Vector3d & DCMobjective)

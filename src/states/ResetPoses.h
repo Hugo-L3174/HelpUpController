@@ -14,6 +14,11 @@ struct ResetPoses : mc_control::fsm::State
 
   void teardown(mc_control::fsm::Controller & ctl) override;
 
+  void adjustPoses(mc_control::fsm::Controller & ctl,
+                   sva::PTransformd offset,
+                   std::string robotName,
+                   sva::PTransformd refPose);
+
 private:
   sva::PTransformd chairOffset_, robotOffset_, pandaOffset_ = sva::PTransformd::Identity();
 };

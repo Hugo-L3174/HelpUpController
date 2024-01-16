@@ -136,12 +136,12 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
   // TODO: maybe find a cleaner way than hard writing which surface is right and left
   /*! \brief Distribute missing computed wrench on the desired surfaces
    * \param desiredWrench missing 6d wrench at CoM
-   * \param targetRobot "robot" to assist (can be human model)
-   * \param leftSurface surface on which force can be applied by robot left hand
-   * \param rightSurface surface on which force can be applied by robot right hand
+   * \param helperRobot robot instance that will make the contacts
+   * \param leftSurface surface corresponding to robot left hand
+   * \param rightSurface surface corresponding to robot right hand
    */
   void distributeHandsWrench(const sva::ForceVecd & desiredWrench,
-                             const mc_rbdyn::Robot & targetRobot,
+                             const mc_rbdyn::Robot & helperRobot,
                              const std::string & leftSurface,
                              const std::string & rightSurface);
 
@@ -190,6 +190,8 @@ private:
   // mode to send or not the required computed force for balance to force control
   bool computedForceMode_ = false;
 
+  bool scaleRobotCoM_ = false;
+
   // model mode to choose to compute VRP using CoM acceleration (true) or contact forces (false)
   bool modelMode_ = true;
 
@@ -221,8 +223,6 @@ private:
   std::shared_ptr<DCM_VRPtracker> robotDCMTracker_;
 
   std::shared_ptr<mc_tasks::lipm_stabilizer::StabilizerTask> stabTask_;
-  std::shared_ptr<mc_tasks::lipm_stabilizer::internal::Contact> leftHandContact_;
-  std::shared_ptr<mc_tasks::lipm_stabilizer::internal::Contact> rightHandContact_;
 
   Eigen::QuadProgDense vrpSolver_;
 
@@ -236,7 +236,7 @@ private:
 
   std::vector<Eigen::Vector3d> traj_;
 
-  double humanMass_ = 50; // 52 + 2*1.1 + 10 + 2*2.3; // Celia is 52, each force shoe 1.1kg, body weight 10 kg, legs
+  double humanMass_ = 50; // 52 + 2*1.1 + 10 + 2*2.3; // Each force shoe 1.1kg, body weight 10 kg, legs
                           // weights 2.3kg, wrists weights 1.5kg
   bool withSuit_ = false;
   bool withLegs_ = false;

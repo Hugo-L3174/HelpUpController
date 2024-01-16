@@ -60,6 +60,7 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl)
     RHtarget("frame", RHtargetFrame_);
     RHtarget("offset", RHtargetOffset_);
     rightHandImpedancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
+    // rightHandImpedancePtr_->targetWrench(sva::ForceVecd::Zero());
     ctl.solver().addTask(rightHandImpedancePtr_);
   }
 
@@ -72,6 +73,7 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl)
     LHtarget("frame", LHtargetFrame_);
     LHtarget("offset", LHtargetOffset_);
     leftHandImpedancePtr_->targetPose(LHtargetOffset_ * ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).position());
+    // leftHandImpedancePtr_->targetWrench(sva::ForceVecd::Zero());
     ctl.solver().addTask(leftHandImpedancePtr_);
   }
 
@@ -147,12 +149,19 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
     if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
     {
       rightHandImpedancePtr_->targetWrench(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedRHWrench"));
+      RHgains_ = sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
+      gainsVec.push_back(RHgains_);
+      surfVec.push_back(config_("RightHandImped")("frame"));
+      wrenchVec.push_back(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedRHWrench"));
     }
-
-    RHgains_ = sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
-    gainsVec.push_back(RHgains_);
-    surfVec.push_back(config_("RightHandImped")("frame"));
-    wrenchVec.push_back(sva::ForceVecd::Zero());
+    else
+    {
+      rightHandImpedancePtr_->targetWrench(sva::ForceVecd(Eigen::Vector3d(0., 0., 0.), Eigen::Vector3d(0., 0., 5.)));
+      RHgains_ = sva::MotionVecd(Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0));
+      gainsVec.push_back(RHgains_);
+      surfVec.push_back(config_("RightHandImped")("frame"));
+      wrenchVec.push_back(sva::ForceVecd::Zero());
+    }
   }
   if(config_.has("LeftHandImped"))
   {
@@ -164,16 +173,33 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
     if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
     {
       leftHandImpedancePtr_->targetWrench(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedLHWrench"));
+      LHgains_ = sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
+      gainsVec.push_back(LHgains_);
+      surfVec.push_back(config_("LeftHandImped")("frame"));
+      wrenchVec.push_back(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedLHWrench"));
     }
-    LHgains_ = sva::MotionVecd(Eigen::Vector3d(1, 1, 1), Eigen::Vector3d(1, 1, 1));
-    gainsVec.push_back(LHgains_);
-    surfVec.push_back(config_("LeftHandImped")("frame"));
-    wrenchVec.push_back(sva::ForceVecd::Zero());
+    else
+    {
+      leftHandImpedancePtr_->targetWrench(sva::ForceVecd(Eigen::Vector3d(0., 0., 0.), Eigen::Vector3d(0., 0., 5.)));
+      LHgains_ = sva::MotionVecd(Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0));
+      gainsVec.push_back(LHgains_);
+      surfVec.push_back(config_("LeftHandImped")("frame"));
+      wrenchVec.push_back(sva::ForceVecd::Zero());
+    }
   }
 
-  ctl.datastore().call("RobotStabilizer::setExternalWrenches", static_cast<const std::vector<std::string> &>(surfVec),
-                       static_cast<const std::vector<sva::ForceVecd> &>(wrenchVec),
-                       static_cast<const std::vector<sva::MotionVecd> &>(gainsVec));
+  if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
+  {
+    ctl.datastore().call("RobotStabilizer::setExternalWrenches", static_cast<const std::vector<std::string> &>(surfVec),
+                         static_cast<const std::vector<sva::ForceVecd> &>(wrenchVec),
+                         static_cast<const std::vector<sva::MotionVecd> &>(gainsVec));
+  }
+  else
+  {
+    ctl.datastore().call("RobotStabilizer::setExternalWrenches", static_cast<const std::vector<std::string> &>(surfVec),
+                         static_cast<const std::vector<sva::ForceVecd> &>(wrenchVec),
+                         static_cast<const std::vector<sva::MotionVecd> &>(gainsVec));
+  }
 
   // Completion
   // (TODO: find a cleaner way than just forcing next state in gui)

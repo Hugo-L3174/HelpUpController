@@ -63,12 +63,6 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
                           return sva::interpolate(robot.surfacePose("LeftFoot"), robot.surfacePose("RightFoot"), 0.5);
                         });
 
-  // datastore().make_call("KinematicAnchorFrame::human" , [this](const mc_rbdyn::Robot & robot) { // robot 3 (out of 4)
-  // is the human robots().robots()[3].name()
-  //   return sva::interpolate(robot.surfacePose("LeftSole"), robot.surfacePose("RightSole"), 0.5);
-  // });
-
-  // comIncPlaneConstraintPtr_ = std::make_shared<mc_solver::CoMIncPlaneConstr> (robots(), robots().robotIndex(), dt);*
   comIncPlaneConstraintPtr_ =
       std::make_shared<mc_solver::CoMIncPlaneConstr>(realRobots(), realRobots().robotIndex(), dt);
   comIncPlaneConstraintHumPtr_ =
@@ -123,6 +117,8 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   datastore().make_call("HelpUp::ForceMode", [this]() { return computedForceMode_; });
   datastore().make_call("HelpUp::ComputedLHWrench", [this]() { return getLHWrenchComputed(); });
   datastore().make_call("HelpUp::ComputedRHWrench", [this]() { return getRHWrenchComputed(); });
+  // scale robot height to human or not (false at first)
+  datastore().make_call("HelpUp::scaleRobotCoM", [this]() { return scaleRobotCoM_; });
 
   // accLowPass_.dt(dt);
   // accLowPass_.cutoffPeriod(cutoffPeriod_);
@@ -201,9 +197,9 @@ bool HelpUpController::run()
     backRefVel = sva::PTransformd(X_back_0.rotation()) * backRefVel;
     pandaTransform_->refVelB(backRefVel);
     // getting ref acc same principle
-    auto backRefAcc = sva::PTransformd(X_back_0.rotation()) * robot("human").bodyAccB("TorsoLink");
-    backRefAcc.linear() += backRefVel.angular().cross(backRefVel.linear()); // coriolis term
-    pandaTransform_->refAccel(backRefAcc);
+    // auto backRefAcc = sva::PTransformd(X_back_0.rotation()) * robot("human").bodyAccB("TorsoLink");
+    // backRefAcc.linear() += backRefVel.angular().cross(backRefVel.linear()); // coriolis term
+    // pandaTransform_->refAccel(backRefAcc);
   }
 
   computePolytope(robMeasuredDCM_, firstPolyRobOK_, mainRob);
@@ -400,8 +396,16 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       auto planes = polytope_.constraintPlanes();
       Eigen::Vector3d chebichev = polytope_.chebichevCenter();
       Eigen::Vector3d bary = polytope_.baryCenter();
-      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * chebichev;
-      filteredObjective.z() = 0.78;
+      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * bary;
+      if(scaleRobotCoM_)
+      {
+        // minimum com height 0.73cm, max will be 0.82cm, scaled to human com height (nominal hrp4 is 0.78)
+        filteredObjective.z() = std::clamp(robot("human").com().z(), 0.73, 0.82);
+      }
+      else
+      {
+        filteredObjective.z() = 0.78;
+      }
       objective = polytope_.objectiveInPolytope(filteredObjective);
       if(datastore().has("RobotStabilizer::setCoMTarget"))
       {
@@ -536,17 +540,20 @@ void HelpUpController::addGuiElements()
   mc_rtc::gui::ArrowConfig MissingforceArrowConfig = forceArrowConfig;
   MissingforceArrowConfig.color = COLORS.at('g');
 
-  gui()->addElement({"HelpUp"}, mc_rtc::gui::Input("Chebichev Coeff [0-1]", chebichevCoef_),
-                    mc_rtc::gui::Button("Panda high stiffness mode",
-                                        [this]() {
-                                          pandaTransform_->stiffness(sva::MotionVecd(Eigen::Vector3d(100, 100, 100),
-                                                                                     Eigen::Vector3d(50, 50, 50)));
-                                        }),
-                    mc_rtc::gui::Button("Panda low stiffness mode", [this]() { pandaTransform_->stiffness(1); }),
-                    mc_rtc::gui::Button("Add computed force mode", [this]() { computedForceMode_ = true; }),
-                    mc_rtc::gui::Button("Follow only mode", [this]() { computedForceMode_ = false; }));
+  gui()->addElement(
+      {}, mc_rtc::gui::Input("Chebichev Coeff [0-1]", chebichevCoef_),
+      mc_rtc::gui::Checkbox(
+          "Scale CoM", [this]() { return scaleRobotCoM_; }, [this]() { scaleRobotCoM_ = !scaleRobotCoM_; }),
+      mc_rtc::gui::Button("Panda high stiffness mode",
+                          [this]() {
+                            pandaTransform_->stiffness(
+                                sva::MotionVecd(Eigen::Vector3d(100, 100, 100), Eigen::Vector3d(50, 50, 50)));
+                          }),
+      mc_rtc::gui::Button("Panda low stiffness mode", [this]() { pandaTransform_->stiffness(1); }),
+      mc_rtc::gui::Button("Add computed force mode", [this]() { computedForceMode_ = true; }),
+      mc_rtc::gui::Button("Follow only mode", [this]() { computedForceMode_ = false; }));
 
-  gui()->addElement({"HelpUp", "Points", "CoM"},
+  gui()->addElement({{}, "Points", "CoM"},
                     mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE),
                                          [this]() { return robot().com(); }),
                     mc_rtc::gui::Point3D("mainCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE),
@@ -870,7 +877,7 @@ void HelpUpController::updateRealHumContacts()
   // RHandShoulder->update(robot(), robot("human"));
   // LHandBack->update(robot(), robot("human"));
 
-  double distThreshold = 0.002;
+  double distThreshold = 0.005;
   double speedThreshold = 1e-4;
 
   auto prevContactNb = contactSetHum_->numberOfContacts() / 4;
@@ -883,15 +890,15 @@ void HelpUpController::updateRealHumContacts()
   addRealHumContact("RightSole", 0, humanMass_ * 9.81, ContactType::support);
   addRealHumContact("LeftSole", 0, humanMass_ * 9.81, ContactType::support);
 
-  if(RCheekChair->pair.getDistance() <= distThreshold)
-  {
-    addRealHumContact("RCheek", 0, humanMass_ * 9.81, ContactType::support);
-  }
+  // if(RCheekChair->pair.getDistance() <= distThreshold)
+  // {
+  //   addRealHumContact("RCheek", 0, humanMass_ * 9.81, ContactType::support);
+  // }
 
-  if(LCheekChair->pair.getDistance() <= distThreshold)
-  {
-    addRealHumContact("LCheek", 0, humanMass_ * 9.81, ContactType::support);
-  }
+  // if(LCheekChair->pair.getDistance() <= distThreshold)
+  // {
+  //   addRealHumContact("LCheek", 0, humanMass_ * 9.81, ContactType::support);
+  // }
 
   // if (LHandBack->pair.getDistance()<=distThreshold)
   // {
@@ -972,7 +979,7 @@ sva::ForceVecd HelpUpController::getCurrentForceVec(const std::vector<sva::Force
 }
 
 void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrench,
-                                             const mc_rbdyn::Robot & targetRobot,
+                                             const mc_rbdyn::Robot & helperRobot,
                                              const std::string & leftSurface,
                                              const std::string & rightSurface)
 {
@@ -1004,15 +1011,8 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
 
   // const auto & leftHandContact = contacts_.at(ContactState::Left);
   // Create hand contacts
-  // leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "LeftHand", 0.7);
-  // rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(robot(), "RightHand", 0.7);
-
-  // FIXME: what was the point of making a pointer then dereferencing?... test
-  leftHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(targetRobot, leftSurface, 0.7);
-  rightHandContact_ = std::make_shared<mc_tasks::lipm_stabilizer::internal::Contact>(targetRobot, rightSurface, 0.7);
-
-  const auto & leftHandContact = *leftHandContact_;
-  const auto & rightHandContact = *rightHandContact_;
+  const mc_tasks::lipm_stabilizer::internal::Contact leftHandContact(helperRobot, leftSurface, 0.7);
+  const mc_tasks::lipm_stabilizer::internal::Contact rightHandContact(helperRobot, rightSurface, 0.7);
   const sva::PTransformd & X_0_lhc = leftHandContact.surfacePose();
   const sva::PTransformd & X_0_rhc = rightHandContact.surfacePose();
   // sva::PTransformd X_0_vrp(desiredVRP()); // getting vrp transform
@@ -1095,7 +1095,7 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
   // b_ineq.segment(cwc_const,cwc_const) is already zero
 
   // w_l_lc.force().z() >= min_Force
-  double minHandsForce = 10.; // minimal contact force in Newtons
+  double minHandsForce = 5.; // minimal contact force in Newtons
   A_ineq.block(nb_const - 3, 0, 1, 6) =
       -Eigen::Matrix6d::Identity().bottomRows<1>(); // selecting force only, identity bc variable is already in contact
                                                     // frame //-X_0_lhc.dualMatrix().bottomRows<1>();

@@ -109,19 +109,19 @@ collisions:
       sDist: 0.001
       damping: 0
       r2UnactiveJoints: &pandaUnactiveJoints
-        [panda_joint0, panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7]
+        [panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7]
     - body1: R_WRIST_P_LINK
       body2: torso_box
       iDist: 0.03
       sDist: 0.001
       damping: 0
       r2UnactiveJoints: *pandaUnactiveJoints
-    - body1: r_wrist
-      body2: torso_box
-      iDist: 0.03
-      sDist: -0.01
-      damping: 0
-      r2UnactiveJoints: *pandaUnactiveJoints
+    # - body1: r_wrist
+    #   body2: torso_box
+    #   iDist: 0.03
+    #   sDist: -0.01
+    #   damping: 0
+    #   r2UnactiveJoints: *pandaUnactiveJoints
     - body1: L_WRIST_Y_LINK
       body2: torso_box
       iDist: 0.03
@@ -134,12 +134,12 @@ collisions:
       sDist: 0.001
       damping: 0
       r2UnactiveJoints: *pandaUnactiveJoints
-    - body1: l_wrist
-      body2: torso_box
-      iDist: 0.03
-      sDist: -0.01
-      damping: 0
-      r2UnactiveJoints: *pandaUnactiveJoints
+    # - body1: l_wrist
+    #   body2: torso_box
+    #   iDist: 0.03
+    #   sDist: -0.01
+    #   damping: 0
+    #   r2UnactiveJoints: *pandaUnactiveJoints
 
 
 #     # robot right wrist collision with human torso and right arm
@@ -302,7 +302,7 @@ states:
     robotOffset: # in chair frame
       # translation: [0.2, -0.55, 0.75]
       translation: [0.1, -0.45, 0.75]
-      rotation: [0.0, 0.0, 1.6]
+      rotation: [0.0, 0.0, 1.57]
     pandaOffset: # in chair frame
       translation: [0.3, 0.6, 0.75]
       rotation: [0.0, 0.0, -1.57]
@@ -349,7 +349,7 @@ states:
           pitch: 0
         height: 0
     ExternalWrenchConfig:
-      addExpectedCoMOffset: true # adds a feedforward term to target com movement from target external forces (false if ext forces are taken into account by pattern gen)
+      addExpectedCoMOffset: false # adds a feedforward term to target com movement from target external forces (false if ext forces are taken into account by pattern gen)
       substractMeasuredValue: false # substract the measured values instead of the target ones for offset computation (takes gains into account)
       ext_wrench_sum_cutoff: 0.8 # instead of 0.05: low pass filter of the measured ext wrenches (we lower the low-pass)
       modifyCoMErr: true # for low frequency errors
@@ -681,7 +681,7 @@ states:
         robot: human
         frame: RightShoulder
       weight: 10000.0
-      stiffness: 200
+      stiffness: 100
       wrench:
         couple: [0.0, 0.0, 0.0]
         force: [0.0, 0.0, 5.0]
@@ -691,13 +691,13 @@ states:
           linear: [10, 10, 10]
         damper:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 1000]
+          linear: [800, 800, 500]
         spring:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 1000]
+          linear: [800, 800, 500]
         wrench:
           angular: [0, 0, 0]
-          linear: [0, 0, 0] #careful
+          linear: [1, 1, 1] #careful
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
@@ -714,7 +714,7 @@ states:
           translation: [0.0, -0.05, 0.0]
         #   rotation: [0, 0, -1.57]
       weight: 10000.0
-      stiffness: 200
+      stiffness: 100
       wrench:
         couple: [0.0, 0.0, 0.0]
         force: [0.0, 0.0, 5.0]
@@ -724,13 +724,13 @@ states:
           linear: [10, 10, 10]
         damper:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 1000]
+          linear: [800, 800, 500]
         spring:
           angular: [1000, 1000, 1000]
-          linear: [1000, 1000, 1000]
+          linear: [800, 800, 500]
         wrench:
           angular: [0, 0, 0]
-          linear: [0, 0, 0] #careful
+          linear: [1, 1, 1] #careful
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
@@ -879,10 +879,12 @@ states:
     robot: human
     stiffness: 1000
     weight: 10000
-    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
-    start_time: 8.0
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
+    # start_time: 8.0
+    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
+    start_time: 0.1
     # end_time: 15.0
-    skip_iter: 2
+    skip_iter: 1
     pause: true
     Xsens:
       human:
@@ -1040,7 +1042,7 @@ ObserverPipelines:
   #     bodySensor: Accelerometer
 
 
-Plugins: [XsensReplay, XsensPlugin, ForceShoePlugin, RobotModelUpdate] # , UDPPlugin] # RobotModelUpdate, UDPPlugin]
+Plugins: [XsensReplay, XsensPlugin, ForceShoePlugin, RobotModelUpdate] #, UDPPlugin] # RobotModelUpdate, UDPPlugin]
 
 UDPPlugin:
   # Global configuration options for UDPPlugin
@@ -1064,7 +1066,8 @@ RobotModelUpdate:
 # configuration for Replay plugin
 XsensReplay:
   preload_logs:
-    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
+    # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
 
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_nosuit2.bin #  forceshoes1.bin
@@ -1073,7 +1076,8 @@ XsensReplay:
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes_celia.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes1.bin
-  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
+  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/18dec2023.bin
 
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_alone_2023-07-03.bin
@@ -1085,9 +1089,9 @@ XsensReplay:
   pause: false
 
 measuredPerson:
-  mass: 42 # Wanchen
-  # mass: 52 # Celia
-  # mass: 75
+  # mass: 42 # Wanchen
+  # mass: 55 # Celia
+  mass: 78
   withSuit: true        # 10kg
   # withSuit: false
   withShoes: true       # 2*1.1kg
@@ -1101,9 +1105,11 @@ wrenchDistributionTarget:
   # helpSurfaceLH: Back
   # helpSurfaceRH: RightShoulder
 
-  robot: panda
-  helpSurfaceLH: HumanBack
-  helpSurfaceRH: HumanFront
+  robot: hrp4
+  helpSurfaceLH: LeftHand
+  helpSurfaceRH: RightHand
+  # helpSurfaceLH: HumanBack
+  # helpSurfaceRH: HumanFront
 
 
 Omega:

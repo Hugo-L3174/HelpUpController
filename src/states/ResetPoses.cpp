@@ -68,8 +68,6 @@ bool ResetPoses::run(mc_control::fsm::Controller & ctl)
 
       // TODO:
       // investiguer external wrenches qui agissent quand même
-      // investiguer mauvaise main pour appliquer la force
-      // faire mini etape fsm damping avec completion force
     }
   }
   else

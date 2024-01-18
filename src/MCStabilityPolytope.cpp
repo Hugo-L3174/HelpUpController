@@ -148,7 +148,7 @@ Eigen::Vector3d MCStabilityPolytope::objectiveInPolytope(const Eigen::Vector3d &
 {
   auto start_project_in_polytope = mc_rtc::clock::now();
   auto objective = Eigen::Vector3d::Zero().eval();
-  if(!isVertexInPlanes(currentPos, constraintPlanes(), 0.03))
+  if(!isVertexInPlanes(currentPos, constraintPlanes(), 0.005))
   {
     objectiveInPolytope_ = false;
     std::shared_ptr<RobustStabilityPolytope> polytope;

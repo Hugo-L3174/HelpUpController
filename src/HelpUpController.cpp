@@ -32,8 +32,8 @@ static inline mc_rbdyn::RobotModulePtr patch_rm(mc_rbdyn::RobotModulePtr rm, con
 
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
 : mc_control::fsm::Controller(patch_rm(rm, config), dt, config), robotPolytope_(robot().name()),
-  humanPolytope_("human"), accLowPass_(dt, cutoffPeriod_), lowPassLB_(dt, cutoffPeriodForceShoes_),
-  lowPassRB_(dt, cutoffPeriodForceShoes_), lowPassLF_(dt, cutoffPeriodForceShoes_),
+  humanPolytope_("human"), lowPassPolyCenter_(dt, cutoffPeriodPolyCenter_), accLowPass_(dt, cutoffPeriod_),
+  lowPassLB_(dt, cutoffPeriodForceShoes_), lowPassRB_(dt, cutoffPeriodForceShoes_), lowPassLF_(dt, cutoffPeriod_),
   lowPassRF_(dt, cutoffPeriodForceShoes_)
 {
   // Load entire controller configuration file
@@ -132,29 +132,43 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
 
 bool HelpUpController::run()
 {
-  // LFShoe_ = sva::ForceVecd::Zero();
-  // LBShoe_ = sva::ForceVecd::Zero();
-  // RFShoe_ = sva::ForceVecd::Zero();
-  // RBShoe_ = sva::ForceVecd::Zero();
-
-  // FIXME: The first iterations of the datastore calls are invalid, and the measuredForcesVRP_ entry of the DCM tracker
-  // GUI breaks rviz maybe add gui after force shoe plugin is running?
 
   LFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLFForce");
   LBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLBForce");
   RFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRFForce");
   RBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRBForce");
 
-  // Attempt at filtering shoes force sensors: should be in plugin?
-  // lowPassLF_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLFForce"));
-  // lowPassLB_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetLBForce"));
-  // lowPassRF_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRFForce"));
-  // lowPassRB_.update(datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRBForce"));
+  if(LFShoe_.vector().array().isNaN().any())
+  {
+    mc_rtc::log::error("[ForceShoes] Left front forces are NaN, using zeros instead");
+    LFShoe_ = sva::ForceVecd::Zero();
+  }
+  if(LBShoe_.vector().array().isNaN().any())
+  {
+    mc_rtc::log::error("[ForceShoes] Left back forces are NaN, using zeros instead");
+    LBShoe_ = sva::ForceVecd::Zero();
+  }
+  if(RFShoe_.vector().array().isNaN().any())
+  {
+    mc_rtc::log::error("[ForceShoes] Right front forces are NaN, using zeros instead");
+    RFShoe_ = sva::ForceVecd::Zero();
+  }
+  if(RBShoe_.vector().array().isNaN().any())
+  {
+    mc_rtc::log::error("[ForceShoes] Right back forces are NaN, using zeros instead");
+    RBShoe_ = sva::ForceVecd::Zero();
+  }
 
-  // LFShoe_ = lowPassLF_.eval();
-  // LBShoe_ = lowPassLB_.eval();
-  // RFShoe_ = lowPassRF_.eval();
-  // RBShoe_ = lowPassRB_.eval();
+  // Attempt at filtering shoes force sensors: should be in plugin
+  lowPassLF_.update(LFShoe_);
+  lowPassLB_.update(LBShoe_);
+  lowPassRF_.update(RFShoe_);
+  lowPassRB_.update(RBShoe_);
+
+  LFShoe_ = lowPassLF_.eval();
+  LBShoe_ = lowPassLB_.eval();
+  RFShoe_ = lowPassRF_.eval();
+  RBShoe_ = lowPassRB_.eval();
 
   xsensCoMpos_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos");
   xsensCoMvel_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel");
@@ -239,8 +253,9 @@ bool HelpUpController::run()
   robotDCMTracker_->updateObjectiveValues(robDCMobjective_);
 
   auto desiredCoMWrench = humanDCMTracker_->getMissingForces();
-  distributeHandsWrench(desiredCoMWrench, robot(wrenchDistributionTarget_("robot")),
-                        wrenchDistributionTarget_("helpSurfaceLH"), wrenchDistributionTarget_("helpSurfaceRH"));
+  distributeAssistiveHandsWrench(desiredCoMWrench, robot(wrenchDistributionTarget_("robot")),
+                                 wrenchDistributionTarget_("helpSurfaceLH"),
+                                 wrenchDistributionTarget_("helpSurfaceRH"));
   t_ += solver().dt();
   bool ok = mc_control::fsm::Controller::run();
   return ok;
@@ -396,6 +411,9 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       auto planes = polytope_.constraintPlanes();
       Eigen::Vector3d chebichev = polytope_.chebichevCenter();
       Eigen::Vector3d bary = polytope_.baryCenter();
+      // lowpass filtering of center of polytope (very noisy from every computation)
+      lowPassPolyCenter_.update(bary);
+      bary = lowPassPolyCenter_.eval();
       Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * bary;
       if(scaleRobotCoM_)
       {
@@ -890,15 +908,15 @@ void HelpUpController::updateRealHumContacts()
   addRealHumContact("RightSole", 0, humanMass_ * 9.81, ContactType::support);
   addRealHumContact("LeftSole", 0, humanMass_ * 9.81, ContactType::support);
 
-  // if(RCheekChair->pair.getDistance() <= distThreshold)
-  // {
-  //   addRealHumContact("RCheek", 0, humanMass_ * 9.81, ContactType::support);
-  // }
+  if(RCheekChair->pair.getDistance() <= distThreshold)
+  {
+    // addRealHumContact("RCheek", 0, humanMass_ * 9.81, ContactType::support);
+  }
 
-  // if(LCheekChair->pair.getDistance() <= distThreshold)
-  // {
-  //   addRealHumContact("LCheek", 0, humanMass_ * 9.81, ContactType::support);
-  // }
+  if(LCheekChair->pair.getDistance() <= distThreshold)
+  {
+    // addRealHumContact("LCheek", 0, humanMass_ * 9.81, ContactType::support);
+  }
 
   // if (LHandBack->pair.getDistance()<=distThreshold)
   // {
@@ -978,10 +996,10 @@ sva::ForceVecd HelpUpController::getCurrentForceVec(const std::vector<sva::Force
   }
 }
 
-void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrench,
-                                             const mc_rbdyn::Robot & helperRobot,
-                                             const std::string & leftSurface,
-                                             const std::string & rightSurface)
+void HelpUpController::distributeAssistiveHandsWrench(const sva::ForceVecd & desiredWrench,
+                                                      const mc_rbdyn::Robot & helperRobot,
+                                                      const std::string & leftSurface,
+                                                      const std::string & rightSurface)
 {
   // Variables
   // ---------
@@ -994,8 +1012,8 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
   // ---------
   // Weighted minimization of the following tasks:
   // w_lh_C + w_rh_C == desiredWrench  -- realize desired wrench at human CoM
-  // (X_0_lhc* w_lh_0).z() == 0 -- minimize left hand force applied on human
-  // (X_0_rhc* w_rh_0).z() == 0 -- minimize right hand force applied on human
+  // (X_0_lhc* w_lh_0) == 0 -- minimize left hand force applied on human
+  // (X_0_rhc* w_rh_0) == 0 -- minimize right hand force applied on human
 
   // maybe add minimization of arm torques?
 
@@ -1017,8 +1035,9 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
   const sva::PTransformd & X_0_rhc = rightHandContact.surfacePose();
   // sva::PTransformd X_0_vrp(desiredVRP()); // getting vrp transform
   sva::PTransformd X_0_C(xsensCoMpos_); // getting CoM transform
-  sva::PTransformd X_lhc_c = X_0_lhc.inv() * X_0_C;
-  sva::PTransformd X_rhc_c = X_0_rhc.inv() * X_0_C;
+  // vérifier transformations au com
+  sva::PTransformd X_lhc_c = X_0_C * X_0_lhc.inv();
+  sva::PTransformd X_rhc_c = X_0_C * X_0_rhc.inv();
 
   constexpr unsigned NB_VAR = 6 + 6; // 6d wrench * 2 contacts
   constexpr unsigned COST_DIM = 6 + NB_VAR; // 6 for desired wrench, nb_var to minimize our variables individually
@@ -1041,7 +1060,10 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
           .dualMatrix(); // matrix transform for wrench from hand contact to com (since variable is hand contact wrench)
   A_net.block<6, 6>(0, 6) = X_rhc_c.dualMatrix();
   // b_net = X_0_vrp.dualMul(desiredWrench).vector(); ? since desired wrench is on the com maybe just this?
-  b_net = desiredWrench.vector();
+
+  // IMPORTANT we send the NEGATIVE desired wrench because the wrench we compute is the wrench for the human
+  // this means the robot must apply negative this value (reaction force) on its assisting end-effectors
+  b_net = -desiredWrench.vector();
 
   // |wrench_lh|^2
   auto A_lhwrench = A.block<6, 6>(6, 0);
@@ -1109,6 +1131,18 @@ void HelpUpController::distributeHandsWrench(const sva::ForceVecd & desiredWrenc
   A_ineq.block(nb_const - 1, 0, 1, 6) = Eigen::Matrix6d::Identity().bottomRows<1>(); // first 6 elements are lh
   A_ineq.block(nb_const - 1, 6, 1, 6) = Eigen::Matrix6d::Identity().bottomRows<1>(); // second 6 are rh
   b_ineq(nb_const - 1) = maxCompression;
+
+  if(!firstPolyHumOK_)
+  {
+    mc_rtc::log::info("A =");
+    mc_rtc::log::info("{}", A);
+    mc_rtc::log::info("b =");
+    mc_rtc::log::info("{}", b);
+    mc_rtc::log::info("A_ineq =");
+    mc_rtc::log::info("{}", A_ineq);
+    mc_rtc::log::info("b_ineq =");
+    mc_rtc::log::info("{}", b_ineq);
+  }
 
   vrpSolver_.problem(NB_VAR, 0, nb_const);
   Eigen::MatrixXd A_eq(0, 0);

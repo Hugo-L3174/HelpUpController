@@ -580,6 +580,7 @@ states:
       targetFrame:
         robot: panda
         frame: HumanFront
+        translation: [0.0, 0.0, 0.05]
         controlPoints:
           - [0.0, 0.0, 0.2]
         oriWaypoints:
@@ -667,6 +668,65 @@ states:
         r2Surface: Back
         dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
 
+  ApproachHRP4Human:
+    base: MetaTasks
+    tasks:
+      RHDamping:
+        type: admittance
+        frame: RightHand
+        stiffness: 50
+        targetFrame:
+          robot: human
+          frame: Front
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 5.0]
+        admittance:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.005]
+      LHDamping:
+        type: admittance
+        frame: LeftHand
+        stiffness: 50
+        targetFrame:
+          robot: human
+          frame: Back
+          offset:
+            translation: [0.0, -0.12, 0.0]
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 5.0]
+        admittance:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.005]
+
+
+
+  ApproachHRP4Panda:
+    base: ApproachHRP4Human
+    tasks:
+      RHDamping:
+        targetFrame:
+          robot: panda
+          frame: HumanFront
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 5.0]
+        admittance:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.05]
+      LHDamping:
+        targetFrame:
+          robot: panda
+          frame: HumanBack
+          offset:
+            translation: [0.0, -0.12, 0.0]
+        wrench:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 5.0]
+        admittance:
+          couple: [0.0, 0.0, 0.0]
+          force: [0.0, 0.0, 0.05]
 
 
   KeepPositionHRP4Human:
@@ -882,6 +942,10 @@ states:
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
     # start_time: 8.0
     log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
     start_time: 0.1
     # end_time: 15.0
     skip_iter: 1
@@ -912,7 +976,8 @@ states:
     transitions:
     - [Pause_2s, OK, RightStepFSMHRP4, Strict]
     - [RightStepFSMHRP4, OK, TakePositionHRP4Human, Auto]
-    - [TakePositionHRP4Human, OK, KeepPositionHRP4Human, Auto]
+    - [TakePositionHRP4Human, OK, ApproachHRP4Human, Strict]
+    - [ApproachHRP4Human, OK, KeepPositionHRP4Human, Strict]
     - [KeepPositionHRP4Human, OK, GoBackInitFSMHRP4, Strict]
 
   HelpFSM_HRP4Panda:
@@ -920,7 +985,8 @@ states:
     transitions:
     - [Pause_2s, OK, RightStepFSMHRP4, Strict]
     - [RightStepFSMHRP4, OK, TakePositionHRP4Panda, Strict]
-    - [TakePositionHRP4Panda, OK, KeepPositionHRP4Panda, Strict]
+    - [TakePositionHRP4Panda, OK, ApproachHRP4Panda, Strict]
+    - [ApproachHRP4Panda, OK, KeepPositionHRP4Panda, Strict]
     - [KeepPositionHRP4Panda, OK, GoBackInitFSMHRP4, Strict]
 
   HelpFSM_E2DR:
@@ -985,8 +1051,8 @@ HRP4ObserverPipeline:
     config:
       robot: hrp4
       updateRobot: hrp4
-      position: control #encoderValues            #    - Sets joint position from encoder sensor values (default)
-      velocity: control #encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
+      position: encoderValues            #    - Sets joint position from encoder sensor values (default)
+      velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
       computeFV: true                    # We now have the estimation of each joint position and velocity and the corresponding body positions and velocities, but we are still missing the floating base
     # config:
     #   robot: e2dr
@@ -1063,21 +1129,25 @@ UDPPlugin:
 
 RobotModelUpdate:
   robot: human
+
 # configuration for Replay plugin
 XsensReplay:
   preload_logs:
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
     - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
-
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit1.bin
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_nosuit2.bin #  forceshoes1.bin
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit3.bin
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia_suit2.bin
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes_celia.bin
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/standup.bin
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/forceshoes1.bin
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal2.bin"
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal2.bin"
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
-  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/18dec2023.bin
 
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_alone_2023-07-03.bin
@@ -1091,9 +1161,9 @@ XsensReplay:
 measuredPerson:
   # mass: 42 # Wanchen
   # mass: 55 # Celia
-  mass: 78
-  withSuit: true        # 10kg
-  # withSuit: false
+  mass: 75
+  # withSuit: true        # 10kg
+  withSuit: false
   withShoes: true       # 2*1.1kg
   # withShoes: false
   withLegs: false        # 2*2.3kg
@@ -1104,7 +1174,6 @@ wrenchDistributionTarget:
   # robot: human
   # helpSurfaceLH: Back
   # helpSurfaceRH: RightShoulder
-
   robot: hrp4
   helpSurfaceLH: LeftHand
   helpSurfaceRH: RightHand

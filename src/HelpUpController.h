@@ -140,10 +140,10 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
    * \param leftSurface surface corresponding to robot left hand
    * \param rightSurface surface corresponding to robot right hand
    */
-  void distributeHandsWrench(const sva::ForceVecd & desiredWrench,
-                             const mc_rbdyn::Robot & helperRobot,
-                             const std::string & leftSurface,
-                             const std::string & rightSurface);
+  void distributeAssistiveHandsWrench(const sva::ForceVecd & desiredWrench,
+                                      const mc_rbdyn::Robot & helperRobot,
+                                      const std::string & leftSurface,
+                                      const std::string & rightSurface);
 
   // Parametrized start offset of the log to sychronize. Default: start offset at 0, acquisition frequency of force
   // shoes at 100Hz
@@ -213,8 +213,10 @@ private:
   Eigen::Vector3d xsensCoMacc_ = Eigen::Vector3d::Zero();
   Eigen::Vector3d rawxsensCoMacc_ = Eigen::Vector3d::Zero();
 
-  double cutoffPeriod_ = 0.05;
+  double cutoffPeriod_ = 0.1;
   mc_filter::LowPass<Eigen::Vector3d> accLowPass_;
+  double cutoffPeriodPolyCenter_ = 0.5;
+  mc_filter::LowPass<Eigen::Vector3d> lowPassPolyCenter_;
 
   double DCMpropgain_ = 3.0;
   double DCMinteggain_ = 0;

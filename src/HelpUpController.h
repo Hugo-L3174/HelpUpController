@@ -5,6 +5,7 @@
 #include <mc_filter/LeakyIntegrator.h>
 #include <mc_filter/LowPass.h>
 #include "MCStabilityPolytope.h"
+#include "Tasks/ForceConstrainedTransformTask.h"
 #include "api.h"
 #include "problemDescriptor/contactPoints.h" // for ContactType enum
 #include "problemDescriptor/contactSet.h"
@@ -186,6 +187,7 @@ private:
   // Hacky check to add panda task when positions have been reset
   bool pandaTaskAdded_ = false;
   std::shared_ptr<mc_tasks::TransformTask> pandaTransform_;
+  std::shared_ptr<mc_tasks::ForceConstrainedTransformTask> pandaForceConstrainedTransform_;
 
   // mode to send or not the required computed force for balance to force control
   bool computedForceMode_ = false;

@@ -195,21 +195,43 @@ bool HelpUpController::run()
   // Assume positions have been reset when first poly is computed (only ran once)
   if(firstPolyHumOK_ && !pandaTaskAdded_ && robots().hasRobot("panda"))
   {
-    pandaTransform_ = std::make_shared<mc_tasks::TransformTask>(robot("panda").frame("HumanBack"), 1, 1000);
+    // pandaTransform_ = std::make_shared<mc_tasks::TransformTask>(robot("panda").frame("HumanBack"), 1, 1000);
+    pandaForceConstrainedTransform_ =
+        std::make_shared<mc_tasks::ForceConstrainedTransformTask>(robot("panda").frame("HumanBack"), 1, 1000);
+
+    pandaForceConstrainedTransform_->defaultAdmittanceGain(0.01);
+    pandaForceConstrainedTransform_->defaultSafetyDamping(0.01);
+    // For some reason the 3 last from the dof vector actuate the 3 first of the ForceVecd
+    // CAREFUL contraints are falsely constructed in the QP, selector matrix is resized too much if there are zeroes,
+    // check dofToSelector function
+    Eigen::Vector6d dof = -Eigen::Vector6d::Ones();
+    pandaForceConstrainedTransform_->addFrameConstraint(robot("panda").frame("BoxCenter"), dof,
+                                                        sva::ForceVecd({1.5, 1.5, 1.5}, {10.0, 10.0, 10.0}),
+                                                        sva::ForceVecd({0.0, 0.0, 0.0}, {3.0, 3.0, 3.0}));
+
+    dof = Eigen::Vector6d::Ones();
+    pandaForceConstrainedTransform_->addFrameConstraint(robot("panda").frame("BoxCenter"), dof,
+                                                        sva::ForceVecd({1.5, 1.5, 1.5}, {10.0, 10.0, 10.0}),
+                                                        sva::ForceVecd({0.0, 0.0, 0.0}, {3.0, 3.0, 3.0}));
     // pandaTransform_->stiffness(sva::MotionVecd(Eigen::Vector3d(100, 100, 100), Eigen::Vector3d(10, 10, 10)));
-    solver().addTask(pandaTransform_);
+    // solver().addTask(pandaTransform_);
+    solver().addTask(pandaForceConstrainedTransform_);
     pandaTaskAdded_ = true;
   }
 
   // set target every run
   if(pandaTaskAdded_ && robots().hasRobot("panda"))
   {
-    pandaTransform_->targetSurface(robot("human").robotIndex(), "Back", sva::PTransformd(Eigen::Vector3d(0, 0, -0.05)));
+    pandaForceConstrainedTransform_->targetSurface(robot("human").robotIndex(), "Back",
+                                                   sva::PTransformd(Eigen::Vector3d(0, 0, -0.05)));
+    // pandaTransform_->targetSurface(robot("human").robotIndex(), "Back", sva::PTransformd(Eigen::Vector3d(0, 0,
+    // -0.05)));
     auto X_back_0 = robot("human").frame("Back").position();
     auto backRefVel = robot("human").frame("Back").velocity();
     // transform from world frame to back frame
     backRefVel = sva::PTransformd(X_back_0.rotation()) * backRefVel;
-    pandaTransform_->refVelB(backRefVel);
+    // pandaTransform_->refVelB(backRefVel);
+    pandaForceConstrainedTransform_->refVelB(backRefVel);
     // getting ref acc same principle
     // auto backRefAcc = sva::PTransformd(X_back_0.rotation()) * robot("human").bodyAccB("TorsoLink");
     // backRefAcc.linear() += backRefVel.angular().cross(backRefVel.linear()); // coriolis term
@@ -441,6 +463,7 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
     {
       // do nothing for now : already wrote objective in DCMobjective_ var used in VRP control law
       objective = polytope_.objectiveInPolytope(currentPos);
+      // objective.z() =
       break;
     }
 
@@ -563,11 +586,17 @@ void HelpUpController::addGuiElements()
       mc_rtc::gui::Checkbox(
           "Scale CoM", [this]() { return scaleRobotCoM_; }, [this]() { scaleRobotCoM_ = !scaleRobotCoM_; }),
       mc_rtc::gui::Button("Panda high stiffness mode",
-                          [this]() {
-                            pandaTransform_->stiffness(
+                          [this]()
+                          {
+                            // pandaTransform_->stiffness(
+                            //     sva::MotionVecd(Eigen::Vector3d(100, 100, 100), Eigen::Vector3d(50, 50, 50)));
+                            pandaForceConstrainedTransform_->stiffness(
                                 sva::MotionVecd(Eigen::Vector3d(100, 100, 100), Eigen::Vector3d(50, 50, 50)));
                           }),
-      mc_rtc::gui::Button("Panda low stiffness mode", [this]() { pandaTransform_->stiffness(1); }),
+      mc_rtc::gui::Button("Panda low stiffness mode",
+                          [this]() { // pandaTransform_->stiffness(1);
+                            pandaForceConstrainedTransform_->stiffness(1);
+                          }),
       mc_rtc::gui::Button("Add computed force mode", [this]() { computedForceMode_ = true; }),
       mc_rtc::gui::Button("Follow only mode", [this]() { computedForceMode_ = false; }));
 
@@ -615,6 +644,17 @@ void HelpUpController::addGuiElements()
           "CoMForce", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return xsensCoMpos_; },
           [this, FORCE_SCALE]() -> Eigen::Vector3d
           { return xsensCoMpos_ + FORCE_SCALE * humanDCMTracker_->getAppliedForcesSum().force(); }));
+
+  gui()->addElement({"Panda"}, mc_rtc::gui::Arrow(
+                                   "Force Sensor", ShoesforceArrowConfig,
+                                   [this]() -> Eigen::Vector3d
+                                   { return robot("panda").frame("panda_link8").position().translation(); },
+                                   [this, FORCE_SCALE]() -> Eigen::Vector3d
+                                   {
+                                     return robot("panda").frame("panda_link8").position().translation()
+                                            + 3 * FORCE_SCALE
+                                                  * robot("panda").forceSensor("LeftHandForceSensor").force();
+                                   }));
 
   // gui()->addElement({"AccPoly"},
   //     mc_rtc::gui::Polygon("HRP4accBalanceRegion", mc_rtc::gui::Color{0.8, 0., 0.}, [this]() { return accelerations_;
@@ -1131,18 +1171,6 @@ void HelpUpController::distributeAssistiveHandsWrench(const sva::ForceVecd & des
   A_ineq.block(nb_const - 1, 0, 1, 6) = Eigen::Matrix6d::Identity().bottomRows<1>(); // first 6 elements are lh
   A_ineq.block(nb_const - 1, 6, 1, 6) = Eigen::Matrix6d::Identity().bottomRows<1>(); // second 6 are rh
   b_ineq(nb_const - 1) = maxCompression;
-
-  if(!firstPolyHumOK_)
-  {
-    mc_rtc::log::info("A =");
-    mc_rtc::log::info("{}", A);
-    mc_rtc::log::info("b =");
-    mc_rtc::log::info("{}", b);
-    mc_rtc::log::info("A_ineq =");
-    mc_rtc::log::info("{}", A_ineq);
-    mc_rtc::log::info("b_ineq =");
-    mc_rtc::log::info("{}", b_ineq);
-  }
 
   vrpSolver_.problem(NB_VAR, 0, nb_const);
   Eigen::MatrixXd A_eq(0, 0);

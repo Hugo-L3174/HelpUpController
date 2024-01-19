@@ -3,6 +3,7 @@ set(controller_SRC
   MCStabilityPolytope.cpp
   utils/PointProjector.cpp
   utils/DCM_VRPtracker.cpp
+  Tasks/ForceConstrainedTransformTask.cpp
 )
 
 set(controller_HDR
@@ -11,6 +12,7 @@ set(controller_HDR
   utils/PointProjector.h
   utils/DCM_VRPtracker.h
   Tasks/TrackDesiredForceTask.h
+  Tasks/ForceConstrainedTransformTask.h
 )
 
 add_library(${PROJECT_NAME} SHARED ${controller_SRC} ${controller_HDR})

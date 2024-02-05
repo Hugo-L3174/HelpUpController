@@ -30,6 +30,11 @@ public:
   void setCoMDyn(const Eigen::Vector3d & posCoM, const Eigen::Vector3d & velCoM, const Eigen::Vector3d & accCoM);
   void setAppliedForces(const std::vector<std::pair<sva::PTransformd, sva::ForceVecd>> & forceContacts);
 
+  void setModelMode(bool model)
+  {
+    modelMode_ = model;
+  };
+
   void resetTracker(Eigen::Vector3d posCoM, Eigen::Vector3d velCoM, Eigen::Vector3d accCoM);
 
   /*! \brief function called in the constructor to set up the GUI elements

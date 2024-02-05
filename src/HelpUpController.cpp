@@ -82,6 +82,8 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   LFootSurf = human_surfaces.at("LeftSole");
   RCheekSurf = human_surfaces.at("RCheek");
   LCheekSurf = human_surfaces.at("LCheek");
+  RBackLegSurf = human_surfaces.at("RLegBack");
+  LBackLegSurf = human_surfaces.at("LLegBack");
   RightShoulderSurf = human_surfaces.at("RightShoulder");
   BackSurf = human_surfaces.at("Back");
 
@@ -95,6 +97,9 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
 
   RCheekChair = std::make_shared<mc_control::SimulationContactPair>(RCheekSurf, TopSurf);
   LCheekChair = std::make_shared<mc_control::SimulationContactPair>(LCheekSurf, TopSurf);
+
+  RBackLegChair = std::make_shared<mc_control::SimulationContactPair>(RBackLegSurf, TopSurf);
+  LBackLegChair = std::make_shared<mc_control::SimulationContactPair>(LBackLegSurf, TopSurf);
   RFootGround = std::make_shared<mc_control::SimulationContactPair>(RFootSurf, GroundSurf);
   LFootGround = std::make_shared<mc_control::SimulationContactPair>(LFootSurf, GroundSurf);
   // RHandShoulder = std::make_shared<mc_control::SimulationContactPair>(RHandSurf, RightShoulderSurf);
@@ -206,13 +211,13 @@ bool HelpUpController::run()
     // check dofToSelector function
     Eigen::Vector6d dof = -Eigen::Vector6d::Ones();
     pandaForceConstrainedTransform_->addFrameConstraint(robot("panda").frame("BoxCenter"), dof,
-                                                        sva::ForceVecd({1.5, 1.5, 1.5}, {10.0, 10.0, 10.0}),
-                                                        sva::ForceVecd({0.0, 0.0, 0.0}, {3.0, 3.0, 3.0}));
+                                                        sva::ForceVecd({10, 10, 10}, {20.0, 20.0, 20.0}),
+                                                        sva::ForceVecd({0.0, 0.0, 0.0}, {5.0, 5.0, 5.0}));
 
     dof = Eigen::Vector6d::Ones();
     pandaForceConstrainedTransform_->addFrameConstraint(robot("panda").frame("BoxCenter"), dof,
-                                                        sva::ForceVecd({1.5, 1.5, 1.5}, {10.0, 10.0, 10.0}),
-                                                        sva::ForceVecd({0.0, 0.0, 0.0}, {3.0, 3.0, 3.0}));
+                                                        sva::ForceVecd({10, 10, 10}, {20.0, 20.0, 20.0}),
+                                                        sva::ForceVecd({0.0, 0.0, 0.0}, {5.0, 5.0, 5.0}));
     // pandaTransform_->stiffness(sva::MotionVecd(Eigen::Vector3d(100, 100, 100), Eigen::Vector3d(10, 10, 10)));
     // solver().addTask(pandaTransform_);
     solver().addTask(pandaForceConstrainedTransform_);
@@ -264,11 +269,13 @@ bool HelpUpController::run()
     // If more than two contacts: then the rear is still in contact with the chair
     // Then we should use the model version using the CoM acceleration
     modelMode_ = true;
+    humanDCMTracker_->setModelMode(true);
   }
   else
   {
     // two contacts or less: only feet contacts -> we can switch to force measurements
     modelMode_ = false;
+    humanDCMTracker_->setModelMode(false);
   }
 
   humanDCMTracker_->updateObjectiveValues(DCMobjective_);
@@ -276,7 +283,7 @@ bool HelpUpController::run()
 
   auto desiredCoMWrench = humanDCMTracker_->getMissingForces();
   distributeAssistiveHandsWrench(desiredCoMWrench, robot(wrenchDistributionTarget_("robot")),
-                                 wrenchDistributionTarget_("helpSurfaceLH"),
+                                 wrenchDistributionTarget_("targetRobot"), wrenchDistributionTarget_("helpSurfaceLH"),
                                  wrenchDistributionTarget_("helpSurfaceRH"));
   t_ += solver().dt();
   bool ok = mc_control::fsm::Controller::run();
@@ -288,25 +295,29 @@ void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
   mc_control::fsm::Controller::reset(reset_data);
 
   // Overwrite the low default interaction thresholds: this causes problems when running in mujoco
-  mc_panda::Robot * robot_ptr = mc_panda::Robot::get(robot("panda")); // nullptr if not a panda
-  if(robot_ptr)
+  if(robots().hasRobot("panda"))
   {
-    mc_rtc::log::info("Robot {} has a Robot-device", robot("panda").name());
-    robot_ptr->setJointImpedance(
-        {{3000, 3000, 3000, 2500, 2500, 2000,
-          2000}}); // values taken from
-                   // https://github.com/frankaemika/libfranka/blob/master/examples/examples_common.cpp#L18
-    // robot_ptr->setCollisionBehavior( //values taken from
-    // https://github.com/frankaemika/libfranka/blob/master/examples/generate_joint_velocity_motion.cpp#L39
-    //   {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}}, {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}},
-    //   {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}}, {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}},
-    //   {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}}, {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}},
-    //   {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}}, {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}});
-    robot_ptr->setCollisionBehavior( // TODO: be careful with this mode!
-        {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}}, {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}},
-        {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}}, {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}},
-        {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}}, {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}},
-        {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}}, {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}});
+
+    mc_panda::Robot * robot_ptr = mc_panda::Robot::get(robot("panda")); // nullptr if not a panda
+    if(robot_ptr)
+    {
+      mc_rtc::log::info("Robot {} has a Robot-device", robot("panda").name());
+      robot_ptr->setJointImpedance(
+          {{3000, 3000, 3000, 2500, 2500, 2000,
+            2000}}); // values taken from
+                     // https://github.com/frankaemika/libfranka/blob/master/examples/examples_common.cpp#L18
+      // robot_ptr->setCollisionBehavior( //values taken from
+      // https://github.com/frankaemika/libfranka/blob/master/examples/generate_joint_velocity_motion.cpp#L39
+      //   {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}}, {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}},
+      //   {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}}, {{20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0}},
+      //   {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}}, {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}},
+      //   {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}}, {{20.0, 20.0, 20.0, 25.0, 25.0, 25.0}});
+      robot_ptr->setCollisionBehavior( // TODO: be careful with this mode!
+          {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}}, {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}},
+          {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}}, {{200.0, 200.0, 180.0, 180.0, 160.0, 140.0, 120.0}},
+          {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}}, {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}},
+          {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}}, {{200.0, 200.0, 200.0, 250.0, 250.0, 250.0}});
+    }
   }
   /**
    * The observer pipeline for HRP4 will be initialized once the
@@ -581,22 +592,35 @@ void HelpUpController::addGuiElements()
   mc_rtc::gui::ArrowConfig MissingforceArrowConfig = forceArrowConfig;
   MissingforceArrowConfig.color = COLORS.at('g');
 
+  gui()->addElement({}, mc_rtc::gui::Input("Chebichev Coeff [0-1]", chebichevCoef_));
+  if(robots().hasRobot("panda"))
+  {
+    gui()->addElement({},
+                      mc_rtc::gui::Button("Panda high stiffness mode",
+                                          [this]()
+                                          {
+                                            // pandaTransform_->stiffness(
+                                            //     sva::MotionVecd(Eigen::Vector3d(100, 100, 100), Eigen::Vector3d(50,
+                                            //     50, 50)));
+                                            // XXX lowering stiffness here: should not be necessary if position AND
+                                            // velocity/acc commands should also solve the threshold problem of the
+                                            // force constrained task
+                                            pandaForceConstrainedTransform_->stiffness(
+                                                sva::MotionVecd(Eigen::Vector3d(10, 10, 10), Eigen::Vector3d(5, 5, 5)));
+                                            // pandaAdmi_->stiffness(
+                                            //        sva::MotionVecd(Eigen::Vector3d(100, 100, 100),
+                                            //        Eigen::Vector3d(50, 50, 50)));
+                                          }),
+                      mc_rtc::gui::Button("Panda low stiffness mode",
+                                          [this]() { // pandaTransform_->stiffness(1);
+                                            pandaForceConstrainedTransform_->stiffness(1);
+                                            // pandaAdmi_->stiffness(1);
+                                          }));
+  }
   gui()->addElement(
-      {}, mc_rtc::gui::Input("Chebichev Coeff [0-1]", chebichevCoef_),
+      {},
       mc_rtc::gui::Checkbox(
           "Scale CoM", [this]() { return scaleRobotCoM_; }, [this]() { scaleRobotCoM_ = !scaleRobotCoM_; }),
-      mc_rtc::gui::Button("Panda high stiffness mode",
-                          [this]()
-                          {
-                            // pandaTransform_->stiffness(
-                            //     sva::MotionVecd(Eigen::Vector3d(100, 100, 100), Eigen::Vector3d(50, 50, 50)));
-                            pandaForceConstrainedTransform_->stiffness(
-                                sva::MotionVecd(Eigen::Vector3d(100, 100, 100), Eigen::Vector3d(50, 50, 50)));
-                          }),
-      mc_rtc::gui::Button("Panda low stiffness mode",
-                          [this]() { // pandaTransform_->stiffness(1);
-                            pandaForceConstrainedTransform_->stiffness(1);
-                          }),
       mc_rtc::gui::Button("Add computed force mode", [this]() { computedForceMode_ = true; }),
       mc_rtc::gui::Button("Follow only mode", [this]() { computedForceMode_ = false; }));
 
@@ -644,17 +668,19 @@ void HelpUpController::addGuiElements()
           "CoMForce", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return xsensCoMpos_; },
           [this, FORCE_SCALE]() -> Eigen::Vector3d
           { return xsensCoMpos_ + FORCE_SCALE * humanDCMTracker_->getAppliedForcesSum().force(); }));
-
-  gui()->addElement({"Panda"}, mc_rtc::gui::Arrow(
-                                   "Force Sensor", ShoesforceArrowConfig,
-                                   [this]() -> Eigen::Vector3d
-                                   { return robot("panda").frame("panda_link8").position().translation(); },
-                                   [this, FORCE_SCALE]() -> Eigen::Vector3d
-                                   {
-                                     return robot("panda").frame("panda_link8").position().translation()
-                                            + 3 * FORCE_SCALE
-                                                  * robot("panda").forceSensor("LeftHandForceSensor").force();
-                                   }));
+  if(robots().hasRobot("panda"))
+  {
+    gui()->addElement({"Panda"}, mc_rtc::gui::Arrow(
+                                     "Force Sensor", ShoesforceArrowConfig,
+                                     [this]() -> Eigen::Vector3d
+                                     { return robot("panda").frame("panda_link8").position().translation(); },
+                                     [this, FORCE_SCALE]() -> Eigen::Vector3d
+                                     {
+                                       return robot("panda").frame("panda_link8").position().translation()
+                                              + 3 * FORCE_SCALE
+                                                    * robot("panda").forceSensor("LeftHandForceSensor").force();
+                                     }));
+  }
 
   // gui()->addElement({"AccPoly"},
   //     mc_rtc::gui::Polygon("HRP4accBalanceRegion", mc_rtc::gui::Color{0.8, 0., 0.}, [this]() { return accelerations_;
@@ -932,6 +958,8 @@ void HelpUpController::updateRealHumContacts()
   LFootGround->update(robot("human"), robot("ground"));
   RCheekChair->update(robot("human"), robot("chair"));
   LCheekChair->update(robot("human"), robot("chair"));
+  RBackLegChair->update(robot("human"), robot("chair"));
+  LBackLegChair->update(robot("human"), robot("chair"));
   // RHandShoulder->update(robot(), robot("human"));
   // LHandBack->update(robot(), robot("human"));
 
@@ -950,13 +978,23 @@ void HelpUpController::updateRealHumContacts()
 
   if(RCheekChair->pair.getDistance() <= distThreshold)
   {
-    // addRealHumContact("RCheek", 0, humanMass_ * 9.81, ContactType::support);
+    addRealHumContact("RCheek", 0, humanMass_ * 9.81, ContactType::support);
   }
 
   if(LCheekChair->pair.getDistance() <= distThreshold)
   {
-    // addRealHumContact("LCheek", 0, humanMass_ * 9.81, ContactType::support);
+    addRealHumContact("LCheek", 0, humanMass_ * 9.81, ContactType::support);
   }
+
+  // if(RBackLegChair->pair.getDistance() <= distThreshold)
+  // {
+  //   addRealHumContact("RLegBack", 0, humanMass_ * 9.81, ContactType::support);
+  // }
+
+  // if(LBackLegChair->pair.getDistance() <= distThreshold)
+  // {
+  //   addRealHumContact("LLegBack", 0, humanMass_ * 9.81, ContactType::support);
+  // }
 
   // if (LHandBack->pair.getDistance()<=distThreshold)
   // {
@@ -1038,6 +1076,7 @@ sva::ForceVecd HelpUpController::getCurrentForceVec(const std::vector<sva::Force
 
 void HelpUpController::distributeAssistiveHandsWrench(const sva::ForceVecd & desiredWrench,
                                                       const mc_rbdyn::Robot & helperRobot,
+                                                      const std::string & targetRobot,
                                                       const std::string & leftSurface,
                                                       const std::string & rightSurface)
 {
@@ -1074,7 +1113,16 @@ void HelpUpController::distributeAssistiveHandsWrench(const sva::ForceVecd & des
   const sva::PTransformd & X_0_lhc = leftHandContact.surfacePose();
   const sva::PTransformd & X_0_rhc = rightHandContact.surfacePose();
   // sva::PTransformd X_0_vrp(desiredVRP()); // getting vrp transform
-  sva::PTransformd X_0_C(xsensCoMpos_); // getting CoM transform
+  sva::PTransformd X_0_C; // getting CoM transform
+  if(targetRobot == "human")
+  {
+    X_0_C = sva::PTransformd(xsensCoMpos_); // getting CoM transform
+  }
+  else if(targetRobot == "panda")
+  {
+    X_0_C = sva::PTransformd(robot("panda").frame("BoxCenter").position().translation());
+  }
+
   // vérifier transformations au com
   sva::PTransformd X_lhc_c = X_0_C * X_0_lhc.inv();
   sva::PTransformd X_rhc_c = X_0_C * X_0_rhc.inv();

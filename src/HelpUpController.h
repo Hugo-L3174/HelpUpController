@@ -138,11 +138,13 @@ struct HelpUpController_DLLAPI HelpUpController : public mc_control::fsm::Contro
   /*! \brief Distribute missing computed wrench on the desired surfaces
    * \param desiredWrench missing 6d wrench at CoM
    * \param helperRobot robot instance that will make the contacts
+   * \param targetRobot robot instance on which to apply the forces (for com position)
    * \param leftSurface surface corresponding to robot left hand
    * \param rightSurface surface corresponding to robot right hand
    */
   void distributeAssistiveHandsWrench(const sva::ForceVecd & desiredWrench,
                                       const mc_rbdyn::Robot & helperRobot,
+                                      const std::string & targetRobot,
                                       const std::string & leftSurface,
                                       const std::string & rightSurface);
 
@@ -323,9 +325,9 @@ private:
 
   // Surfaces to check collisions
   std::shared_ptr<mc_rbdyn::Surface> BackSurf, RightShoulderSurf, RCheekSurf, LCheekSurf, RFootSurf, LFootSurf, TopSurf,
-      RHandSurf, LHandSurf, GroundSurf;
+      RHandSurf, LHandSurf, GroundSurf, RBackLegSurf, LBackLegSurf;
   std::shared_ptr<mc_control::SimulationContactPair> RCheekChair, LCheekChair, RFootGround, LFootGround, RHandShoulder,
-      LHandBack;
+      LHandBack, RBackLegChair, LBackLegChair;
 
 public:
   using mc_control::fsm::Controller::updateContacts;

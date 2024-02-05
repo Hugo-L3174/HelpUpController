@@ -6,5 +6,6 @@ add_fsm_state_simple(ResetPoses)
 add_fsm_state_simple(RobotStabilizer)
 add_fsm_state_simple(ChangeBalanceConfig)
 add_fsm_state_simple(RobotTakePoseObserved)
+add_fsm_state_simple(AdjustHumanSurfaces)
 
 add_fsm_data_directory(data)

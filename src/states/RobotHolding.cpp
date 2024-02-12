@@ -3,7 +3,6 @@
 #include <mc_solver/TasksQPSolver.h>
 
 #include <mc_control/fsm/Controller.h>
-#include "../HelpUpController.h"
 
 void RobotHolding::configure(const mc_rtc::Configuration & config)
 {
@@ -12,7 +11,6 @@ void RobotHolding::configure(const mc_rtc::Configuration & config)
 
 void RobotHolding::start(mc_control::fsm::Controller & ctl)
 {
-  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   if(config_.has("RightHandAdmi"))
   {
@@ -60,6 +58,20 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl)
     RHtarget("frame", RHtargetFrame_);
     RHtarget("offset", RHtargetOffset_);
     rightHandImpedancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
+    // critically damped impedance has D = 2*sqrt(K*M)
+    // if damping not manually given, compute it from the others
+    // update: multiplying D by 2 again because too low otherwise (other spring damper systems conflict)
+    if(!config_("RightHandImped")("gains").has("damper"))
+    {
+      Eigen::Vector6d damping;
+      for(int i = 0; i < 6; i++)
+      {
+        // damping(i) = 2 * 2*sqrt(rightHandImpedancePtr_->gains().spring().vector()(i) *
+        // rightHandImpedancePtr_->gains().mass().vector()(i));
+        damping(i) = 2 * rightHandImpedancePtr_->gains().spring().vector()(i);
+      }
+      rightHandImpedancePtr_->gains().damper() = damping;
+    }
     // rightHandImpedancePtr_->targetWrench(sva::ForceVecd::Zero());
     ctl.solver().addTask(rightHandImpedancePtr_);
   }
@@ -73,6 +85,19 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl)
     LHtarget("frame", LHtargetFrame_);
     LHtarget("offset", LHtargetOffset_);
     leftHandImpedancePtr_->targetPose(LHtargetOffset_ * ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).position());
+    // critically damped impedance has D = 2*sqrt(K*M)
+    // if damping not manually given, compute it from the others
+    if(!config_("LeftHandImped")("gains").has("damper"))
+    {
+      Eigen::Vector6d damping;
+      for(int i = 0; i < 6; i++)
+      {
+        // damping(i) = 2 * 2*sqrt(leftHandImpedancePtr_->gains().spring().vector()(i) *
+        // leftHandImpedancePtr_->gains().mass().vector()(i));
+        damping(i) = 2 * leftHandImpedancePtr_->gains().spring().vector()(i);
+      }
+      leftHandImpedancePtr_->gains().damper() = damping;
+    }
     // leftHandImpedancePtr_->targetWrench(sva::ForceVecd::Zero());
     ctl.solver().addTask(leftHandImpedancePtr_);
   }
@@ -83,31 +108,48 @@ void RobotHolding::start(mc_control::fsm::Controller & ctl)
 
 bool RobotHolding::run(mc_control::fsm::Controller & ctl)
 {
-  auto & HelpUp = static_cast<HelpUpController &>(ctl);
-
-  // rightHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(RHtarget_));
-  // rightHandImpedancePtr_->targetWrench(ctl.getRHWrenchComputed());
-
-  // leftHandImpedancePtr_->targetPose(ctl.robot("human").surfacePose(LHtarget_));
-  // leftHandImpedancePtr_->targetWrench(ctl.getLHWrenchComputed());
-
-  // Eigen::Vector6d gain;
-  // gain << 1.0, 1.0, 1.0, 1.0, 1.0, 1.0;
-  // gain for setExternalWrenches is used only if we use the measured forces (might vibrate, thus gains)
-  // auto handGains = sva::MotionVecd(gain);
 
   // getting ref vel from human back, to be transformed in objective frame
-  auto backRefVel = HelpUp.robot("human").frame("Back").velocity();
-  auto X_back_0 = HelpUp.robot("human").frame("Back").position();
+  auto backRefVel = ctl.robot("human").frame("Back").velocity();
+  auto X_0_back = ctl.robot("human").frame("Back").position();
   // getting ref acc same principle
-  auto backRefAcc = sva::PTransformd(X_back_0.rotation()).inv()
-                    * HelpUp.robot("human").bodyAccB("TorsoLink"); // is this transformed correctly? should it be body
-                                                                   // into world into frame instead of body into frame?
+  auto backRefAcc = sva::PTransformd(X_0_back.rotation()).inv()
+                    * ctl.robot("human").bodyAccB("TorsoLink"); // is this transformed correctly? should it be body
+                                                                // into world into frame instead of body into frame?
   backRefAcc.linear() += backRefVel.angular().cross(backRefVel.linear()); // coriolis term
 
   std::vector<sva::MotionVecd> gainsVec;
   std::vector<std::string> surfVec;
   std::vector<sva::ForceVecd> wrenchVec;
+  auto & changeMode = ctl.datastore().get<bool>("HelpUp::ChangeMode");
+  if(changeMode)
+  {
+    if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
+    {
+      mc_rtc::log::info("[{}] : changing force mode to computed wrenches", name());
+      if(config_.has("RightHandImped"))
+      {
+        rightHandImpedancePtr_->gains().wrench() = config_("RightHandImped")("gains")("wrench");
+      }
+      if(config_.has("LeftHandImped"))
+      {
+        leftHandImpedancePtr_->gains().wrench() = config_("LeftHandImped")("gains")("wrench");
+      }
+    }
+    else
+    {
+      mc_rtc::log::info("[{}] : changing force mode to follow only", name());
+      if(config_.has("RightHandImped"))
+      {
+        rightHandImpedancePtr_->gains().wrench() = Eigen::Vector6d::Zero().eval();
+      }
+      if(config_.has("LeftHandImped"))
+      {
+        leftHandImpedancePtr_->gains().wrench() = Eigen::Vector6d::Zero().eval();
+      }
+    }
+    changeMode = false;
+  }
 
   if(config_.has("RightHandAdmi"))
   {
@@ -141,11 +183,26 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
 
   if(config_.has("RightHandImped"))
   {
-    rightHandImpedancePtr_->targetPose(RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position());
-    auto X_RHtarget_0 = rightHandImpedancePtr_->targetPose();
-    auto X_RHtarget_back = X_RHtarget_0 * X_back_0.inv();
-    rightHandImpedancePtr_->targetVel(X_RHtarget_back * backRefVel);
-    rightHandImpedancePtr_->targetAccel(X_RHtarget_back * backRefAcc);
+    auto X_0_RHtarget = RHtargetOffset_ * ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).position();
+    // getting ref vel from objective frame (already in world frame)
+    auto RHRefVel = ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).velocity();
+    // getting ref acc
+    auto X_pBody_RHtarget = ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).X_b_f();
+    auto pBodyRHName = ctl.robot(RHtargetRobot_).frame(RHtargetFrame_).body();
+    // no accessor for frame acceleration -> getting body acc of parent (/!\ it is a SPATIAL acc, so need to add
+    // centrifugal term), transforming it back to target frame, then orient it in world frame to check: is bodyAccB in
+    // world frame? it says inertial frame but it should be the same thing
+    auto RHRefAcc = sva::PTransformd(X_0_RHtarget.inv().rotation()) * X_pBody_RHtarget
+                    * ctl.robot(RHtargetRobot_).bodyAccB(pBodyRHName);
+    // centrifugal term: appears because this is not acc of the body but of a point attached to the body
+    RHRefAcc.linear() += RHRefVel.angular().cross(RHRefVel.linear());
+
+    // setting reference trajectory of target frame
+    rightHandImpedancePtr_->targetPose(X_0_RHtarget);
+    rightHandImpedancePtr_->targetVel(RHRefVel);
+    rightHandImpedancePtr_->targetAccel(RHRefAcc);
+
+    // setting target wrenches to apply on target frame
     if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
     {
       rightHandImpedancePtr_->targetWrench(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedRHWrench"));
@@ -156,7 +213,7 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
     }
     else
     {
-      rightHandImpedancePtr_->targetWrench(sva::ForceVecd(Eigen::Vector3d(0., 0., 0.), Eigen::Vector3d(0., 0., 5.)));
+      rightHandImpedancePtr_->targetWrench(sva::ForceVecd(Eigen::Vector3d(0., 0., 0.), Eigen::Vector3d(0., 0., 0.)));
       RHgains_ = sva::MotionVecd(Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0));
       gainsVec.push_back(RHgains_);
       surfVec.push_back(config_("RightHandImped")("frame"));
@@ -165,11 +222,24 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
   }
   if(config_.has("LeftHandImped"))
   {
-    leftHandImpedancePtr_->targetPose(LHtargetOffset_ * ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).position());
-    auto X_LHtarget_0 = leftHandImpedancePtr_->targetPose();
-    auto X_LHtarget_back = X_LHtarget_0 * X_back_0.inv();
-    leftHandImpedancePtr_->targetVel(X_LHtarget_back * backRefVel);
-    leftHandImpedancePtr_->targetAccel(X_LHtarget_back * backRefAcc);
+    auto X_0_LHtarget = LHtargetOffset_ * ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).position();
+    // getting ref vel from objective frame (already in world frame)
+    auto LHRefVel = ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).velocity();
+    // getting ref acc
+    auto X_pBody_LHtarget = ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).X_b_f();
+    auto pBodyLHName = ctl.robot(LHtargetRobot_).frame(LHtargetFrame_).body();
+    // no accessor for frame acceleration -> getting body acc of parent (/!\ it is a SPATIAL acc, so need to add
+    // centrifugal term), transforming it back to target frame, then orient it in world frame
+    auto LHRefAcc = sva::PTransformd(X_0_LHtarget.inv().rotation()) * X_pBody_LHtarget
+                    * ctl.robot(LHtargetRobot_).bodyAccB(pBodyLHName);
+    LHRefAcc.linear() += LHRefVel.angular().cross(LHRefVel.linear()); // centrifugal term
+
+    // setting reference trajectory of target frame
+    leftHandImpedancePtr_->targetPose(X_0_LHtarget);
+    leftHandImpedancePtr_->targetVel(LHRefVel);
+    leftHandImpedancePtr_->targetAccel(LHRefAcc);
+
+    // setting target wrenches to apply on target frame
     if(ctl.datastore().call<bool>("HelpUp::ForceMode"))
     {
       leftHandImpedancePtr_->targetWrench(ctl.datastore().call<sva::ForceVecd>("HelpUp::ComputedLHWrench"));
@@ -180,7 +250,7 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
     }
     else
     {
-      leftHandImpedancePtr_->targetWrench(sva::ForceVecd(Eigen::Vector3d(0., 0., 0.), Eigen::Vector3d(0., 0., 5.)));
+      leftHandImpedancePtr_->targetWrench(sva::ForceVecd(Eigen::Vector3d(0., 0., 0.), Eigen::Vector3d(0., 0., 0.)));
       LHgains_ = sva::MotionVecd(Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0));
       gainsVec.push_back(LHgains_);
       surfVec.push_back(config_("LeftHandImped")("frame"));
@@ -214,7 +284,6 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
 
 void RobotHolding::teardown(mc_control::fsm::Controller & ctl)
 {
-  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration DefaultExternalWrenchConf_;
   ctl.datastore().call(
@@ -232,7 +301,6 @@ void RobotHolding::addToGUI(mc_rtc::gui::StateBuilder & gui, mc_control::fsm::Co
 {
   using namespace mc_rtc::gui;
   using Style = mc_rtc::gui::plot::Style;
-  // auto & ctl = static_cast<HelpUpController &>(ctl_);
 
   ///// GUI MARKERS
   constexpr double ARROW_HEAD_DIAM = 0.015;

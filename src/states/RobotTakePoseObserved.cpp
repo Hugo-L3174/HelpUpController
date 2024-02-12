@@ -102,10 +102,10 @@ bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl)
 
 void RobotTakePoseObserved::teardown(mc_control::fsm::Controller & ctl)
 {
-  // auto & ctl = static_cast<HelpUpController &>(ctl_);
   ctl.solver().removeTask(RHandTrajectoryTask_);
   ctl.solver().removeTask(LHandTrajectoryTask_);
 
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoM") = true;
   // ctl.logger().removeLogEntry("bspline_trajectory_hrp4_LeftHand_eval");
   // ctl.logger().removeLogEntry("bspline_trajectory_hrp4_RightHand_eval");
 }

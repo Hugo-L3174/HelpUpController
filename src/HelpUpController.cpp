@@ -42,6 +42,7 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   config_("wrenchDistributionTarget", wrenchDistributionTarget_);
   config_("handContactsForBalance", handContactsForBalance_);
   auto measuredPerson = config_("measuredPerson");
+  measuredPerson("hipHeight", hipHeight_);
   measuredPerson("mass", humanMass_);
   measuredPerson("withSuit", withSuit_);
   measuredPerson("withShoes", withShoes_);
@@ -120,10 +121,11 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   robotDCMTracker_ = std::make_shared<DCM_VRPtracker>(dt, cutoffPeriod_, robot().mass(), DCMpropgain_, DCMinteggain_);
 
   datastore().make_call("HelpUp::ForceMode", [this]() { return computedForceMode_; });
+  datastore().make<bool>("HelpUp::ChangeMode", true);
   datastore().make_call("HelpUp::ComputedLHWrench", [this]() { return getLHWrenchComputed(); });
   datastore().make_call("HelpUp::ComputedRHWrench", [this]() { return getRHWrenchComputed(); });
   // scale robot height to human or not (false at first)
-  datastore().make_call("HelpUp::scaleRobotCoM", [this]() { return scaleRobotCoM_; });
+  datastore().make<bool>("HelpUp::scaleRobotCoM", false);
 
   // accLowPass_.dt(dt);
   // accLowPass_.cutoffPeriod(cutoffPeriod_);
@@ -231,10 +233,10 @@ bool HelpUpController::run()
                                                    sva::PTransformd(Eigen::Vector3d(0, 0, -0.05)));
     // pandaTransform_->targetSurface(robot("human").robotIndex(), "Back", sva::PTransformd(Eigen::Vector3d(0, 0,
     // -0.05)));
-    auto X_back_0 = robot("human").frame("Back").position();
+    auto X_0_back = robot("human").frame("Back").position();
     auto backRefVel = robot("human").frame("Back").velocity();
     // transform from world frame to back frame
-    backRefVel = sva::PTransformd(X_back_0.rotation()) * backRefVel;
+    backRefVel = sva::PTransformd(X_0_back.rotation()) * backRefVel;
     // pandaTransform_->refVelB(backRefVel);
     pandaForceConstrainedTransform_->refVelB(backRefVel);
     // getting ref acc same principle
@@ -445,10 +447,13 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       Eigen::Vector3d chebichev = polytope_.chebichevCenter();
       Eigen::Vector3d bary = polytope_.baryCenter();
       // lowpass filtering of center of polytope (very noisy from every computation)
-      lowPassPolyCenter_.update(bary);
-      bary = lowPassPolyCenter_.eval();
-      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * bary;
-      if(scaleRobotCoM_)
+      // lowPassPolyCenter_.update(bary);
+      // bary = lowPassPolyCenter_.eval();
+      // Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * bary;
+      lowPassPolyCenter_.update(chebichev);
+      chebichev = lowPassPolyCenter_.eval();
+      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * chebichev;
+      if(datastore().get<bool>("HelpUp::scaleRobotCoM"))
       {
         // minimum com height 0.73cm, max will be 0.82cm, scaled to human com height (nominal hrp4 is 0.78)
         filteredObjective.z() = std::clamp(robot("human").com().z(), 0.73, 0.82);
@@ -472,9 +477,21 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
 
     case human:
     {
-      // do nothing for now : already wrote objective in DCMobjective_ var used in VRP control law
+      Eigen::Vector3d prevObjective = objective;
+      // writing objective by reference in DCMobjective_ var used in VRP control law
       objective = polytope_.objectiveInPolytope(currentPos);
-      // objective.z() =
+      // prevent polytope projection to lower objective (from polytope form, closest point might be lower)
+      if(objective.z() < currentPos.z())
+      {
+        objective.z() = currentPos.z();
+      }
+      // we do not authorize objective to go down while person is not standing
+      // standing com typically about 10cm top of hips, we keep a 5cm margin
+      if(objective.z() < prevObjective.z() && objective.z() < hipHeight_ + 0.05)
+      {
+        objective.z() = prevObjective.z();
+      }
+
       break;
     }
 
@@ -617,12 +634,25 @@ void HelpUpController::addGuiElements()
                                             // pandaAdmi_->stiffness(1);
                                           }));
   }
-  gui()->addElement(
-      {},
-      mc_rtc::gui::Checkbox(
-          "Scale CoM", [this]() { return scaleRobotCoM_; }, [this]() { scaleRobotCoM_ = !scaleRobotCoM_; }),
-      mc_rtc::gui::Button("Add computed force mode", [this]() { computedForceMode_ = true; }),
-      mc_rtc::gui::Button("Follow only mode", [this]() { computedForceMode_ = false; }));
+  gui()->addElement({},
+                    mc_rtc::gui::Checkbox(
+                        "Scale CoM", [this]() { return datastore().get<bool>("HelpUp::scaleRobotCoM"); },
+                        [this]() {
+                          datastore().get<bool>("HelpUp::scaleRobotCoM") =
+                              !datastore().get<bool>("HelpUp::scaleRobotCoM");
+                        }),
+                    mc_rtc::gui::Button("Add computed force mode",
+                                        [this]()
+                                        {
+                                          computedForceMode_ = true;
+                                          datastore().get<bool>("HelpUp::ChangeMode") = true;
+                                        }),
+                    mc_rtc::gui::Button("Follow only mode",
+                                        [this]()
+                                        {
+                                          computedForceMode_ = false;
+                                          datastore().get<bool>("HelpUp::ChangeMode") = true;
+                                        }));
 
   gui()->addElement({{}, "Points", "CoM"},
                     mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE),
@@ -963,7 +993,7 @@ void HelpUpController::updateRealHumContacts()
   // RHandShoulder->update(robot(), robot("human"));
   // LHandBack->update(robot(), robot("human"));
 
-  double distThreshold = 0.005;
+  double distThreshold = 0.01;
   double speedThreshold = 1e-4;
 
   auto prevContactNb = contactSetHum_->numberOfContacts() / 4;
@@ -976,12 +1006,14 @@ void HelpUpController::updateRealHumContacts()
   addRealHumContact("RightSole", 0, humanMass_ * 9.81, ContactType::support);
   addRealHumContact("LeftSole", 0, humanMass_ * 9.81, ContactType::support);
 
-  if(RCheekChair->pair.getDistance() <= distThreshold)
+  if((RCheekChair->pair.getDistance()
+      <= distThreshold)) // || (humanDCMTracker_->getAppliedForcesSum().force().z() < 0.9 * 9.81 * humanMass_))
   {
     addRealHumContact("RCheek", 0, humanMass_ * 9.81, ContactType::support);
   }
 
-  if(LCheekChair->pair.getDistance() <= distThreshold)
+  if((LCheekChair->pair.getDistance()
+      <= distThreshold)) // || (humanDCMTracker_->getAppliedForcesSum().force().z() < 0.9 * 9.81 * humanMass_))
   {
     addRealHumContact("LCheek", 0, humanMass_ * 9.81, ContactType::support);
   }

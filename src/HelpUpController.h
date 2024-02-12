@@ -249,6 +249,8 @@ private:
   bool withWrists_ = false;
   bool withShoes_ = true;
 
+  double hipHeight_ = 90;
+
   const double shoesMass_ = 1.1;
   const double wristsMass_ = 1.5;
   const double legsMass_ = 2.3;
@@ -295,7 +297,7 @@ private:
 
   Eigen::Vector3d combinedCoM_;
 
-  double chebichevCoef_ = 0.9;
+  double chebichevCoef_ = 0.5;
 
   double cutoffPeriodForceShoes_ = 0.05;
   mc_filter::LowPass<sva::ForceVecd> lowPassLF_, lowPassRF_, lowPassLB_, lowPassRB_;
@@ -326,9 +328,9 @@ private:
   // Surfaces to check collisions
   std::shared_ptr<mc_rbdyn::Surface> BackSurf, RightShoulderSurf, RCheekSurf, LCheekSurf, RFootSurf, LFootSurf, TopSurf,
       RHandSurf, LHandSurf, GroundSurf, RBackLegSurf, LBackLegSurf;
-  std::shared_ptr<mc_control::SimulationContactPair> RCheekChair, LCheekChair, RFootGround, LFootGround, RHandShoulder,
-      LHandBack, RBackLegChair, LBackLegChair;
 
 public:
+  std::shared_ptr<mc_control::SimulationContactPair> RCheekChair, LCheekChair, RFootGround, LFootGround, RHandShoulder,
+      LHandBack, RBackLegChair, LBackLegChair;
   using mc_control::fsm::Controller::updateContacts;
 };

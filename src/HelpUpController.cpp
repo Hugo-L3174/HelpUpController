@@ -257,6 +257,12 @@ bool HelpUpController::run()
     robMeasuredDCM_ = datastore().call<Eigen::Vector3d>("RobotStabilizer::getMeasuredDCM");
     updateObjective(robotPolytope_, robMeasuredDCM_, robDCMobjective_, mainRob);
   }
+  else
+  {
+    // This is to initialize the low pass near the com and not at zero (which makes the com objective move violently in
+    // the beginning otherwise) combined to chebichev coeff and cutoff period of lowpass
+    lowPassPolyCenter_.reset(robot().com());
+  }
 
   // Same process with human
   computePolytope(humanDCMTracker_->getDCM(), firstPolyHumOK_, human);
@@ -547,6 +553,8 @@ void HelpUpController::addLogEntries()
   logger.addLogEntry("HelpUp_robot measured DCM", [this]() -> const Eigen::Vector3d & { return robMeasuredDCM_; });
   // MC_RTC_LOG_HELPER("HelpUp_robot measured DCM", robMeasuredDCM_);
   logger.addLogEntry("HelpUp_robot DCM objective", [this]() -> const Eigen::Vector3d & { return robDCMobjective_; });
+  logger.addLogEntry("HelpUp_filtered cheb center",
+                     [this]() -> const Eigen::Vector3d & { return lowPassPolyCenter_.eval(); });
   logger.addLogEntry("Xsens_Raw acc", [this]() -> const Eigen::Vector3d & { return rawxsensCoMacc_; });
   logger.addLogEntry("Xsens_Filtered acc", [this]() -> const Eigen::Vector3d & { return xsensCoMacc_; });
   logger.addLogEntry("ForceShoes_LFShoeMeasure", [this]() -> const sva::ForceVecd & { return LFShoe_; });

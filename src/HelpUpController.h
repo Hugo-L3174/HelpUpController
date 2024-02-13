@@ -219,7 +219,7 @@ private:
 
   double cutoffPeriod_ = 0.1;
   mc_filter::LowPass<Eigen::Vector3d> accLowPass_;
-  double cutoffPeriodPolyCenter_ = 0.5;
+  double cutoffPeriodPolyCenter_ = 0.2;
   mc_filter::LowPass<Eigen::Vector3d> lowPassPolyCenter_;
 
   double DCMpropgain_ = 3.0;
@@ -297,7 +297,7 @@ private:
 
   Eigen::Vector3d combinedCoM_;
 
-  double chebichevCoef_ = 0.5;
+  double chebichevCoef_ = 0.7;
 
   double cutoffPeriodForceShoes_ = 0.05;
   mc_filter::LowPass<sva::ForceVecd> lowPassLF_, lowPassRF_, lowPassLB_, lowPassRB_;

@@ -477,11 +477,12 @@ void XsensReplay::after(mc_control::MCGlobalController & gc)
   }
   else
   {
-    finished_ = true;
-    end_iter_ = 0;
-    start_iter_ = 0;
-    totalIter_ = 0;
-    skipIter_ = 1;
+    // finished_ = true;
+    pause_ = true;
+    // end_iter_ = 0;
+    // start_iter_ = 0;
+    // totalIter_ = 0;
+    // skipIter_ = 1;
   }
 }
 

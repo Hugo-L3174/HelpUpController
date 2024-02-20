@@ -6,9 +6,11 @@
 #include <mc_tasks/CoPTask.h>
 #include <mc_tasks/ComplianceTask.h>
 #include <mc_tasks/DampingTask.h>
+#include <mc_tasks/FirstOrderImpedanceTask.h>
 #include <mc_tasks/ImpedanceGains.h>
 #include <mc_tasks/ImpedanceTask.h>
 #include <mc_tasks/MetaTaskLoader.h>
+#include "Tasks/FirstOrderAdmittance.h"
 
 struct RobotHolding : mc_control::fsm::State
 {
@@ -26,7 +28,9 @@ struct RobotHolding : mc_control::fsm::State
 
 private:
   std::shared_ptr<mc_tasks::force::AdmittanceTask> rightHandAdmittancePtr_, leftHandAdmittancePtr_;
+  std::shared_ptr<mc_tasks::force::FirstOrderAdmittance> rightHand1stOAdmittancePtr_, leftHand1stOAdmittancePtr_;
   std::shared_ptr<mc_tasks::force::ImpedanceTask> rightHandImpedancePtr_, leftHandImpedancePtr_;
+  // std::shared_ptr<mc_tasks::force::FirstOrderImpedanceTask> rightHandImpedancePtr_, leftHandImpedancePtr_;
   std::shared_ptr<mc_tasks::force::DampingTask> rightHandDampingPtr_, leftHandDampingPtr_;
   std::shared_ptr<mc_tasks::force::ComplianceTask> rightHandCompliPtr_, leftHandCompliPtr_;
   std::shared_ptr<mc_tasks::force::CoPTask> rightHandCoPTaskPtr_, leftHandCoPTaskPtr_;

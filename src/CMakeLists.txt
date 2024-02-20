@@ -4,6 +4,7 @@ set(controller_SRC
   utils/PointProjector.cpp
   utils/DCM_VRPtracker.cpp
   Tasks/ForceConstrainedTransformTask.cpp
+  Tasks/FirstOrderAdmittance.cpp
 )
 
 set(controller_HDR
@@ -13,6 +14,7 @@ set(controller_HDR
   utils/DCM_VRPtracker.h
   Tasks/TrackDesiredForceTask.h
   Tasks/ForceConstrainedTransformTask.h
+  Tasks/FirstOrderAdmittance.h
 )
 
 add_library(${PROJECT_NAME} SHARED ${controller_SRC} ${controller_HDR})

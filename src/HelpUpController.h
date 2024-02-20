@@ -219,7 +219,7 @@ private:
 
   double cutoffPeriod_ = 0.1;
   mc_filter::LowPass<Eigen::Vector3d> accLowPass_;
-  double cutoffPeriodPolyCenter_ = 0.2;
+  double cutoffPeriodPolyCenter_ = 1.0;
   mc_filter::LowPass<Eigen::Vector3d> lowPassPolyCenter_;
 
   double DCMpropgain_ = 3.0;

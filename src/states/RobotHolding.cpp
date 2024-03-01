@@ -12,6 +12,8 @@ void RobotHolding::configure(const mc_rtc::Configuration & config)
 void RobotHolding::start(mc_control::fsm::Controller & ctl)
 {
 
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMLateral") = false;
+
   if(config_.has("RightHandAdmi"))
   {
     rightHandAdmittancePtr_ =
@@ -591,11 +593,42 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
 
 void RobotHolding::teardown(mc_control::fsm::Controller & ctl)
 {
+  std::vector<sva::MotionVecd> gainsVec;
+  std::vector<std::string> surfVec;
+  std::vector<sva::ForceVecd> wrenchVec;
+  if(config_.has("LeftHandImped"))
+  {
+    leftHandImpedancePtr_->targetWrench(sva::ForceVecd(Eigen::Vector3d(0., 0., 0.), Eigen::Vector3d(0., 0., 0.)));
+    LHgains_ = sva::MotionVecd(Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0));
+    gainsVec.push_back(LHgains_);
+    surfVec.push_back(config_("LeftHandImped")("frame"));
+    wrenchVec.push_back(sva::ForceVecd::Zero());
+  }
+  if(config_.has("RightHandImped"))
+  {
+    rightHandImpedancePtr_->targetWrench(sva::ForceVecd(Eigen::Vector3d(0., 0., 0.), Eigen::Vector3d(0., 0., 0.)));
+    RHgains_ = sva::MotionVecd(Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0));
+    gainsVec.push_back(RHgains_);
+    surfVec.push_back(config_("RightHandImped")("frame"));
+    wrenchVec.push_back(sva::ForceVecd::Zero());
+  }
 
-  mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration DefaultExternalWrenchConf_;
-  ctl.datastore().call(
-      "RobotStabilizer::setExternalWrenchConfiguration",
-      static_cast<const mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration &>(DefaultExternalWrenchConf_));
+  ctl.datastore().call("RobotStabilizer::setExternalWrenches", static_cast<const std::vector<std::string> &>(surfVec),
+                       static_cast<const std::vector<sva::ForceVecd> &>(wrenchVec),
+                       static_cast<const std::vector<sva::MotionVecd> &>(gainsVec));
+  // ctl.datastore().call("RobotStabilizer::setExternalWrenches", static_cast<const std::vector<std::string>
+  // &>(surfVec),
+  //                        static_cast<const std::vector<sva::ForceVecd> &>(wrenchVec),
+  //                        static_cast<const std::vector<sva::MotionVecd> &>(gainsVec));
+  // ctl.datastore().call(
+  //     "RobotStabilizer::setExternalWrenchConfiguration",
+  //     static_cast<const mc_rbdyn::lipm_stabilizer::ExternalWrenchConfiguration &>(DefaultExternalWrenchConf_));
+  // ctl.datastore().call(
+  // "RobotStabilizer::setExternalWrenchConfiguration",
+  // config_("StabilizerConfig"));
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMZ") = false;
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMLateral") = false;
+  ctl.datastore().get<bool>("RobotStabilizer::ManualMode") = true;
 
   if(config_.has("LeftHandDamping"))
   {

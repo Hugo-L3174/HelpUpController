@@ -11,6 +11,8 @@ void RobotTakePoseObserved::configure(const mc_rtc::Configuration & config)
 
 void RobotTakePoseObserved::start(mc_control::fsm::Controller & ctl)
 {
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMZ") = true;
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMLateral") = true;
   if(config_.has("RHandTrajectory"))
   {
     RHandTrajectoryTask_ =
@@ -59,32 +61,26 @@ bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl)
   // get world frame objective
   auto updatedObjectiveRH =
       RHobjectiveOffset_ * ctl.robot(RHtargetFrame("robot")).frame(RHtargetFrame("frame")).position();
-  // cheating for now and get real pose to test
-  // auto updatedObjectiveRH =
-  //     RHobjectiveOffset_ * ctl.realRobot(RHtargetFrame("robot")).frame(RHtargetFrame("frame")).position();
   // update offset of objective (transform between control frame and observed frame)
   auto controlledFrameRH =
       ctl.robot(config_("RHandTrajectory")("robot")).frame(config_("RHandTrajectory")("frame")).position();
   auto observedFrameRH =
       ctl.realRobot(config_("RHandTrajectory")("robot")).frame(config_("RHandTrajectory")("frame")).position();
   auto offsetRH = controlledFrameRH * observedFrameRH.inv();
-  // updatedObjectiveRH = updatedObjectiveRH * offsetRH;
+  // updatedObjectiveRH = offsetRH * updatedObjectiveRH;
   // update task objective
   RHandTrajectoryTask_->target(updatedObjectiveRH);
 
   // same with left hand
   auto updatedObjectiveLH =
       LHobjectiveOffset_ * ctl.robot(LHtargetFrame("robot")).frame(LHtargetFrame("frame")).position();
-  // cheating for now and get real pose to test
-  // auto updatedObjectiveLH =
-  //     LHobjectiveOffset_ * ctl.realRobot(LHtargetFrame("robot")).frame(LHtargetFrame("frame")).position();
   // update offset of objective (transform between control frame and observed frame)
   auto controlledFrameLH =
       ctl.robot(config_("LHandTrajectory")("robot")).frame(config_("LHandTrajectory")("frame")).position();
   auto observedFrameLH =
       ctl.realRobot(config_("LHandTrajectory")("robot")).frame(config_("LHandTrajectory")("frame")).position();
   auto offsetLH = controlledFrameLH * observedFrameLH.inv();
-  // updatedObjectiveLH = updatedObjectiveLH * offsetLH;
+  // updatedObjectiveLH = offsetLH * updatedObjectiveLH;
   // update task objective
   LHandTrajectoryTask_->target(updatedObjectiveLH);
 
@@ -104,10 +100,6 @@ void RobotTakePoseObserved::teardown(mc_control::fsm::Controller & ctl)
 {
   ctl.solver().removeTask(RHandTrajectoryTask_);
   ctl.solver().removeTask(LHandTrajectoryTask_);
-
-  ctl.datastore().get<bool>("HelpUp::scaleRobotCoM") = true;
-  // ctl.logger().removeLogEntry("bspline_trajectory_hrp4_LeftHand_eval");
-  // ctl.logger().removeLogEntry("bspline_trajectory_hrp4_RightHand_eval");
 }
 
 EXPORT_SINGLE_STATE("RobotTakePoseObserved", RobotTakePoseObserved)

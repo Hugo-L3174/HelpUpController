@@ -10,6 +10,7 @@ XsensPlugin_raw_com_acceleration: ReplayPlugin::GetCoMacc
 # list of segment names:
 
 XsensPlugin_raw_segments_Head_pose: ReplayPlugin::GetSegmentPose::Head
+XsensPlugin_raw_segments_Neck_pose: ReplayPlugin::GetSegmentPose::Neck
 XsensPlugin_raw_segments_Pelvis_pose: ReplayPlugin::GetSegmentPose::Pelvis
 XsensPlugin_raw_segments_Left Foot_pose: ReplayPlugin::GetSegmentPose::Left Foot
 XsensPlugin_raw_segments_Left Upper Arm_pose: ReplayPlugin::GetSegmentPose::Left Upper Arm
@@ -27,6 +28,7 @@ XsensPlugin_raw_segments_T8_pose: ReplayPlugin::GetSegmentPose::T8
 
 
 XsensPlugin_raw_segments_Head_velocity: ReplayPlugin::GetSegmentVel::Head
+XsensPlugin_raw_segments_Neck_velocity: ReplayPlugin::GetSegmentVel::Neck
 XsensPlugin_raw_segments_Pelvis_velocity: ReplayPlugin::GetSegmentVel::Pelvis
 XsensPlugin_raw_segments_Left Foot_velocity: ReplayPlugin::GetSegmentVel::Left Foot
 XsensPlugin_raw_segments_Left Upper Arm_velocity: ReplayPlugin::GetSegmentVel::Left Upper Arm
@@ -44,6 +46,7 @@ XsensPlugin_raw_segments_T8_velocity: ReplayPlugin::GetSegmentVel::T8
 
 
 XsensPlugin_raw_segments_Head_acceleration: ReplayPlugin::GetSegmentAcc::Head
+XsensPlugin_raw_segments_Neck_acceleration: ReplayPlugin::GetSegmentAcc::Neck
 XsensPlugin_raw_segments_Pelvis_acceleration: ReplayPlugin::GetSegmentAcc::Pelvis
 XsensPlugin_raw_segments_Left Foot_acceleration: ReplayPlugin::GetSegmentAcc::Left Foot
 XsensPlugin_raw_segments_Left Upper Arm_acceleration: ReplayPlugin::GetSegmentAcc::Left Upper Arm

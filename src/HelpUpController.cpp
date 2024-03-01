@@ -125,7 +125,8 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   datastore().make_call("HelpUp::ComputedLHWrench", [this]() { return getLHWrenchComputed(); });
   datastore().make_call("HelpUp::ComputedRHWrench", [this]() { return getRHWrenchComputed(); });
   // scale robot height to human or not (false at first)
-  datastore().make<bool>("HelpUp::scaleRobotCoM", false);
+  datastore().make<bool>("HelpUp::scaleRobotCoMZ", false);
+  datastore().make<bool>("HelpUp::scaleRobotCoMLateral", false);
 
   // accLowPass_.dt(dt);
   // accLowPass_.cutoffPeriod(cutoffPeriod_);
@@ -453,22 +454,38 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       Eigen::Vector3d chebichev = polytope_.chebichevCenter();
       Eigen::Vector3d bary = polytope_.baryCenter();
       // lowpass filtering of center of polytope (very noisy from every computation)
-      // lowPassPolyCenter_.update(bary);
-      // bary = lowPassPolyCenter_.eval();
-      // Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * bary;
-      lowPassPolyCenter_.update(chebichev);
-      chebichev = lowPassPolyCenter_.eval();
-      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * chebichev;
-      if(datastore().get<bool>("HelpUp::scaleRobotCoM"))
+      lowPassPolyCenter_.update(bary);
+      bary = lowPassPolyCenter_.eval();
+      Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * bary;
+      // lowPassPolyCenter_.update(chebichev);
+      // chebichev = lowPassPolyCenter_.eval();
+      // Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * chebichev;
+      if(datastore().get<bool>("HelpUp::scaleRobotCoMZ"))
       {
-        // minimum com height 0.73cm, max will be 0.82cm, scaled to human com height (nominal hrp4 is 0.78)
-        filteredObjective.z() = std::clamp(robot("human").com().z(), 0.73, 0.82);
+
+        // minimum com height 0.73cm, max will be 0.84cm, scaled to human com height (nominal hrp4 is 0.78)
+        filteredObjective.z() = std::clamp(robot("human").com().z(), 0.73, 0.84);
       }
       else
       {
         filteredObjective.z() = 0.78;
       }
+      if(datastore().get<bool>("HelpUp::scaleRobotCoMLateral"))
+      {
+        auto lateralCoM =
+            std::clamp(humanDCMTracker_->getDCM().x(), robot().frame("LeftFoot").position().translation().x(),
+                       robot().frame("RightFoot").position().translation().x());
+        filteredObjective.x() = lateralCoM;
+      }
+      else
+      {
+        filteredObjective.x() =
+            sva::interpolate(robot().frame("LeftFoot").position(), robot().frame("RightFoot").position(), 0.5)
+                .translation()
+                .x();
+      }
       objective = polytope_.objectiveInPolytope(filteredObjective);
+      // objective = polytope_.objectiveInPolytope(objective);
       if(datastore().has("RobotStabilizer::setCoMTarget"))
       {
         // if the mode is not set to manual objective, update automatically using balance regions
@@ -644,10 +661,16 @@ void HelpUpController::addGuiElements()
   }
   gui()->addElement({},
                     mc_rtc::gui::Checkbox(
-                        "Scale CoM", [this]() { return datastore().get<bool>("HelpUp::scaleRobotCoM"); },
+                        "Scale CoM height", [this]() { return datastore().get<bool>("HelpUp::scaleRobotCoMZ"); },
                         [this]() {
-                          datastore().get<bool>("HelpUp::scaleRobotCoM") =
-                              !datastore().get<bool>("HelpUp::scaleRobotCoM");
+                          datastore().get<bool>("HelpUp::scaleRobotCoMZ") =
+                              !datastore().get<bool>("HelpUp::scaleRobotCoMZ");
+                        }),
+                    mc_rtc::gui::Checkbox(
+                        "Scale CoM lateral", [this]() { return datastore().get<bool>("HelpUp::scaleRobotCoMLateral"); },
+                        [this]() {
+                          datastore().get<bool>("HelpUp::scaleRobotCoMLateral") =
+                              !datastore().get<bool>("HelpUp::scaleRobotCoMLateral");
                         }),
                     mc_rtc::gui::Button("Add computed force mode",
                                         [this]()

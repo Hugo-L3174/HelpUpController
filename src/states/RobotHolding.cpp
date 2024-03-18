@@ -205,11 +205,11 @@ bool RobotHolding::run(mc_control::fsm::Controller & ctl)
       mc_rtc::log::info("[{}] : changing force mode to follow only", name());
       if(config_.has("RightHandImped"))
       {
-        rightHandImpedancePtr_->gains().wrench() = Eigen::Vector6d::Zero().eval();
+        rightHandImpedancePtr_->gains().wrench() = config_("RightHandImped")("gains")("wrench");
       }
       if(config_.has("LeftHandImped"))
       {
-        leftHandImpedancePtr_->gains().wrench() = Eigen::Vector6d::Zero().eval();
+        leftHandImpedancePtr_->gains().wrench() = config_("RightHandImped")("gains")("wrench");
       }
       if(config_.has("RightHandAdmi"))
       {

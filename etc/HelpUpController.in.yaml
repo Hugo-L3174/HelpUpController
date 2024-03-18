@@ -108,30 +108,30 @@ collisions: &HRP4HumanCollisions
     sDist: 0.001
     damping: 0
     r2UnactiveJoints: *humanUnactiveJoints
-  - body1: L_WRIST_Y_LINK
-    body2: RArmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: L_SHOULDER_Y_LINK
-    body2: RElbowLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: L_ELBOW_P_LINK
-    body2: RElbowLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: L_WRIST_Y_LINK
-    body2: RElbowLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
+  # - body1: L_WRIST_Y_LINK
+  #   body2: RArmLink
+  #   iDist: 0.1
+  #   sDist: 0.001
+  #   damping: 0
+  #   r2UnactiveJoints: *humanUnactiveJoints
+  # - body1: L_SHOULDER_Y_LINK
+  #   body2: RElbowLink
+  #   iDist: 0.1
+  #   sDist: 0.001
+  #   damping: 0
+  #   r2UnactiveJoints: *humanUnactiveJoints
+  # - body1: L_ELBOW_P_LINK
+  #   body2: RElbowLink
+  #   iDist: 0.1
+  #   sDist: 0.001
+  #   damping: 0
+  #   r2UnactiveJoints: *humanUnactiveJoints
+  # - body1: L_WRIST_Y_LINK
+  #   body2: RElbowLink
+  #   iDist: 0.1
+  #   sDist: 0.001
+  #   damping: 0
+  #   r2UnactiveJoints: *humanUnactiveJoints
   - body1: L_SHOULDER_Y_LINK
     body2: RForearmLink
     iDist: 0.1
@@ -168,24 +168,24 @@ collisions: &HRP4HumanCollisions
     sDist: 0.001
     damping: 0
     r2UnactiveJoints: *humanUnactiveJoints
-  - body1: R_SHOULDER_Y_LINK
-    body2: RElbowLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: R_ELBOW_P_LINK
-    body2: RElbowLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: R_WRIST_Y_LINK
-    body2: RElbowLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
+  # - body1: R_SHOULDER_Y_LINK
+  #   body2: RElbowLink
+  #   iDist: 0.1
+  #   sDist: 0.001
+  #   damping: 0
+  #   r2UnactiveJoints: *humanUnactiveJoints
+  # - body1: R_ELBOW_P_LINK
+  #   body2: RElbowLink
+  #   iDist: 0.1
+  #   sDist: 0.001
+  #   damping: 0
+  #   r2UnactiveJoints: *humanUnactiveJoints
+  # - body1: R_WRIST_Y_LINK
+  #   body2: RElbowLink
+  #   iDist: 0.1
+  #   sDist: 0.001
+  #   damping: 0
+  #   r2UnactiveJoints: *humanUnactiveJoints
   - body1: R_SHOULDER_Y_LINK
     body2: RForearmLink
     iDist: 0.1
@@ -376,8 +376,7 @@ states:
       translation: [0.05, 0.0, 0.0]
       rotation: [0.0, 0.0, 0.0]
     robotOffset: # in chair frame
-      # translation: [0.2, -0.55, 0.75]
-      translation: [0.1, -0.5, 0.75]
+      translation: [0.1, -0.51, 0.75] #hrp4 in first working experiment: [0.1, -0.51, 0.75]
       rotation: [0.0, 0.0, 1.57]
     pandaOffset: # in chair frame
       translation: [0.3, 0.6, 0.75]
@@ -387,12 +386,12 @@ states:
         r2: ground
         r1Surface: LeftFoot
         r2Surface: AllGround
-        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
       - r1: hrp4
         r2: ground
         r1Surface: RightFoot
         r2Surface: AllGround
-        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
 
 # These are the stabilizer FSM states
   GeneralRobotStabilizer:
@@ -535,7 +534,7 @@ states:
       - r2: ground
         r1Surface: RightFoot
         r2Surface: AllGround
-        dof: [0, 0, 1, 1, 1, 0]
+        dof: [0, 0, 0, 1, 1, 0]
 
   TakePositionE2DR:
     base: MetaTasks
@@ -601,7 +600,7 @@ states:
         weight: 500.0
         stiffness: 2.0
         target:
-          # L_SHOULDER_Y: [-1.2]
+          L_SHOULDER_Y: [-1.6]
           L_WRIST_Y: [1.6]
         # completion:
         #   eval: 0.015
@@ -625,7 +624,7 @@ states:
       targetFrame:
         robot: human
         frame:  RightShoulder
-        translation: [0.0, 0.0, 0.08]
+        translation: [0.0, 0.05, 0.08]
         controlPoints:
           - [-0.2, 0.0, 0.2]
         oriWaypoints:
@@ -733,6 +732,8 @@ states:
         targetFrame:
           robot: human
           frame: RightShoulder
+          offset:
+            translation: [0.0, 0.05, 0.0]
         wrench:
           couple: [0.0, 0.0, 0.0]
           force: [0.0, 0.0, 5.0]
@@ -800,17 +801,30 @@ states:
         force: [0.0, 0.0, 5.0]
       gains:
         mass:
-          angular: [0.5, 0.5, 0.5]
-          linear: [10, 10, 10]
-        spring:
-          angular: [2, 2, 2]
-          linear: [100, 100, 50]
+          angular: [2.0, 2.0, 2.0]
+          linear: [10.0, 10.0, 10.0]
         damper:
-          angular: [5, 5, 5]
-          linear: [500, 500, 500]
+          angular: [200.0, 200.0, 200.0]
+          linear: [1500.0, 1500.0, 1500.0]
+        spring:
+          angular: [200.0, 200.0, 200.0]
+          linear: [200.0, 200.0, 200.0]
         wrench:
-          angular: [0, 0, 0]
-          linear: [1, 1, 1] #careful
+          angular: [0.0, 0.0, 0.0]
+          linear: [1.0, 1.0, 1.0]
+      # gains:
+      #   mass:
+      #     angular: [0.5, 0.5, 0.5]
+      #     linear: [10, 10, 10]
+      #   spring:
+      #     angular: [2, 2, 2]
+      #     linear: [100, 100, 50]
+      #   damper:
+      #     angular: [5, 5, 5]
+      #     linear: [500, 500, 500]
+      #   wrench:
+      #     angular: [0, 0, 0]
+      #     linear: [1, 1, 1] #careful
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
@@ -833,17 +847,30 @@ states:
         force: [0.0, 0.0, 5.0]
       gains:
         mass:
-          angular: [0.5, 0.5, 0.5]
-          linear: [10, 10, 10]
-        spring:
-          angular: [2, 2, 2]
-          linear: [100, 100, 50]
+          angular: [2.0, 2.0, 2.0]
+          linear: [10.0, 10.0, 10.0]
         damper:
-          angular: [5, 5, 5]
-          linear: [500, 500, 500]
+          angular: [200.0, 200.0, 200.0]
+          linear: [1500.0, 1500.0, 1500.0]
+        spring:
+          angular: [200.0, 200.0, 200.0]
+          linear: [200.0, 200.0, 200.0]
         wrench:
-          angular: [0, 0, 0]
-          linear: [1, 1, 1] #careful
+          angular: [0.0, 0.0, 0.0]
+          linear: [1.0, 1.0, 1.0]
+      # gains:
+      #   mass:
+      #     angular: [0.5, 0.5, 0.5]
+      #     linear: [10, 10, 10]
+      #   spring:
+      #     angular: [2, 2, 2]
+      #     linear: [100, 100, 50]
+      #   damper:
+      #     angular: [5, 5, 5]
+      #     linear: [500, 500, 500]
+      #   wrench:
+      #     angular: [0, 0, 0]
+      #     linear: [1, 1, 1] #careful
       completion:
         OR:
           - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
@@ -1068,7 +1095,8 @@ states:
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin"
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
-    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
     start_time: 0.1
     # end_time: 15.0
@@ -1108,6 +1136,7 @@ states:
 
   HelpFSM_HRP4Human:
     base: Meta
+    ResetPostures: true # this resets the posture task objective to the current one
     transitions:
     - [Pause_2s, OK, RightStepFSMHRP4, Strict]
     # - [RightStepFSMHRP4, OK, AdjustRobot, Strict]
@@ -1279,6 +1308,7 @@ XsensReplay:
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal2.bin"
     - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+    # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal2.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin"
@@ -1287,6 +1317,7 @@ XsensReplay:
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
   log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin" #use this one
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin" #use this one
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/18dec2023.bin
@@ -1332,11 +1363,11 @@ handContactsForBalance: false
 filteredDerivation: true
 
 ForceShoes:
-  liveMode: false # true #add function to wait for xsens and force shoes sync in replays
+  liveMode: false #add function to wait for xsens and force shoes sync in replays
 
 # configuration for XsensHuman state
 Xsens:
-  liveMode: false # true
+  liveMode: false
   human:
     bodies:
       HipsLink:
@@ -1347,7 +1378,7 @@ Xsens:
           # translation: [0.05, 0, 0.1]
           translation: [0, 0, 0.15]
       TorsoLink:
-        segment: "T8" # Sternum
+        segment: "T8" #"Neck" # Sternum
         stiffness: 100
         weight: 1000
         offset:
@@ -1365,8 +1396,8 @@ Xsens:
       # Getting rid of shoulder retargeting
       RArmLink: #might be 2 instead of 1
         segment: "Right Upper Arm"
-        stiffness: 1
-        weight: 100
+        stiffness: 500
+        weight: 1000
         offset:
           translation: [0, 0, 0] # 5cm lower for celia model (whole arm)
           rotation: [0, 0, 0]
@@ -1377,8 +1408,8 @@ Xsens:
       #     rotation: [0, 0, 0]
       RForearmLink:
         segment: "Right Forearm"
-        stiffness: 1000
-        weight: 1000
+        stiffness: 500
+        weight: 500
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
@@ -1389,10 +1420,10 @@ Xsens:
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
-      RArmLink:
+      LArmLink:
         segment: "Left Upper Arm"
-        stiffness: 1
-        weight: 100
+        stiffness: 500
+        weight: 1000
         offset:
           translation: [0, 0, 0] # 5cm lower for celia model (whole arm)
           rotation: [0, 0, 0]
@@ -1403,8 +1434,8 @@ Xsens:
       #     rotation: [0, 0, 0]
       LForearmLink:
         segment: "Left Forearm"
-        stiffness: 1000
-        weight: 1000
+        stiffness: 500
+        weight: 500
         offset:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]

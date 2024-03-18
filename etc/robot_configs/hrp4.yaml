@@ -1,0 +1,193 @@
+collision_sets:
+  hrp4:
+    human:
+      r1: hrp4
+      r2: human
+      collisions:
+        # - body1: L_ELBOW_P_LINK
+        #   body2: TorsoLink
+        #   iDist: 0.03
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: &humanUnactiveJoints
+        #     [Root, base, Torso_0, Torso_1, Torso_2, Head_0, Head_1, Head_2, LArm_0, LArm_1, LArm_2, LElbow, LForearm, LWrist_0, LWrist_1, LHand, LHandThumbLink1, LHandThumbLink2, LHandThumbLink3, LHandIndexLink1, LHandIndexLink2, LHandIndexLink3, LHandMiddleLink1, LHandMiddleLink2, LHandMiddleLink3, LHandRingLink1, LHandRingLink2, LHandRingLink3, LHandBabyLink1, LHandBabyLink2, LHandBabyLink3, RArm_0, RArm_1, RArm_2, RElbow, RForearm, RWrist_0, RWrist_1, RHand, RHandThumbLink1, RHandThumbLink2, RHandThumbLink3, RHandIndexLink1, RHandIndexLink2, RHandIndexLink3, RHandMiddleLink1, RHandMiddleLink2, RHandMiddleLink3, RHandRingLink1, RHandRingLink2, RHandRingLink3, RHandBabyLink1, RHandBabyLink2, RHandBabyLink3, LLeg_0, LLeg_1, LLeg_2, LShin_0, LAnkle_0, LAnkle_1, RLeg_0, RLeg_1, RLeg_2, RShin_0, RAnkle_0, RAnkle_1]
+        # - body1: L_WRIST_Y_LINK
+        #   body2: TorsoLink
+        #   iDist: 0.03
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        # - body1: R_ELBOW_P_LINK
+        #   body2: TorsoLink
+        #   iDist: 0.03
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        # - body1: R_WRIST_Y_LINK
+        #   body2: TorsoLink
+        #   iDist: 0.03
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        - body1: L_SHOULDER_Y_LINK
+          body2: RArmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: &humanUnactiveJoints #*humanUnactiveJoints
+            [Root, base, Torso_0, Torso_1, Torso_2, Head_0, Head_1, Head_2, LArm_0, LArm_1, LArm_2, LElbow, LForearm, LWrist_0, LWrist_1, LHand, LHandThumbLink1, LHandThumbLink2, LHandThumbLink3, LHandIndexLink1, LHandIndexLink2, LHandIndexLink3, LHandMiddleLink1, LHandMiddleLink2, LHandMiddleLink3, LHandRingLink1, LHandRingLink2, LHandRingLink3, LHandBabyLink1, LHandBabyLink2, LHandBabyLink3, RArm_0, RArm_1, RArm_2, RElbow, RForearm, RWrist_0, RWrist_1, RHand, RHandThumbLink1, RHandThumbLink2, RHandThumbLink3, RHandIndexLink1, RHandIndexLink2, RHandIndexLink3, RHandMiddleLink1, RHandMiddleLink2, RHandMiddleLink3, RHandRingLink1, RHandRingLink2, RHandRingLink3, RHandBabyLink1, RHandBabyLink2, RHandBabyLink3, LLeg_0, LLeg_1, LLeg_2, LShin_0, LAnkle_0, LAnkle_1, RLeg_0, RLeg_1, RLeg_2, RShin_0, RAnkle_0, RAnkle_1]
+        - body1: L_ELBOW_P_LINK
+          body2: RArmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+        # - body1: L_WRIST_Y_LINK
+        #   body2: RArmLink
+        #   iDist: 0.1
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        # - body1: L_SHOULDER_Y_LINK
+        #   body2: RElbowLink
+        #   iDist: 0.1
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        # - body1: L_ELBOW_P_LINK
+        #   body2: RElbowLink
+        #   iDist: 0.1
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        # - body1: L_WRIST_Y_LINK
+        #   body2: RElbowLink
+        #   iDist: 0.1
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        - body1: L_SHOULDER_Y_LINK
+          body2: RForearmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+        - body1: L_ELBOW_P_LINK
+          body2: RForearmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+        - body1: L_WRIST_Y_LINK
+          body2: RForearmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+        - body1: R_SHOULDER_Y_LINK
+          body2: RArmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+        - body1: R_ELBOW_P_LINK
+          body2: RArmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+        - body1: R_WRIST_Y_LINK
+          body2: RArmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+        # - body1: R_SHOULDER_Y_LINK
+        #   body2: RElbowLink
+        #   iDist: 0.1
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        # - body1: R_ELBOW_P_LINK
+        #   body2: RElbowLink
+        #   iDist: 0.1
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        # - body1: R_WRIST_Y_LINK
+        #   body2: RElbowLink
+        #   iDist: 0.1
+        #   sDist: 0.001
+        #   damping: 0
+        #   r2UnactiveJoints: *humanUnactiveJoints
+        - body1: R_SHOULDER_Y_LINK
+          body2: RForearmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+        - body1: R_ELBOW_P_LINK
+          body2: RForearmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+        - body1: R_WRIST_Y_LINK
+          body2: RForearmLink
+          iDist: 0.1
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *humanUnactiveJoints
+    panda:
+      r1: hrp4
+      r2: panda
+      collisions:
+        - body1: R_WRIST_Y_LINK
+          body2: torso_box
+          iDist: 0.03
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: &pandaUnactiveJoints
+            [panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7]
+        - body1: R_WRIST_P_LINK
+          body2: torso_box
+          iDist: 0.03
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *pandaUnactiveJoints
+        # - body1: r_wrist
+        #   body2: torso_box
+        #   iDist: 0.03
+        #   sDist: -0.01
+        #   damping: 0
+        #   r2UnactiveJoints: *pandaUnactiveJoints
+        - body1: L_WRIST_Y_LINK
+          body2: torso_box
+          iDist: 0.03
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *pandaUnactiveJoints
+        - body1: L_WRIST_P_LINK
+          body2: torso_box
+          iDist: 0.03
+          sDist: 0.001
+          damping: 0
+          r2UnactiveJoints: *pandaUnactiveJoints
+        # - body1: l_wrist
+        #   body2: torso_box
+        #   iDist: 0.03
+        #   sDist: -0.01
+        #   damping: 0
+        #   r2UnactiveJoints: *pandaUnactiveJoints
+        - body1: torso
+          body2: torso_box
+          iDist: 0.03
+          sDist: 0.01
+          damping: 0
+          r2UnactiveJoints: *pandaUnactiveJoints
+        - body1: NECK_P_LINK
+          body2: torso_box
+          iDist: 0.03
+          sDist: 0.01
+          damping: 0
+          r2UnactiveJoints: *pandaUnactiveJoints

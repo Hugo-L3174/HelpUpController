@@ -1,0 +1,6 @@
+collision_sets:
+  e2dr:
+    human:
+      r1: e2dr
+      r2: human
+      collisions: []

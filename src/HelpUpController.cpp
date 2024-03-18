@@ -31,10 +31,13 @@ static inline mc_rbdyn::RobotModulePtr patch_rm(mc_rbdyn::RobotModulePtr rm, con
 }
 
 HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const mc_rtc::Configuration & config)
-: mc_control::fsm::Controller(patch_rm(rm, config), dt, config), robotPolytope_(robot().name()),
-  humanPolytope_("human"), lowPassPolyCenter_(dt, cutoffPeriodPolyCenter_), accLowPass_(dt, cutoffPeriod_),
-  lowPassLB_(dt, cutoffPeriodForceShoes_), lowPassRB_(dt, cutoffPeriodForceShoes_), lowPassLF_(dt, cutoffPeriod_),
-  lowPassRF_(dt, cutoffPeriodForceShoes_)
+: mc_control::fsm::Controller(patch_rm(rm, config),
+                              dt,
+                              config,
+                              mc_control::ControllerParameters{}.load_robot_config_into({}).overwrite_config(true)),
+  robotPolytope_(robot().name()), humanPolytope_("human"), lowPassPolyCenter_(dt, cutoffPeriodPolyCenter_),
+  accLowPass_(dt, cutoffPeriod_), lowPassLB_(dt, cutoffPeriodForceShoes_), lowPassRB_(dt, cutoffPeriodForceShoes_),
+  lowPassLF_(dt, cutoffPeriod_), lowPassRF_(dt, cutoffPeriodForceShoes_)
 {
   // Load entire controller configuration file
   config_.load(config);

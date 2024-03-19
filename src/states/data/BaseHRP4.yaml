@@ -1,0 +1,502 @@
+ResetStateHRP4:
+  base: ResetPoses
+  chairOffset: # in world frame, from xsens hips position
+    translation: [0.05, 0.0, 0.0]
+    rotation: [0.0, 0.0, 0.0]
+  robotOffset: # in chair frame
+    translation: [0.1, -0.51, 0.75] #hrp4 in first working experiment: [0.1, -0.51, 0.75]
+    rotation: [0.0, 0.0, 1.57]
+  pandaOffset: # in chair frame
+    translation: [0.3, 0.6, 0.75]
+    rotation: [0.0, 0.0, -1.57]
+  AddContactsAfter:
+    - r1: hrp4
+      r2: ground
+      r1Surface: LeftFoot
+      r2Surface: AllGround
+      dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
+    - r1: hrp4
+      r2: ground
+      r1Surface: RightFoot
+      r2Surface: AllGround
+      dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
+
+KeepElbowHRP4:
+  base: MetaTasks
+  tasks:
+    LElbowTask:
+      type: posture
+      weight: 500.0
+      stiffness: 2.0
+      target:
+        L_SHOULDER_Y: [-1.6]
+        L_WRIST_Y: [1.6]
+
+
+TakePositionHRP4Human:
+  base: RobotTakePoseObserved
+  RHandTrajectory:
+    type: bspline_trajectory
+    frame: RightHand
+    weight: 1000.0
+    stiffness: 10
+    duration: 5.0
+    gainsInterpolation:
+      stiffness:
+        - [3.5, [10, 10, 20, 500, 500, 500]]
+    targetFrame:
+      robot: human
+      frame:  RightShoulder
+      translation: [0.0, 0.05, 0.08]
+      controlPoints:
+        - [-0.2, 0.0, 0.2]
+      oriWaypoints:
+        - [4.0, [0.0, 0.0, 0.0]]
+    completion:
+      AND:
+        - timeElapsed: true
+        - speed: 0.01
+  LHandTrajectory:
+    type: bspline_trajectory
+    frame: LeftHand
+    weight: 1000.0
+    stiffness: 10
+    duration: 5.0
+    gainsInterpolation:
+      stiffness:
+        - [3.5, [10, 10, 20, 500, 500, 500]]
+    targetFrame:
+      robot: human
+      frame: Back
+      translation: [0.0, -0.05, 0.05]
+      controlPoints: # in target frame !
+        - [-0.1, -0.2, 0.1]
+      oriWaypoints:
+        - [4.0, [0.0, 0.0, 0.0]]
+    completion:
+      AND:
+        - timeElapsed: true
+        - speed: 0.01
+
+
+TakePositionHRP4Panda:
+  base: TakePositionHRP4Human
+  RHandTrajectory:
+    targetFrame:
+      robot: panda
+      frame: HumanFront
+      translation: [0.0, 0.0, 0.05]
+      controlPoints:
+        - [0.0, 0.0, 0.2]
+      oriWaypoints:
+        - [4.0, [0.0, 0.0, 0.0]]
+  LHandTrajectory:
+    targetFrame:
+      robot: panda
+      frame: HumanBack
+      translation: [0.0, -0.12, 0.05]
+      controlPoints: # in target frame !
+        - [-0.1, -0.2, 0.15]
+      oriWaypoints:
+        - [4.0, [0.0, 0.0, 0.0]]
+
+
+ApproachHRP4Human:
+  base: MetaTasks
+  tasks:
+    RHAdmi:
+      type: admittance
+      frame: RightHand
+      stiffness: 20
+      weight: 5000
+      targetFrame:
+        robot: human
+        frame: RightShoulder
+        offset:
+          translation: [0.0, 0.05, 0.0]
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 5.0]
+      admittance:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 0.005]
+    LHAdmi:
+      type: admittance
+      frame: LeftHand
+      stiffness: 20
+      weight: 5000
+      targetFrame:
+        robot: human
+        frame: Back
+        offset:
+          translation: [0.0, -0.05, 0.0]
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 5.0]
+      admittance:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 0.005]
+
+
+ApproachHRP4Panda:
+  base: ApproachHRP4Human
+  tasks:
+    RHAdmi:
+      targetFrame:
+        robot: panda
+        frame: HumanFront
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 5.0]
+      admittance:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 0.01]
+    LHAdmi:
+      targetFrame:
+        robot: panda
+        frame: HumanBack
+        offset:
+          translation: [0.0, -0.1, 0.0]
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 5.0]
+      admittance:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 0.01]
+
+
+KeepPositionHRP4Human:
+  base: RobotHolding
+  RightHandImped:
+    type: impedance
+    frame: RightHand
+    targetFrame:
+      robot: human
+      frame: RightShoulder
+    weight: 10000.0
+    stiffness: 50
+    wrench:
+      couple: [0.0, 0.0, 0.0]
+      force: [0.0, 0.0, 5.0]
+    gains:
+      mass:
+        angular: [2.0, 2.0, 2.0]
+        linear: [10.0, 10.0, 10.0]
+      damper:
+        angular: [200.0, 200.0, 200.0]
+        linear: [1500.0, 1500.0, 1500.0]
+      spring:
+        angular: [200.0, 200.0, 200.0]
+        linear: [200.0, 200.0, 200.0]
+      wrench:
+        angular: [0.0, 0.0, 0.0]
+        linear: [1.0, 1.0, 1.0]
+    # gains:
+    #   mass:
+    #     angular: [0.5, 0.5, 0.5]
+    #     linear: [10, 10, 10]
+    #   spring:
+    #     angular: [2, 2, 2]
+    #     linear: [100, 100, 50]
+    #   damper:
+    #     angular: [5, 5, 5]
+    #     linear: [500, 500, 500]
+    #   wrench:
+    #     angular: [0, 0, 0]
+    #     linear: [1, 1, 1] #careful
+    completion:
+      OR:
+        - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
+        - AND:
+            - eval: 0.015
+            - speed: 0.01
+  LeftHandImped:
+    type: impedance
+    frame: LeftHand
+    targetFrame:
+      robot: human
+      frame: Back
+      # offset:
+      #   translation: [0.0, -0.12, 0.0]
+      #   rotation: [0, 0, -1.57]
+    weight: 10000.0
+    stiffness: 50
+    wrench:
+      couple: [0.0, 0.0, 0.0]
+      force: [0.0, 0.0, 5.0]
+    gains:
+      mass:
+        angular: [2.0, 2.0, 2.0]
+        linear: [10.0, 10.0, 10.0]
+      damper:
+        angular: [200.0, 200.0, 200.0]
+        linear: [1500.0, 1500.0, 1500.0]
+      spring:
+        angular: [200.0, 200.0, 200.0]
+        linear: [200.0, 200.0, 200.0]
+      wrench:
+        angular: [0.0, 0.0, 0.0]
+        linear: [1.0, 1.0, 1.0]
+    # gains:
+    #   mass:
+    #     angular: [0.5, 0.5, 0.5]
+    #     linear: [10, 10, 10]
+    #   spring:
+    #     angular: [2, 2, 2]
+    #     linear: [100, 100, 50]
+    #   damper:
+    #     angular: [5, 5, 5]
+    #     linear: [500, 500, 500]
+    #   wrench:
+    #     angular: [0, 0, 0]
+    #     linear: [1, 1, 1] #careful
+    completion:
+      OR:
+        - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
+        - AND:
+            - eval: 0.015
+            - speed: 0.01
+  # RightHand1stOAdmi:
+  #   type: FirstOrderAdmittance
+  #   frame: RightHand
+  #   weight: 10000.0
+  #   # stiffness: [10, 10, 10, 10, 10, 1]
+  #   # damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+  #   stiffness: 40
+  #   targetFrame:
+  #     robot: human
+  #     frame: RightShoulder
+  #   wrench:
+  #     couple: [0.0, 0.0, 0.0]
+  #     force: [0.0, 0.0, 5.0]
+  #   admittance:
+  #     couple: [0.0, 0.0, 0.0]
+  #     force: [0.00, 0.00, 0.01]
+  #   completion:
+  #     OR:
+  #       - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
+  #       - AND:
+  #           - eval: 0.015
+  #           - speed: 0.01
+  # LeftHand1stOAdmi:
+  #   type: FirstOrderAdmittance
+  #   frame: LeftHand
+  #   weight: 10000.0
+  #   # stiffness: [10, 10, 10, 10, 10, 1]
+  #   # damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+  #   stiffness: 40
+  #   targetFrame:
+  #     robot: human
+  #     frame: Back
+  #   wrench:
+  #     couple: [0.0, 0.0, 0.0]
+  #     force: [0.0, 0.0, 5.0]
+  #   admittance:
+  #     couple: [0.0, 0.0, 0.0]
+  #     force: [0.00, 0.00, 0.01]
+  #   completion:
+  #     OR:
+  #       - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
+  #       - AND:
+  #           - eval: 0.015
+  #           - speed: 0.01
+  # RightHandDamping:
+  #   type: damping
+  #   frame: RightHand
+  #   weight: 10000.0
+  #   stiffness: [10, 10, 10, 10, 10, 1]
+  #   damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+  #   targetFrame:
+  #     robot: human
+  #     frame: RightShoulder
+  #   wrench:
+  #     couple: [0.0, 0.0, 0.0]
+  #     force: [0.0, 0.0, 5.0]
+  #   admittance:
+  #     couple: [0.0, 0.0, 0.0]
+  #     force: [0.00, 0.00, 0.05]
+  #   completion:
+  #     OR:
+  #       - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
+  #       - AND:
+  #           - eval: 0.015
+  #           - speed: 0.01
+  # LeftHandDamping:
+  #   type: damping
+  #   frame: LeftHand
+  #   weight: 10000.0
+  #   stiffness: [10, 10, 10, 10, 10, 1]
+  #   damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
+  #   targetFrame:
+  #     robot: human
+  #     frame: Back
+  #   wrench:
+  #     couple: [0.0, 0.0, 0.0]
+  #     force: [0.0, 0.0, 5.0]
+  #   admittance:
+  #     couple: [0.0, 0.0, 0.0]
+  #     force: [0.00, 0.00, 0.005]
+  #   completion:
+  #     OR:
+  #       - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
+  #       - AND:
+  #           - eval: 0.015
+  #           - speed: 0.01
+
+KeepPositionHRP4Panda:
+  base: KeepPositionHRP4Human
+  RightHandImped:
+    targetFrame:
+      robot: panda
+      frame: HumanFront
+  LeftHandImped:
+    targetFrame:
+      robot: panda
+      frame: HumanBack
+      offset:
+        translation: [0.0, -0.12, 0.0]
+
+
+RemoveHandsHRP4:
+  base: MetaTasks
+  # make bsplines to get away from human
+  tasks:
+    RHandTrajectory:
+      type: bspline_trajectory
+      frame: RightHand
+      weight: 500.0
+      stiffness: 150
+      duration: 2.0
+      targetFrame:
+        robot: human
+        frame: RightShoulder
+        translation: [0, 0.2, 0]
+        rotation : [0, 0, -0.77]
+        # controlPoints:
+        #   - [0.15, 0.35, 0.2]
+      # targetFrame:
+      #   robot: hrp4
+      #   frame: Buttock
+      #   translation: [0.11, -0.22, 0.2]
+      #   rotation : [0.68, -0.65, -0.32]
+      #   controlPoints:
+      #     - [0.3, -0.35, 0.3]
+      completion:
+        timeElapsed: true
+    LHandTrajectory:
+      type: bspline_trajectory
+      frame: LeftHand
+      weight: 500.0
+      stiffness: 150
+      duration: 2.0
+      targetFrame:
+        robot: human
+        frame: Back
+        translation: [-0.2, 0, 0.3]
+        rotation : [0, 0, 0.77]
+        # controlPoints:
+        #   - [-0.2, -0.15, 0.35]
+      # targetFrame:
+      #   robot: hrp4
+      #   frame: Buttock
+      #   translation: [0.11, 0.22, 0.2]
+      #   rotation : [-0.68, -0.65, -0.32]
+      #   controlPoints:
+      #     - [0.3, 0.35, 0.3]
+      completion:
+        timeElapsed: true
+    TorsoTask:
+      type: posture
+      weight: 1000.0
+      stiffness: 10.0
+      target:
+        CHEST_P: [0]
+
+
+HRP4pos:
+  base: MetaTasks
+  tasks:
+    HalfSit:
+      type: posture
+      completion:
+        eval: 0.01
+      stiffness: 3
+      weight: 1000
+      target:
+        R_HIP_Y: [0.0]
+        R_HIP_R: [-0.02]
+        # R_HIP_P: [-0.384]
+        # R_KNEE_P: [0.719]
+        # R_ANKLE_P: [-0.335]
+        R_ANKLE_R: [0.02]
+        L_HIP_Y: [0.0]
+        L_HIP_R: [0.02]
+        # L_HIP_P: [-0.384]
+        # L_KNEE_P: [0.719]
+        # L_ANKLE_P: [-0.335]
+        L_ANKLE_R: [-0.02]
+        CHEST_P: [0.0]
+        CHEST_Y: [0.0]
+        NECK_Y: [0.0]
+        NECK_P: [0.0]
+        R_SHOULDER_P: [-0.052]
+        R_SHOULDER_R: [-0.175]
+        R_SHOULDER_Y: [0.0]
+        R_ELBOW_P: [-0.524]
+        R_WRIST_Y: [0.0]
+        R_WRIST_P: [0.0]
+        R_WRIST_R: [0.0]
+        L_SHOULDER_P: [-0.052]
+        L_SHOULDER_R: [0.175]
+        L_SHOULDER_Y: [0.0]
+        L_ELBOW_P: [-0.524]
+        L_WRIST_Y: [0.0]
+        L_WRIST_P: [0.0]
+        L_WRIST_R: [0.0]
+
+TakePositionHRP4HumanElbow:
+  base: Parallel
+  states: [TakePositionHRP4Human, KeepElbowHRP4]
+
+ApproachHRP4HumanElbow:
+  base: Parallel
+  states: [ApproachHRP4Human, KeepElbowHRP4]
+
+KeepPositionHRP4HumanElbow:
+  base: Parallel
+  states: [KeepPositionHRP4Human, KeepElbowHRP4]
+
+
+# This state makes the step to the right while keeping the CoM above the left contact
+RobotStabilizer::MakeRightStepHRP4:
+  base: Parallel
+  states: [RobotStabilizer::LeftSupport, RightFootExtend]
+  AddContactsAfter:
+    - r1: hrp4
+      r2: ground
+      r1Surface: RightFoot
+      r2Surface: AllGround
+      dof: [0, 0, 0, 1, 1, 0]
+
+# This state lifts up the right foot while keeping the CoM above the left contact
+RobotStabilizer::MakeRightLiftHRP4:
+  base: Parallel
+  states: [RobotStabilizer::LeftSupport, RightFootLift]
+  RemoveContacts:
+    - r1: hrp4
+      r2: ground
+      r1Surface: RightFoot
+      r2Surface: AllGround
+
+RightStepFSMHRP4:
+  base: Meta
+  transitions:
+  - [RobotStabilizer::GoLeft, OK, RobotStabilizer::MakeRightLiftHRP4, Auto]
+  - [RobotStabilizer::MakeRightLiftHRP4, OK, RobotStabilizer::MakeRightStepHRP4, Auto]
+  - [RobotStabilizer::MakeRightStepHRP4, OK, RobotStabilizer::GoCenter, Auto]
+
+GoBackInitFSMHRP4:
+  base: Meta
+  transitions:
+  - [RemoveHandsHRP4, OK, RobotStabilizer::GoCenter, Auto]
+  - [RobotStabilizer::GoCenter, OK, HRP4pos, Auto]

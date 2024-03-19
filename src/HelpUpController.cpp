@@ -294,8 +294,8 @@ bool HelpUpController::run()
   robotDCMTracker_->updateObjectiveValues(robDCMobjective_);
 
   auto desiredCoMWrench = humanDCMTracker_->getMissingForces();
-  distributeAssistiveHandsWrench(desiredCoMWrench, robot(wrenchDistributionTarget_("robot")),
-                                 wrenchDistributionTarget_("targetRobot"), wrenchDistributionTarget_("helpSurfaceLH"),
+  distributeAssistiveHandsWrench(desiredCoMWrench, robot(), wrenchDistributionTarget_("targetRobot"),
+                                 wrenchDistributionTarget_("helpSurfaceLH"),
                                  wrenchDistributionTarget_("helpSurfaceRH"));
   t_ += solver().dt();
   bool ok = mc_control::fsm::Controller::run();
@@ -387,30 +387,8 @@ void HelpUpController::reset(const mc_control::ControllerResetData & reset_data)
   //                                                      solver().dt(), {0.1, 0.01, 0.5});
   //   solver().addConstraintSet(humanDynamicsConstraint_);
 
-  //   // Human model start posture
-  //   if(config_("human").has("posture")){
-  //     if(config_("human")("posture").has("target")){
-  //       std::map<std::string, std::vector<double>> humanPostureTarget = config_("human")("posture")("target");
-  //       // Set human mbc equal to the posture target
-  //       for(auto const & t : humanPostureTarget){
-  //         robots().robot("human").mbc().q[robots().robot("human").jointIndexByName(t.first)] = t.second;
-  //       }
-  //     }
-  //   }
   mc_rtc::log::success("running reset");
-  // Adjust chair position relative to human model
-  // if(robots().hasRobot("chair")){
-  // mc_rtc::log::info("Human pos is {}", robots().robot("human").posW().translation().transpose());
-  // mc_rtc::log::info("Human pos is {}",
-  // datastore().get<sva::PTransformd>("ReplayPlugin::GetSegmentPose::HipsLink").translation().transpose());
-  // robots().robot("chair").posW(robots().robot("human").posW() * sva::PTransformd(Eigen::Vector3d(0.05, 0.12,
-  // -0.65))); mc_rtc::log::info("Chair pos is {}", robots().robot("chair").posW().translation().transpose());
 
-  // robots().robot().posW(robots().robot("chair").posW() * sva::PTransformd(sva::RotZ(M_PI/2.0), Eigen::Vector3d(-0.17,
-  // -0.3, 0.75))); mc_rtc::log::info("Robot pos is {}", robots().robot().posW().translation().transpose());
-  // }
-
-  // }
   // Update constraints and resets posture tasks
   // solver().updateConstrSize();
 }
@@ -463,15 +441,19 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       // lowPassPolyCenter_.update(chebichev);
       // chebichev = lowPassPolyCenter_.eval();
       // Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * chebichev;
+      auto heightScalingValues =
+          config_.find("scaling_heights").value_or(mc_rtc::Configuration{}).find(robot().name()).value();
       if(datastore().get<bool>("HelpUp::scaleRobotCoMZ"))
       {
-
+        double min = heightScalingValues("min");
+        double max = heightScalingValues("max");
         // minimum com height 0.73cm, max will be 0.84cm, scaled to human com height (nominal hrp4 is 0.78)
-        filteredObjective.z() = std::clamp(robot("human").com().z(), 0.73, 0.84);
+        filteredObjective.z() = std::clamp(robot("human").com().z(), min, max);
       }
       else
       {
-        filteredObjective.z() = 0.78;
+        double nominal = heightScalingValues("nominal");
+        filteredObjective.z() = nominal;
       }
       if(datastore().get<bool>("HelpUp::scaleRobotCoMLateral"))
       {

@@ -1,0 +1,217 @@
+ResetStateE2DR:
+  base: ResetPoses
+  chairOffset: # in world frame, from xsens hips position
+      translation: [0.05, 0.0, 0.0]
+      rotation: [0.0, 0.0, 0.0]
+  robotOffset: # in chair frame
+    translation: [0.1, -0.6, 0.77] #hrp4 in first working experiment: [0.1, -0.51, 0.75]
+    rotation: [0.0, 0.0, 1.57]
+  AddContactsAfter:
+    - r1: e2dr
+      r2: ground
+      r1Surface: LeftFoot
+      r2Surface: AllGround
+      dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+    - r1: e2dr
+      r2: ground
+      r1Surface: RightFoot
+      r2Surface: AllGround
+      dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+
+
+RightFootLiftE2DR:
+  base: RightFootLift
+  LiftRightFoot:
+    moveWorld:
+      translation: [0,0,0.1]
+
+
+RightFootExtendE2DR:
+  base: RightFootExtend
+  ExtendFootTask:
+    # We target the left foot translated 40cm right
+    targetFrame:
+      frame: LeftFoot
+      translation: [0.0, -0.4, 0]
+      rotation: [0.0, 0.0, 0.0]
+    controlPoints:
+      - [0.0, -0.2, 0.1]
+
+
+TakePositionE2DRHuman:
+  base: TakePositionHRP4Human
+  RHandTrajectory:
+    targetFrame:
+      robot: human
+      frame:  RightShoulder
+      translation: [0.0, 0.05, 0.08]
+      controlPoints:
+        - [-0.2, 0.0, 0.2]
+      oriWaypoints:
+        - [4.0, [0.0, 0.0, 0.0]]
+  LHandTrajectory:
+    targetFrame:
+      robot: human
+      frame: Back
+      translation: [0.0, -0.05, 0.05]
+      controlPoints: # in target frame !
+        - [-0.1, -0.2, 0.1]
+      oriWaypoints:
+        - [4.0, [0.0, 0.0, 0.0]]
+
+
+ApproachE2DRHuman:
+  base: ApproachHRP4Human
+  tasks:
+    RHAdmi:
+      targetFrame:
+        robot: human
+        frame: RightShoulder
+        offset:
+          translation: [0.0, 0.05, 0.0]
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 5.0]
+      admittance:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 0.005]
+    LHAdmi:
+      targetFrame:
+        robot: human
+        frame: Back
+        offset:
+          translation: [0.0, -0.05, 0.0]
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 5.0]
+      admittance:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 0.005]
+
+KeepPositionE2DRHuman:
+  base: KeepPositionHRP4Human
+  RightHandImped:
+    wrench:
+      couple: [0.0, 0.0, 0.0]
+      force: [0.0, 0.0, 5.0]
+    gains:
+      mass:
+        angular: [2.0, 2.0, 2.0]
+        linear: [10.0, 10.0, 10.0]
+      damper:
+        angular: [200.0, 200.0, 200.0]
+        linear: [1500.0, 1500.0, 1500.0]
+      spring:
+        angular: [200.0, 200.0, 200.0]
+        linear: [200.0, 200.0, 200.0]
+      wrench:
+        angular: [0.0, 0.0, 0.0]
+        linear: [1.0, 1.0, 1.0]
+  LeftHandImped:
+    wrench:
+      couple: [0.0, 0.0, 0.0]
+      force: [0.0, 0.0, 5.0]
+    gains:
+      mass:
+        angular: [2.0, 2.0, 2.0]
+        linear: [10.0, 10.0, 10.0]
+      damper:
+        angular: [200.0, 200.0, 200.0]
+        linear: [1500.0, 1500.0, 1500.0]
+      spring:
+        angular: [200.0, 200.0, 200.0]
+        linear: [200.0, 200.0, 200.0]
+      wrench:
+        angular: [0.0, 0.0, 0.0]
+        linear: [1.0, 1.0, 1.0]
+
+RemoveHandsE2DR:
+  base: RemoveHandsHRP4
+  tasks:
+    TorsoTask:
+      target:
+        CHEST_P: [0]
+
+E2DRpos:
+  base: HRP4pos
+  tasks:
+    HalfSit:
+      target:
+        R_HIP_Y: [0.0]
+        R_HIP_R: [-0.02]
+        R_ANKLE_R: [0.02]
+        L_HIP_Y: [0.0]
+        L_HIP_R: [0.02]
+        L_ANKLE_R: [-0.02]
+        CHEST_P: [0.0]
+        CHEST_Y: [0.0]
+        NECK_Y: [0.0]
+        NECK_P: [0.0]
+        R_SHOULDER_P: [-0.052]
+        R_SHOULDER_R: [-0.175]
+        R_SHOULDER_Y: [0.0]
+        R_ELBOW_P: [-0.524]
+        R_WRIST_Y: [0.0]
+        R_WRIST_P: [0.0]
+        R_WRIST_R: [0.0]
+        L_SHOULDER_P: [-0.052]
+        L_SHOULDER_R: [0.175]
+        L_SHOULDER_Y: [0.0]
+        L_ELBOW_P: [-0.524]
+        L_WRIST_Y: [0.0]
+        L_WRIST_P: [0.0]
+        L_WRIST_R: [0.0]
+
+
+# This state makes the step to the right while keeping the CoM above the left contact
+RobotStabilizer::MakeRightStepE2DR:
+  base: Parallel
+  states: [RobotStabilizer::LeftSupport, RightFootExtendE2DR]
+  AddContactsAfter:
+    - r1: e2dr
+      r2: ground
+      r1Surface: RightFoot
+      r2Surface: AllGround
+      dof: [0, 0, 1, 1, 1, 0]
+
+# This state lifts up the right foot while keeping the CoM above the left contact
+RobotStabilizer::MakeRightLiftE2DR:
+  base: Parallel
+  states: [RobotStabilizer::LeftSupport, RightFootLiftE2DR]
+  RemoveContacts:
+    - r1: e2dr
+      r2: ground
+      r1Surface: RightFoot
+      r2Surface: AllGround
+
+RightStepFSME2DR:
+  base: Meta
+  transitions:
+  - [RobotStabilizer::GoLeft, OK, RobotStabilizer::MakeRightLiftE2DR, Strict]
+  - [RobotStabilizer::MakeRightLiftE2DR, OK, RobotStabilizer::MakeRightStepE2DR, Strict]
+  - [RobotStabilizer::MakeRightStepE2DR, OK, RobotStabilizer::GoCenter, Strict]
+
+
+GoBackInitFSME2DR:
+  base: Meta
+  transitions:
+  - [RemoveHandsE2DR, OK, RobotStabilizer::GoCenter, Auto]
+  - [RobotStabilizer::GoCenter, OK, HRP4pos, Auto]
+
+
+HelpFSM_E2DRHuman:
+  base: Meta
+  ResetPostures: true
+  transitions:
+  - [Pause_2s, OK, RightStepFSME2DR, Strict]
+  - [RightStepFSME2DR, OK, AddHumanCollisions, Auto]
+  - [AddHumanCollisions, OK, TakePositionE2DRHuman, Strict]
+  - [TakePositionE2DRHuman, OK, ApproachE2DRHuman, Strict]
+  - [ApproachE2DRHuman, OK, AdjustHumanSurfaces, Strict]
+  - [AdjustHumanSurfaces, OK, KeepPositionE2DRHuman, Auto]
+  - [KeepPositionE2DRHuman, OK, GoBackInitFSME2DR, Strict]
+
+
+HelpDemoE2DR:
+  base: Parallel
+  states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_E2DRHuman]

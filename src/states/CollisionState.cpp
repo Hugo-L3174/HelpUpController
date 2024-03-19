@@ -11,7 +11,7 @@ void CollisionState::addRemoveCollisions(mc_control::fsm::Controller & ctl, bool
   {
     if(addCollisionSets->size())
     {
-      // value_or combined with the find
+      // value_or combined with the find chains the calls to find nested objects in the config
       if(auto robotCollisionSets =
              ctlConfig.find("collision_sets").value_or(mc_rtc::Configuration{}).find(ctl.robot().name()))
       {

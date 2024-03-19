@@ -1,0 +1,78 @@
+GeneralRobotStabilizer:
+  base: RobotStabilizer
+  # stiffness and StabilizerConfig are optional but expliciting them makes it easier to change here
+  stiffness: 5
+  StabilizerConfig:
+    type: lipm_stabilizer
+    # tasks:
+      # com:
+      #   weight: 100
+      # torso:
+      #   stiffness: 0
+      #   weight: 0
+    enabled: true
+    contacts: [Left, Right] # This uses right and left contact from robot module so ok for any robot that defined them
+    admittance:
+      maxVel:
+        linear: [0.3,0.3,0.3]
+        angular: [0.5,0.5,0.5]
+    Left:
+      # Keep the yaw intact, align roll/pitch with the (flat) ground
+      overwriteRPY:
+        roll: 0
+        pitch: 0
+      height: 0
+    Right:
+      overwriteRPY:
+        roll: 0
+        pitch: 0
+      height: 0
+  ExternalWrenchConfig:
+    addExpectedCoMOffset: false # adds a feedforward term to target com movement from target external forces (false if ext forces are taken into account by pattern gen)
+    substractMeasuredValue: false # substract the measured values instead of the target ones for offset computation (takes gains into account)
+    ext_wrench_sum_cutoff: 0.8 # instead of 0.05: low pass filter of the measured ext wrenches (we lower the low-pass)
+    modifyCoMErr: true # for low frequency errors
+    com_offset_cutoff: 0.05 # cutoff for zmp strategy: 0.8 instead of 0.05, we lower the low pass
+    modifyZMPErr: false # for high frequency errors
+    com_offset_com_cutoff: 1.0 # cutoff for com strategy
+    modifyZMPErrD: false # derivative of the external force error, should be true in theory but highly affected by measurement noise
+    excludeFromDCMBiasEst: true # if com bias estimator is used, should be true to exclude ext forces from estimation (otherwise taken into account twice)
+  DCMBiasEstimatorConfig:
+    withDCMBias: true
+    withDCMFilter: false
+    correctCoMPos: false # whether to unbias the absolute CoM position
+
+RobotStabilizer::GoCenter:
+  base: ChangeBalanceConfig
+  StabilizerConfig:
+    contacts: [Right, Left]
+  above: CenterSurfaces
+  completion:
+    dcmEval: [0.02, 0.02, 0.05]
+  stayManualAfter: false
+
+RobotStabilizer::GoLeft:
+  base: ChangeBalanceConfig
+  above: LeftSurface
+  completion:
+    dcmEval: [0.02, 0.02, 0.05]
+  stayManualAfter: true
+
+RobotStabilizer::LeftSupport:
+  base: ChangeBalanceConfig
+  StabilizerConfig:
+    contacts: [Left]
+  stayManualAfter: true
+
+RobotStabilizer::GoRight:
+  base: ChangeBalanceConfig
+  above: RightSurface
+  completion:
+    dcmEval: [0.02, 0.02, 0.05]
+  stayManualAfter: true
+
+RobotStabilizer::RightSupport:
+  base: RobotStabilizer::GoRight
+  StabilizerConfig:
+    contacts: [Right]
+  stayManualAfter: true

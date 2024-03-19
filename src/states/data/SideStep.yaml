@@ -1,0 +1,35 @@
+RightFootLift:
+  base: MetaTasks
+  tasks:
+    LiftRightFoot:
+      type: transform
+      stiffness: 10.0
+      weight: 500.0
+      frame: RightFoot
+      completion:
+        eval: 0.015
+      # We target 10cm up
+      moveWorld:
+        translation: [0,0,0.1]
+
+
+RightFootExtend:
+  base: MetaTasks
+  tasks:
+    ExtendFootTask:
+      type: bspline_trajectory
+      stiffness: 50.0
+      weight: 2000.0
+      duration: 3.0
+      frame: RightFoot
+      completion:
+        OR:
+          - timeElapsed: true
+          - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
+      # We target the left foot translated 30cm right
+      targetFrame:
+        frame: LeftFoot
+        translation: [0.0, -0.3, 0]
+        rotation: [0.0, 0.0, 0.0]
+      controlPoints:
+        - [0.0, -0.2, 0.1]

@@ -5,7 +5,7 @@ Managed: false
 StepByStep: true
 # Change idle behaviour, if true the state is kept until transition,
 # otherwise the FSM holds the last state until transition
-IdleKeepState: false
+IdleKeepState: true
 # Where to look for state libraries
 StatesLibraries:
 - "@MC_STATES_DEFAULT_RUNTIME_INSTALL_PREFIX@"
@@ -22,8 +22,8 @@ VerboseStateFactory: false
 # Initial position of main robot (still needed for mujoco)
 # We update it in the reset state to place robot and chair depending on the human
 init_pos:
-  # translation: [0, -1, 0.77] # e2dr
-  translation: [0, -1, 0.75] # hrp4
+  translation: [0, -1, 0.77] # e2dr
+  # translation: [0, -1, 0.75] # hrp4
 
 Limits:
   hrp4:
@@ -37,11 +37,9 @@ Limits:
 robots:
   chair:
     module: env/chair
-    # init_pos:
-    #   translation: [-0.27, 0.36, 0.0] # orig pose of hips here is [-0.37, 0.36, 0.0], we apply offset of [0.1, 0.0, 0.0]
   human:
     module: human
-    init_pos:
+    init_pos: # placeholder value as the model will be retargeted to the real human pose: this is to avoid initial collision in physics sim
       translation: [-0.37, 0.36, 0.66]
   ground:
     module: env/ground
@@ -66,145 +64,6 @@ constraints:
 #   infTorque: true
 #   damper: [0.1, 0.01, 0.5]
 
-# Set of human-robot collisions
-
-collisions: &HRP4HumanCollisions
-  # robot left arm collision with human torso important links are _SHOULDER_Y_LINK _ELBOW_P_LINK _WRIST_Y_LINK (l_wrist)
-  # - body1: L_ELBOW_P_LINK
-  #   body2: TorsoLink
-  #   iDist: 0.03
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: &humanUnactiveJoints
-  #     [Root, base, Torso_0, Torso_1, Torso_2, Head_0, Head_1, Head_2, LArm_0, LArm_1, LArm_2, LElbow, LForearm, LWrist_0, LWrist_1, LHand, LHandThumbLink1, LHandThumbLink2, LHandThumbLink3, LHandIndexLink1, LHandIndexLink2, LHandIndexLink3, LHandMiddleLink1, LHandMiddleLink2, LHandMiddleLink3, LHandRingLink1, LHandRingLink2, LHandRingLink3, LHandBabyLink1, LHandBabyLink2, LHandBabyLink3, RArm_0, RArm_1, RArm_2, RElbow, RForearm, RWrist_0, RWrist_1, RHand, RHandThumbLink1, RHandThumbLink2, RHandThumbLink3, RHandIndexLink1, RHandIndexLink2, RHandIndexLink3, RHandMiddleLink1, RHandMiddleLink2, RHandMiddleLink3, RHandRingLink1, RHandRingLink2, RHandRingLink3, RHandBabyLink1, RHandBabyLink2, RHandBabyLink3, LLeg_0, LLeg_1, LLeg_2, LShin_0, LAnkle_0, LAnkle_1, RLeg_0, RLeg_1, RLeg_2, RShin_0, RAnkle_0, RAnkle_1]
-  # - body1: L_WRIST_Y_LINK
-  #   body2: TorsoLink
-  #   iDist: 0.03
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  # - body1: R_ELBOW_P_LINK
-  #   body2: TorsoLink
-  #   iDist: 0.03
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  # - body1: R_WRIST_Y_LINK
-  #   body2: TorsoLink
-  #   iDist: 0.03
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  - body1: L_SHOULDER_Y_LINK
-    body2: RArmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: &humanUnactiveJoints #*humanUnactiveJoints
-      [Root, base, Torso_0, Torso_1, Torso_2, Head_0, Head_1, Head_2, LArm_0, LArm_1, LArm_2, LElbow, LForearm, LWrist_0, LWrist_1, LHand, LHandThumbLink1, LHandThumbLink2, LHandThumbLink3, LHandIndexLink1, LHandIndexLink2, LHandIndexLink3, LHandMiddleLink1, LHandMiddleLink2, LHandMiddleLink3, LHandRingLink1, LHandRingLink2, LHandRingLink3, LHandBabyLink1, LHandBabyLink2, LHandBabyLink3, RArm_0, RArm_1, RArm_2, RElbow, RForearm, RWrist_0, RWrist_1, RHand, RHandThumbLink1, RHandThumbLink2, RHandThumbLink3, RHandIndexLink1, RHandIndexLink2, RHandIndexLink3, RHandMiddleLink1, RHandMiddleLink2, RHandMiddleLink3, RHandRingLink1, RHandRingLink2, RHandRingLink3, RHandBabyLink1, RHandBabyLink2, RHandBabyLink3, LLeg_0, LLeg_1, LLeg_2, LShin_0, LAnkle_0, LAnkle_1, RLeg_0, RLeg_1, RLeg_2, RShin_0, RAnkle_0, RAnkle_1]
-  - body1: L_ELBOW_P_LINK
-    body2: RArmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  # - body1: L_WRIST_Y_LINK
-  #   body2: RArmLink
-  #   iDist: 0.1
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  # - body1: L_SHOULDER_Y_LINK
-  #   body2: RElbowLink
-  #   iDist: 0.1
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  # - body1: L_ELBOW_P_LINK
-  #   body2: RElbowLink
-  #   iDist: 0.1
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  # - body1: L_WRIST_Y_LINK
-  #   body2: RElbowLink
-  #   iDist: 0.1
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  - body1: L_SHOULDER_Y_LINK
-    body2: RForearmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: L_ELBOW_P_LINK
-    body2: RForearmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: L_WRIST_Y_LINK
-    body2: RForearmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: R_SHOULDER_Y_LINK
-    body2: RArmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: R_ELBOW_P_LINK
-    body2: RArmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: R_WRIST_Y_LINK
-    body2: RArmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  # - body1: R_SHOULDER_Y_LINK
-  #   body2: RElbowLink
-  #   iDist: 0.1
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  # - body1: R_ELBOW_P_LINK
-  #   body2: RElbowLink
-  #   iDist: 0.1
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  # - body1: R_WRIST_Y_LINK
-  #   body2: RElbowLink
-  #   iDist: 0.1
-  #   sDist: 0.001
-  #   damping: 0
-  #   r2UnactiveJoints: *humanUnactiveJoints
-  - body1: R_SHOULDER_Y_LINK
-    body2: RForearmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: R_ELBOW_P_LINK
-    body2: RForearmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-  - body1: R_WRIST_Y_LINK
-    body2: RForearmLink
-    iDist: 0.1
-    sDist: 0.001
-    damping: 0
-    r2UnactiveJoints: *humanUnactiveJoints
-
 # Collision constraint
 collisions:
 - type: collision # main robot
@@ -213,124 +72,6 @@ collisions:
 #   r1: panda
 #   r2: panda
 #   useMinimal: true
-# - type: collision
-#   r1: hrp4 #e2dr
-#   r2: panda
-#   collisions:
-#     - body1: R_WRIST_Y_LINK
-#       body2: torso_box
-#       iDist: 0.03
-#       sDist: 0.001
-#       damping: 0
-#       r2UnactiveJoints: &pandaUnactiveJoints
-#         [panda_joint1, panda_joint2, panda_joint3, panda_joint4, panda_joint5, panda_joint6, panda_joint7]
-#     - body1: R_WRIST_P_LINK
-#       body2: torso_box
-#       iDist: 0.03
-#       sDist: 0.001
-#       damping: 0
-#       r2UnactiveJoints: *pandaUnactiveJoints
-#     # - body1: r_wrist
-#     #   body2: torso_box
-#     #   iDist: 0.03
-#     #   sDist: -0.01
-#     #   damping: 0
-#     #   r2UnactiveJoints: *pandaUnactiveJoints
-#     - body1: L_WRIST_Y_LINK
-#       body2: torso_box
-#       iDist: 0.03
-#       sDist: 0.001
-#       damping: 0
-#       r2UnactiveJoints: *pandaUnactiveJoints
-#     - body1: L_WRIST_P_LINK
-#       body2: torso_box
-#       iDist: 0.03
-#       sDist: 0.001
-#       damping: 0
-#       r2UnactiveJoints: *pandaUnactiveJoints
-#     # - body1: l_wrist
-#     #   body2: torso_box
-#     #   iDist: 0.03
-#     #   sDist: -0.01
-#     #   damping: 0
-#     #   r2UnactiveJoints: *pandaUnactiveJoints
-#     - body1: torso
-#       body2: torso_box
-#       iDist: 0.03
-#       sDist: 0.01
-#       damping: 0
-#       r2UnactiveJoints: *pandaUnactiveJoints
-#     - body1: NECK_P_LINK
-#       body2: torso_box
-#       iDist: 0.03
-#       sDist: 0.01
-#       damping: 0
-#       r2UnactiveJoints: *pandaUnactiveJoints
-
-
-
-# Initial set of contacts hrp4
-# contacts:
-# - r1: hrp4
-#   r2: ground
-#   r1Surface: LeftFoot
-#   r2Surface: AllGround
-#   dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
-# - r1: hrp4
-#   r2: ground
-#   r1Surface: RightFoot
-#   r2Surface: AllGround
-#   dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
-# - r1: human
-#   r2: ground
-#   r1Surface: LeftSole_ForceShoe
-#   r2Surface: AllGround
-#   dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-# - r1: human
-#   r2: ground
-#   r1Surface: RightSole_ForceShoe
-#   r2Surface: AllGround
-#   dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-# - r1: human
-#   r2: chair
-#   r1Surface: RCheek
-#   r2Surface: Top
-# - r1: human
-#   r2: chair
-#   r1Surface: LCheek
-#   r2Surface: Top
-
-
-# Initial set of contacts e2dr
-# contacts:
-# - r1: e2dr
-#   r2: ground
-#   r1Surface: LeftFoot
-#   r2Surface: AllGround
-#   dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
-# - r1: e2dr
-#   r2: ground
-#   r1Surface: RightFoot
-#   r2Surface: AllGround
-#   dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
-# - r1: human
-#   r2: ground
-#   r1Surface: LeftSole
-#   r2Surface: AllGround
-#   dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-# - r1: human
-#   r2: ground
-#   r1Surface: RightSole
-#   r2Surface: AllGround
-#   dof: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-# # - r1: human
-# #   r2: chair
-# #   r1Surface: RCheek
-# #   r2Surface: Top
-# # - r1: human
-# #   r2: chair
-# #   r1Surface: LCheek
-# #   r2Surface: Top
 
 # Some options for a specific robot
 e2dr:
@@ -352,10 +93,10 @@ hrp4:
 # Force limit on contacts (if not here, considered support contact and max force is m*g)
 # todo : differenciate human and robot
 surfacesMaxForces:
-  # LeftFoot: 850 # e2dr weights 87.27kg
-  # RightFoot: 850
-  LeftFoot: 500
-  RightFoot: 500
+  LeftFoot: 900 # e2dr weights 87.27kg
+  RightFoot: 900
+  # LeftFoot: 500
+  # RightFoot: 500
   LeftHand: 15
   RightHand: 15
   RLegBack: 500
@@ -370,734 +111,16 @@ surfacesMaxForces:
 # FSM states
 states:
 
-  ResetStateHRP4:
-    base: ResetPoses
-    chairOffset: # in world frame, from xsens hips position
-      translation: [0.05, 0.0, 0.0]
-      rotation: [0.0, 0.0, 0.0]
-    robotOffset: # in chair frame
-      translation: [0.1, -0.51, 0.75] #hrp4 in first working experiment: [0.1, -0.51, 0.75]
-      rotation: [0.0, 0.0, 1.57]
-    pandaOffset: # in chair frame
-      translation: [0.3, 0.6, 0.75]
-      rotation: [0.0, 0.0, -1.57]
-    AddContactsAfter:
-      - r1: hrp4
-        r2: ground
-        r1Surface: LeftFoot
-        r2Surface: AllGround
-        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
-      - r1: hrp4
-        r2: ground
-        r1Surface: RightFoot
-        r2Surface: AllGround
-        dof: [0.0, 0.0, 0.0, 1.0, 1.0, 0.0]
-
-# These are the stabilizer FSM states
-  GeneralRobotStabilizer:
-    base: RobotStabilizer
-    # stiffness and StabilizerConfig are optional but expliciting them makes it easier to change here
-    stiffness: 5
-    StabilizerConfig:
-      type: lipm_stabilizer
-      # tasks:
-        # com:
-        #   weight: 100
-        # torso:
-        #   stiffness: 0
-        #   weight: 0
-      enabled: true
-      contacts: [Left, Right] # This uses right and left contact from robot module so ok for any robot that defined them
-      admittance:
-        maxVel:
-          linear: [0.3,0.3,0.3]
-          angular: [0.5,0.5,0.5]
-      Left:
-        # Keep the yaw intact, align roll/pitch with the (flat) ground
-        overwriteRPY:
-          roll: 0
-          pitch: 0
-        height: 0
-      Right:
-        overwriteRPY:
-          roll: 0
-          pitch: 0
-        height: 0
-    ExternalWrenchConfig:
-      addExpectedCoMOffset: false # adds a feedforward term to target com movement from target external forces (false if ext forces are taken into account by pattern gen)
-      substractMeasuredValue: false # substract the measured values instead of the target ones for offset computation (takes gains into account)
-      ext_wrench_sum_cutoff: 0.8 # instead of 0.05: low pass filter of the measured ext wrenches (we lower the low-pass)
-      modifyCoMErr: true # for low frequency errors
-      com_offset_cutoff: 0.8 # cutoff for zmp strategy: 0.8 instead of 0.05, we lower the low pass
-      modifyZMPErr: false # for high frequency errors
-      com_offset_com_cutoff: 1.0 # cutoff for com strategy
-      modifyZMPErrD: false # derivative of the external force error, should be true in theory but highly affected by measurement noise
-      excludeFromDCMBiasEst: true # if com bias estimator is used, should be true to exclude ext forces from estimation (otherwise taken into account twice)
-    DCMBiasEstimatorConfig:
-      withDCMBias: true
-      withDCMFilter: false
-      correctCoMPos: false # whether to unbias the absolute CoM position
-
-  RobotStabilizer::GoCenter:
-    base: ChangeBalanceConfig
-    StabilizerConfig:
-      contacts: [Right, Left]
-    above: CenterSurfaces
-    completion:
-      dcmEval: [0.01, 0.01, 0.05]
-    stayManualAfter: false
-
-  RobotStabilizer::GoLeft:
-    base: ChangeBalanceConfig
-    above: LeftSurface
-    completion:
-     dcmEval: [0.01, 0.01, 0.05]
-    stayManualAfter: true
-
-  RobotStabilizer::LeftSupport:
-    base: ChangeBalanceConfig
-    # completion: {}
-    StabilizerConfig:
-      contacts: [Left]
-    stayManualAfter: true
-
-  RobotStabilizer::GoRight:
-    base: ChangeBalanceConfig
-    above: RightSurface
-    completion:
-      dcmEval: [0.01, 0.01, 0.05]
-    stayManualAfter: true
-
-  RobotStabilizer::RightSupport:
-    base: RobotStabilizer::GoRight
-    completion: {}
-    StabilizerConfig:
-      contacts: [Right]
-    stayManualAfter: true
-
-  # This state makes the step to the right while keeping the CoM above the left contact
-  RobotStabilizer::MakeRightStepHRP4:
-    base: Parallel
-    states: [RobotStabilizer::LeftSupport, RightFootExtendHRP4]
-
-  # This state lifts up the right foot while keeping the CoM above the left contact
-  RobotStabilizer::MakeRightLiftHRP4:
-    base: Parallel
-    states: [RobotStabilizer::LeftSupport, RightFootLiftHRP4]
-    RemoveContacts:
-      - r1: hrp4
-        r2: ground
-        r1Surface: RightFoot
-        r2Surface: AllGround
-
-  RightFootLiftHRP4:
-    base: MetaTasks
-    tasks:
-      LiftRightFoot:
-        type: transform
-        stiffness: 10.0
-        weight: 500.0
-        frame: RightFoot
-        completion:
-          # OR:
-          eval: 0.015
-            # - AND:
-            #   - timeout: 3
-            #   - speed: 0.005
-        # We target 10cm up
-        moveWorld:
-          translation: [0,0,0.1]
-
-
-  RightFootExtendHRP4:
-    base: MetaTasks
-    tasks:
-      ExtendFootTask:
-        type: bspline_trajectory
-        stiffness: 50.0
-        weight: 2000.0
-        duration: 3.0
-        frame: RightFootCenter
-        completion:
-          OR:
-            - timeElapsed: true
-            - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
-        # We target the left foot translated 30cm right
-        targetFrame:
-          robot: hrp4
-          frame: LeftFoot
-          translation: [0.0, -0.3, 0]
-          rotation: [0.0, 0.0, 0.0]
-        controlPoints:
-          - [0.0, -0.2, 0.1]
-    AddContactsAfter:
-      - r2: ground
-        r1Surface: RightFoot
-        r2Surface: AllGround
-        dof: [0, 0, 0, 1, 1, 0]
-
-  TakePositionE2DR:
-    base: MetaTasks
-    tasks:
-      RHandTrajectory:
-        type: bspline_trajectory
-        robot: e2dr #e2dr hrp4
-        frame: RightHand #Flat
-        weight: 500.0
-        stiffness: 1000.0
-        duration: 3.0
-        targetFrame:
-          robot: human
-          frame:  RightShoulder #Chest
-          translation: [0.0, 0.0, 0.05]
-          # controlPoints:
-          #   - [-0.2, 0.2, 0.2]
-      LHandTrajectory:
-        type: bspline_trajectory
-        robot: e2dr #e2dr hrp4
-        frame: LeftHand #Flat
-        weight: 500.0
-        stiffness: 1000.0
-        duration: 3.0
-        targetFrame:
-          robot: human
-          frame: Back
-          translation: [0.0, 0.0, 0.05]
-          # controlPoints: # in target frame !
-          #   - [-0.2, -0.2, 0.2]
-    # RemoveCollisionsAfter:
-    #   - r1: e2dr
-    #     r2: human
-    #     collisions:
-    #       - body1: l_wrist
-    #         body2: TorsoLink
-    #         iDist: 0.003
-    #         sDist: 0.0001
-    #         damping: 0
-    #       - body1: r_wrist
-    #         body2: TorsoLink
-    #         iDist: 0.003
-    #         sDist: 0.0001
-    #         damping: 0
-    AddContactsAfter: # here the contact constraint added is on the x and y axis to keep position
-      - r1: e2dr
-        r2: human
-        r1Surface: RightHand
-        r2Surface: RightShoulder
-        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0] # last one is z axis
-      - r1: e2dr #e2dr hrp4
-        r2: human
-        r1Surface: LeftHand
-        r2Surface: Back
-        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
-
-  KeepElbowHRP4:
-    base: MetaTasks
-    tasks:
-      LElbowTask:
-        type: posture
-        robot: hrp4
-        weight: 500.0
-        stiffness: 2.0
-        target:
-          L_SHOULDER_Y: [-1.6]
-          L_WRIST_Y: [1.6]
-        # completion:
-        #   eval: 0.015
-
-  TakePositionHRP4Human:
-    base: RobotTakePoseObserved
-    AddCollisions:
-      - r1: hrp4
-        r2: human
-        collisions: *HRP4HumanCollisions
-    RHandTrajectory:
-      type: bspline_trajectory
-      robot: hrp4
-      frame: RightHand
-      weight: 1000.0
-      stiffness: 10
-      duration: 5.0
-      gainsInterpolation:
-        stiffness:
-          - [3.5, [10, 10, 20, 500, 500, 500]]
-      targetFrame:
-        robot: human
-        frame:  RightShoulder
-        translation: [0.0, 0.05, 0.08]
-        controlPoints:
-          - [-0.2, 0.0, 0.2]
-        oriWaypoints:
-          - [4.0, [0.0, 0.0, 0.0]]
-      completion:
-        OR:
-          - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 10]
-          - AND:
-              - eval: 0.025
-              - speed: 0.01
-    LHandTrajectory:
-      type: bspline_trajectory
-      robot: hrp4
-      frame: LeftHand
-      weight: 1000.0
-      stiffness: 10
-      duration: 5.0
-      gainsInterpolation:
-        stiffness:
-          - [3.5, [10, 10, 20, 500, 500, 500]]
-      targetFrame:
-        robot: human
-        frame: Back
-        translation: [0.0, -0.05, 0.05]
-        controlPoints: # in target frame !
-          - [-0.1, -0.2, 0.1]
-        oriWaypoints:
-          - [4.0, [0.0, 0.0, 0.0]]
-      completion:
-        OR:
-          - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 10]
-          - AND:
-              - eval: 0.025
-              - speed: 0.01
-
-
-  TakePositionHRP4Panda:
-    base: TakePositionHRP4Human
-    RemoveCollisions: # removing default collisions with the human model, not needed in panda case
-      - r1: hrp4
-        r2: human
-    RHandTrajectory:
-      targetFrame:
-        robot: panda
-        frame: HumanFront
-        translation: [0.0, 0.0, 0.05]
-        controlPoints:
-          - [0.0, 0.0, 0.2]
-        oriWaypoints:
-          - [4.0, [0.0, 0.0, 0.0]]
-    LHandTrajectory:
-      targetFrame:
-        robot: panda
-        frame: HumanBack
-        translation: [0.0, -0.12, 0.05]
-        controlPoints: # in target frame !
-          - [-0.1, -0.2, 0.15]
-        oriWaypoints:
-          - [4.0, [0.0, 0.0, 0.0]]
-
-
-  MakeHandContactsE2DR:
-    base: MetaTasks
-    tasks:
-      RHCoP:
-        type: cop
-        frame: RightHand
-        targetFrame:
-          robot: human
-          frame: RightShoulder
-        force: [0.0, 0.0, 10.0]
-        admittance:
-          couple: [0.005, 0.005, 0.0]
-          force: [0.0, 0.0, 0.005]
-      LHCoP:
-        type: cop
-        frame: LeftHand
-        targetFrame:
-          robot: human
-          frame: Back
-        force: [0.0, 0.0, 10.0]
-        admittance:
-          couple: [0.005, 0.005, 0.0]
-          force: [0.0, 0.0, 0.005]
-    AddContactsAfter: # here the contact constraint is added on the first 3 dofs as well after adapting with CoP task
-      - r1: e2dr
-        r2: human
-        r1Surface: RightHand
-        r2Surface: RightShoulder
-        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
-      - r1: e2dr
-        r2: human
-        r1Surface: LeftHand
-        r2Surface: Back
-        dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
-
-  ApproachHRP4Human:
-    base: MetaTasks
-    tasks:
-      RHDamping:
-        type: admittance
-        frame: RightHand
-        stiffness: 20
-        weight: 5000
-        targetFrame:
-          robot: human
-          frame: RightShoulder
-          offset:
-            translation: [0.0, 0.05, 0.0]
-        wrench:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 5.0]
-        admittance:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 0.005]
-      LHDamping:
-        type: admittance
-        frame: LeftHand
-        stiffness: 20
-        weight: 5000
-        targetFrame:
-          robot: human
-          frame: Back
-          offset:
-            translation: [0.0, -0.05, 0.0]
-        wrench:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 5.0]
-        admittance:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 0.005]
-
-
-
-  ApproachHRP4Panda:
-    base: ApproachHRP4Human
-    tasks:
-      RHDamping:
-        targetFrame:
-          robot: panda
-          frame: HumanFront
-        wrench:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 5.0]
-        admittance:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 0.01]
-      LHDamping:
-        targetFrame:
-          robot: panda
-          frame: HumanBack
-          offset:
-            translation: [0.0, -0.1, 0.0]
-        wrench:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 5.0]
-        admittance:
-          couple: [0.0, 0.0, 0.0]
-          force: [0.0, 0.0, 0.01]
-
-
-  KeepPositionHRP4Human:
-    base: RobotHolding
-    RightHandImped:
-      type: impedance
-      frame: RightHand
-      targetFrame:
-        robot: human
-        frame: RightShoulder
-      weight: 10000.0
-      stiffness: 50
-      wrench:
-        couple: [0.0, 0.0, 0.0]
-        force: [0.0, 0.0, 5.0]
-      gains:
-        mass:
-          angular: [2.0, 2.0, 2.0]
-          linear: [10.0, 10.0, 10.0]
-        damper:
-          angular: [200.0, 200.0, 200.0]
-          linear: [1500.0, 1500.0, 1500.0]
-        spring:
-          angular: [200.0, 200.0, 200.0]
-          linear: [200.0, 200.0, 200.0]
-        wrench:
-          angular: [0.0, 0.0, 0.0]
-          linear: [1.0, 1.0, 1.0]
-      # gains:
-      #   mass:
-      #     angular: [0.5, 0.5, 0.5]
-      #     linear: [10, 10, 10]
-      #   spring:
-      #     angular: [2, 2, 2]
-      #     linear: [100, 100, 50]
-      #   damper:
-      #     angular: [5, 5, 5]
-      #     linear: [500, 500, 500]
-      #   wrench:
-      #     angular: [0, 0, 0]
-      #     linear: [1, 1, 1] #careful
-      completion:
-        OR:
-          - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
-          - AND:
-              - eval: 0.015
-              - speed: 0.01
-    LeftHandImped:
-      type: impedance
-      frame: LeftHand
-      targetFrame:
-        robot: human
-        frame: Back
-        # offset:
-        #   translation: [0.0, -0.12, 0.0]
-        #   rotation: [0, 0, -1.57]
-      weight: 10000.0
-      stiffness: 50
-      wrench:
-        couple: [0.0, 0.0, 0.0]
-        force: [0.0, 0.0, 5.0]
-      gains:
-        mass:
-          angular: [2.0, 2.0, 2.0]
-          linear: [10.0, 10.0, 10.0]
-        damper:
-          angular: [200.0, 200.0, 200.0]
-          linear: [1500.0, 1500.0, 1500.0]
-        spring:
-          angular: [200.0, 200.0, 200.0]
-          linear: [200.0, 200.0, 200.0]
-        wrench:
-          angular: [0.0, 0.0, 0.0]
-          linear: [1.0, 1.0, 1.0]
-      # gains:
-      #   mass:
-      #     angular: [0.5, 0.5, 0.5]
-      #     linear: [10, 10, 10]
-      #   spring:
-      #     angular: [2, 2, 2]
-      #     linear: [100, 100, 50]
-      #   damper:
-      #     angular: [5, 5, 5]
-      #     linear: [500, 500, 500]
-      #   wrench:
-      #     angular: [0, 0, 0]
-      #     linear: [1, 1, 1] #careful
-      completion:
-        OR:
-          - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
-          - AND:
-              - eval: 0.015
-              - speed: 0.01
-    # RightHand1stOAdmi:
-    #   type: FirstOrderAdmittance
-    #   frame: RightHand
-    #   weight: 10000.0
-    #   # stiffness: [10, 10, 10, 10, 10, 1]
-    #   # damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
-    #   stiffness: 40
-    #   targetFrame:
-    #     robot: human
-    #     frame: RightShoulder
-    #   wrench:
-    #     couple: [0.0, 0.0, 0.0]
-    #     force: [0.0, 0.0, 5.0]
-    #   admittance:
-    #     couple: [0.0, 0.0, 0.0]
-    #     force: [0.00, 0.00, 0.01]
-    #   completion:
-    #     OR:
-    #       - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
-    #       - AND:
-    #           - eval: 0.015
-    #           - speed: 0.01
-    # LeftHand1stOAdmi:
-    #   type: FirstOrderAdmittance
-    #   frame: LeftHand
-    #   weight: 10000.0
-    #   # stiffness: [10, 10, 10, 10, 10, 1]
-    #   # damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
-    #   stiffness: 40
-    #   targetFrame:
-    #     robot: human
-    #     frame: Back
-    #   wrench:
-    #     couple: [0.0, 0.0, 0.0]
-    #     force: [0.0, 0.0, 5.0]
-    #   admittance:
-    #     couple: [0.0, 0.0, 0.0]
-    #     force: [0.00, 0.00, 0.01]
-    #   completion:
-    #     OR:
-    #       - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
-    #       - AND:
-    #           - eval: 0.015
-    #           - speed: 0.01
-    # RightHandDamping:
-    #   type: damping
-    #   frame: RightHand
-    #   weight: 10000.0
-    #   stiffness: [10, 10, 10, 10, 10, 1]
-    #   damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
-    #   targetFrame:
-    #     robot: human
-    #     frame: RightShoulder
-    #   wrench:
-    #     couple: [0.0, 0.0, 0.0]
-    #     force: [0.0, 0.0, 5.0]
-    #   admittance:
-    #     couple: [0.0, 0.0, 0.0]
-    #     force: [0.00, 0.00, 0.05]
-    #   completion:
-    #     OR:
-    #       - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
-    #       - AND:
-    #           - eval: 0.015
-    #           - speed: 0.01
-    # LeftHandDamping:
-    #   type: damping
-    #   frame: LeftHand
-    #   weight: 10000.0
-    #   stiffness: [10, 10, 10, 10, 10, 1]
-    #   damping: [6.3, 6.3, 6.3, 6.3, 6.3, 300]
-    #   targetFrame:
-    #     robot: human
-    #     frame: Back
-    #   wrench:
-    #     couple: [0.0, 0.0, 0.0]
-    #     force: [0.0, 0.0, 5.0]
-    #   admittance:
-    #     couple: [0.0, 0.0, 0.0]
-    #     force: [0.00, 0.00, 0.005]
-    #   completion:
-    #     OR:
-    #       - wrench: [.NaN, .NaN, .NaN, .NaN, .NaN, 20]
-    #       - AND:
-    #           - eval: 0.015
-    #           - speed: 0.01
-
-  KeepPositionHRP4Panda:
-    base: KeepPositionHRP4Human
-    RightHandImped:
-      targetFrame:
-        robot: panda
-        frame: HumanFront
-    LeftHandImped:
-      targetFrame:
-        robot: panda
-        frame: HumanBack
-        offset:
-          translation: [0.0, -0.12, 0.0]
-
-
-  RemoveHandsHRP4:
-    base: MetaTasks
-    # make bsplines to get away from human
-    tasks:
-      RHandTrajectory:
-        type: bspline_trajectory
-        robot: hrp4
-        frame: RightHand
-        weight: 500.0
-        stiffness: 150
-        duration: 2.0
-        targetFrame:
-          robot: human
-          frame: RightShoulder
-          translation: [0, 0.2, 0]
-          rotation : [0, 0, -0.77]
-          # controlPoints:
-          #   - [0.15, 0.35, 0.2]
-        # targetFrame:
-        #   robot: hrp4
-        #   frame: Buttock
-        #   translation: [0.11, -0.22, 0.2]
-        #   rotation : [0.68, -0.65, -0.32]
-        #   controlPoints:
-        #     - [0.3, -0.35, 0.3]
-        completion:
-          timeElapsed: true
-      LHandTrajectory:
-        type: bspline_trajectory
-        robot: hrp4
-        frame: LeftHand
-        weight: 500.0
-        stiffness: 150
-        duration: 2.0
-        targetFrame:
-          robot: human
-          frame: Back
-          translation: [-0.2, 0, 0.3]
-          rotation : [0, 0, 0.77]
-          # controlPoints:
-          #   - [-0.2, -0.15, 0.35]
-        # targetFrame:
-        #   robot: hrp4
-        #   frame: Buttock
-        #   translation: [0.11, 0.22, 0.2]
-        #   rotation : [-0.68, -0.65, -0.32]
-        #   controlPoints:
-        #     - [0.3, 0.35, 0.3]
-        completion:
-          timeElapsed: true
-      TorsoTask:
-        type: posture
-        robot: hrp4
-        weight: 1000.0
-        stiffness: 10.0
-        target:
-          CHEST_P: [0]
-
-
-  HRP4pos:
-    base: MetaTasks
-    tasks:
-      HRP4HalfSit:
-        type: posture
-        robot: hrp4
-        completion:
-          eval: 0.01
-        stiffness: 3
-        weight: 1000
-        target:
-          R_HIP_Y: [0.0]
-          R_HIP_R: [-0.02]
-          # R_HIP_P: [-0.384]
-          # R_KNEE_P: [0.719]
-          # R_ANKLE_P: [-0.335]
-          R_ANKLE_R: [0.02]
-          L_HIP_Y: [0.0]
-          L_HIP_R: [0.02]
-          # L_HIP_P: [-0.384]
-          # L_KNEE_P: [0.719]
-          # L_ANKLE_P: [-0.335]
-          L_ANKLE_R: [-0.02]
-          CHEST_P: [0.0]
-          CHEST_Y: [0.0]
-          NECK_Y: [0.0]
-          NECK_P: [0.0]
-          R_SHOULDER_P: [-0.052]
-          R_SHOULDER_R: [-0.175]
-          R_SHOULDER_Y: [0.0]
-          R_ELBOW_P: [-0.524]
-          R_WRIST_Y: [0.0]
-          R_WRIST_P: [0.0]
-          R_WRIST_R: [0.0]
-          L_SHOULDER_P: [-0.052]
-          L_SHOULDER_R: [0.175]
-          L_SHOULDER_Y: [0.0]
-          L_ELBOW_P: [-0.524]
-          L_WRIST_Y: [0.0]
-          L_WRIST_P: [0.0]
-          L_WRIST_R: [0.0]
+  AddHumanCollisions:
+    base: CollisionState
+    AddCollisionSetsBefore: [human]
 
 
   XsensHumanPose:
-    # base: XsensHuman
-    # robot: human
-    # stiffness: 1000
-    # weight: 10000
     base: XsensRetargetting
     robot: human
     stiffness: 1000
     weight: 10000
-    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
-    # start_time: 8.0
-    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
-    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
-    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin"
-    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
-    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
-    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
-    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
     start_time: 0.1
     # end_time: 15.0
     skip_iter: 1
@@ -1122,31 +145,14 @@ states:
     base: Parallel
     states: [XsensHumanPose, Pause_inf]
 
-  TakePositionHRP4HumanElbow:
-    base: Parallel
-    states: [TakePositionHRP4Human, KeepElbowHRP4]
-
-  ApproachHRP4HumanElbow:
-    base: Parallel
-    states: [ApproachHRP4Human, KeepElbowHRP4]
-
-  KeepPositionHRP4HumanElbow:
-    base: Parallel
-    states: [KeepPositionHRP4Human, KeepElbowHRP4]
 
   HelpFSM_HRP4Human:
     base: Meta
     ResetPostures: true # this resets the posture task objective to the current one
     transitions:
     - [Pause_2s, OK, RightStepFSMHRP4, Strict]
-    # - [RightStepFSMHRP4, OK, AdjustRobot, Strict]
-    # - [AdjustRobot, OK, TakePositionHRP4Human, Strict]
-    # - [RightStepFSMHRP4, OK, TakePositionHRP4Human, Strict]
-    # - [TakePositionHRP4Human, OK, ApproachHRP4Human, Strict]
-    # - [ApproachHRP4Human, OK, AdjustHumanSurfaces, Strict]
-    # - [AdjustHumanSurfaces, OK, KeepPositionHRP4Human, Auto]
-    # - [KeepPositionHRP4Human, OK, GoBackInitFSMHRP4, Strict]
-    - [RightStepFSMHRP4, OK, TakePositionHRP4HumanElbow, Strict]
+    - [RightStepFSMHRP4, OK, AddHumanCollisions, Auto]
+    - [AddHumanCollisions, OK, TakePositionHRP4HumanElbow, Strict]
     - [TakePositionHRP4HumanElbow, OK, ApproachHRP4HumanElbow, Strict]
     - [ApproachHRP4HumanElbow, OK, AdjustHumanSurfaces, Strict]
     - [AdjustHumanSurfaces, OK, KeepPositionHRP4Human, Auto]
@@ -1161,35 +167,24 @@ states:
     - [ApproachHRP4Panda, OK, KeepPositionHRP4Panda, Strict]
     - [KeepPositionHRP4Panda, OK, GoBackInitFSMHRP4, Strict]
 
-  HelpFSM_E2DR:
-    base: Meta
-    transitions:
-    - [Pause_2s, OK, TakePositionE2DR, Strict]
-    - [TakePositionE2DR, OK, MakeHandContactsE2DR, Strict] #KeepPosition
-    - [MakeHandContactsE2DR, OK, KeepPositionCompliE2DR, Strict]
-    - [KeepPositionCompliE2DR, OK, GoBackInitHRP4, Strict]
-    - [GoBackInitHRP4, OK, HRP4pos, Strict]
 
   HelpDemoHRP4:
     base: Parallel
-    states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_HRP4Human] #AddCollisionWithHuman,
+    states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_HRP4Human]
 
-  HelpDemoE2DR:
-    base: Parallel
-    states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_E2DR]
 
-  RightStepFSMHRP4:
-    base: Meta
-    transitions:
-    - [RobotStabilizer::GoLeft, OK, RobotStabilizer::MakeRightLiftHRP4, Auto]
-    - [RobotStabilizer::MakeRightLiftHRP4, OK, RobotStabilizer::MakeRightStepHRP4, Auto]
-    - [RobotStabilizer::MakeRightStepHRP4, OK, RobotStabilizer::GoCenter, Auto]
+  # RightStepFSMHRP4:
+  #   base: Meta
+  #   transitions:
+  #   - [RobotStabilizer::GoLeft, OK, RobotStabilizer::MakeRightLiftHRP4, Auto]
+  #   - [RobotStabilizer::MakeRightLiftHRP4, OK, RobotStabilizer::MakeRightStepHRP4, Auto]
+  #   - [RobotStabilizer::MakeRightStepHRP4, OK, RobotStabilizer::GoCenter, Auto]
 
-  GoBackInitFSMHRP4:
-    base: Meta
-    transitions:
-    - [RemoveHandsHRP4, OK, RobotStabilizer::GoCenter, Auto]
-    - [RobotStabilizer::GoCenter, OK, HRP4pos, Auto]
+  # GoBackInitFSMHRP4:
+  #   base: Meta
+  #   transitions:
+  #   - [RemoveHandsHRP4, OK, RobotStabilizer::GoCenter, Auto]
+  #   - [RobotStabilizer::GoCenter, OK, HRP4pos, Auto]
 
 # OK between the states is the transition if the state output is OK -> I can branch with
 # - [StateA, Output1, StateB]
@@ -1203,14 +198,14 @@ transitions:
 - [HelpDemoHRP4, OK, HelpDemoHRP4, Strict]
 
 # E2DR version
-# - [ResetStateE2DR, OK, HelpDemoE2DR, Auto]
-# - [HelpDemoE2DR, OK, HelpDemoE2DR, Strict]
+- [ResetStateE2DR, OK, HelpDemoE2DR, Auto]
+- [HelpDemoE2DR, OK, HelpDemoE2DR, Strict]
 
 
 
 # Initial state
-init: ResetStateHRP4
-# init: ResetStateE2DR
+# init: ResetStateHRP4
+init: ResetStateE2DR
 
 # XXX For now load later because we control HRP4 with the UDPPlugin and sensor
 # values are not available from the start of the controller
@@ -1221,17 +216,12 @@ HRP4ObserverPipeline:
   observers:                             #   declare which observers to use
   - type: Encoder                        # - Use an EncoderObserver
     config:
-      robot: hrp4
-      updateRobot: hrp4
+      #   position: encoderValues            #    - Sets joint position from encoder sensor values (default)
+      #   velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
       position: encoderValues            #    - Sets joint position from encoder sensor values (default)
       velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
-      computeFV: true                    # We now have the estimation of each joint position and velocity and the corresponding body positions and velocities, but we are still missing the floating base
-    # config:
-    #   robot: e2dr
-    #   updateRobot: e2dr
-    #   position: encoderValues            #    - Sets joint position from encoder sensor values (default)
-    #   velocity: encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
-    #   computeFV: true
+      computeFV: true                    # We now have the estimation of each joint position and velocity and the corresponding body positions and velocities,
+                                          # but we are still missing the floating base
   - type: Attitude
     config:
       bodySensor: Accelerometer
@@ -1239,13 +229,9 @@ HRP4ObserverPipeline:
     update: true                         #   update the real robot instance from its results
     gui: true                            #   Displays the estimated velocity as an arrow (default)
     config:
-      robot: hrp4
-      updateRobot: hrp4
-      bodySensor: Accelerometer          # This observer only uses roll and pitch rotation information from this sensor along with a kinematic anchor point and the robot kinematics between the anchor frame and the floating base frame. The anchor frame is expected to be provided through a datastore callback (see below for details)
-    # config:
-    #   robot: e2dr
-    #   updateRobot: e2dr
-    #   bodySensor: Accelerometer
+      bodySensor: Accelerometer           # This observer only uses roll and pitch rotation information from this sensor along
+                                          # with a kinematic anchor point and the robot kinematics between the anchor frame and the floating base frame.
+                                          # The anchor frame is expected to be provided through a datastore callback (see below for details)
 
 ObserverPipelines:
 - name: HumanPipeline
@@ -1267,17 +253,6 @@ ObserverPipelines:
       bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
                                          #   The observer computes the position and velocity of the floating base
                                          #   by transforming the sensor measurements to the floating base frame
-  # - type: Attitude
-  #   config:
-  #     robot: human
-  #     bodySensor: Accelerometer
-  # - type: KinematicInertial              # - Estimates the floating base state using the KinematicInertial observer
-  #   update: true                         #   update the real robot instance from its results
-  #   gui: true                            #   Displays the estimated velocity as an arrow (default)
-  #   config:
-  #     robot: human
-  #     updateRobot: human
-  #     bodySensor: Accelerometer
 
 
 Plugins: [XsensReplay, XsensPlugin, ForceShoePlugin, RobotModelUpdate] #, mc_joystick_plugin] #, UDPPlugin] # RobotModelUpdate, UDPPlugin]
@@ -1316,8 +291,8 @@ XsensReplay:
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
-  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin" #use this one
-  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin" #use this one
+  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin" #use this one
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/18dec2023.bin
@@ -1347,7 +322,8 @@ wrenchDistributionTarget:
   # robot: human
   # helpSurfaceLH: Back
   # helpSurfaceRH: RightShoulder
-  robot: hrp4
+  # robot: hrp4
+  # robot: e2dr
   targetRobot: human
   helpSurfaceLH: LeftHand
   helpSurfaceRH: RightHand
@@ -1512,3 +488,5 @@ StabilityPolytope:
     polyhedron:
       <<: *polyhedron
       triangle_color: [0.0, 1.0, 0.0, 0.3]
+  e2dr:
+    polyhedron: *polyhedron

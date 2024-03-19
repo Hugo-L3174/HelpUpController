@@ -1,3 +1,8 @@
+scaling_heights:
+  hrp4:
+    max: 0.84
+    min: 0.73
+    nominal: 0.78
 collision_sets:
   hrp4:
     human:

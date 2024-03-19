@@ -62,10 +62,8 @@ bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl)
   auto updatedObjectiveRH =
       RHobjectiveOffset_ * ctl.robot(RHtargetFrame("robot")).frame(RHtargetFrame("frame")).position();
   // update offset of objective (transform between control frame and observed frame)
-  auto controlledFrameRH =
-      ctl.robot(config_("RHandTrajectory")("robot")).frame(config_("RHandTrajectory")("frame")).position();
-  auto observedFrameRH =
-      ctl.realRobot(config_("RHandTrajectory")("robot")).frame(config_("RHandTrajectory")("frame")).position();
+  auto controlledFrameRH = ctl.robot().frame(config_("RHandTrajectory")("frame")).position();
+  auto observedFrameRH = ctl.realRobot().frame(config_("RHandTrajectory")("frame")).position();
   auto offsetRH = controlledFrameRH * observedFrameRH.inv();
   // updatedObjectiveRH = offsetRH * updatedObjectiveRH;
   // update task objective
@@ -75,10 +73,8 @@ bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl)
   auto updatedObjectiveLH =
       LHobjectiveOffset_ * ctl.robot(LHtargetFrame("robot")).frame(LHtargetFrame("frame")).position();
   // update offset of objective (transform between control frame and observed frame)
-  auto controlledFrameLH =
-      ctl.robot(config_("LHandTrajectory")("robot")).frame(config_("LHandTrajectory")("frame")).position();
-  auto observedFrameLH =
-      ctl.realRobot(config_("LHandTrajectory")("robot")).frame(config_("LHandTrajectory")("frame")).position();
+  auto controlledFrameLH = ctl.robot().frame(config_("LHandTrajectory")("frame")).position();
+  auto observedFrameLH = ctl.realRobot().frame(config_("LHandTrajectory")("frame")).position();
   auto offsetLH = controlledFrameLH * observedFrameLH.inv();
   // updatedObjectiveLH = offsetLH * updatedObjectiveLH;
   // update task objective

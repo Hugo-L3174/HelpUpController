@@ -93,20 +93,15 @@ hrp4:
 # Force limit on contacts (if not here, considered support contact and max force is m*g)
 # todo : differenciate human and robot
 surfacesMaxForces:
-  LeftFoot: 900 # e2dr weights 87.27kg
-  RightFoot: 900
-  # LeftFoot: 500
-  # RightFoot: 500
-  LeftHand: 15
-  RightHand: 15
-  RLegBack: 500
-  LLegBack: 500
-  LeftSole: 500
-  RightSole: 500
-  RightShoulder: 15
-  Back: 15
-  LCheek: 500
-  RCheek: 500
+  human:
+    RLegBack: 500
+    LLegBack: 500
+    LeftSole: 500
+    RightSole: 500
+    RightShoulder: 15
+    Back: 15
+    LCheek: 500
+    RCheek: 500
 
 # FSM states
 states:
@@ -132,6 +127,7 @@ states:
             forceHorizontalSegment: true #true
           RAnkleLink:
             forceHorizontalSegment: true #true
+    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
     # groundingFrames: [LeftSole, RightSole] ## REPLACE WITH YOUR FRAME NAMES
     fixBaseLink: false
     initialStiffnessInterpolationDuration: 0
@@ -204,8 +200,8 @@ transitions:
 
 
 # Initial state
-# init: ResetStateHRP4
-init: ResetStateE2DR
+init: ResetStateHRP4
+# init: ResetStateE2DR
 
 # XXX For now load later because we control HRP4 with the UDPPlugin and sensor
 # values are not available from the start of the controller
@@ -303,7 +299,7 @@ XsensReplay:
   with-outputs: false
   with-gui-inputs: false
   with-datastore-config: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/log-to-datastore.yaml"
-  pause: false
+  # pause: false
 
 measuredPerson:
   # mass: 42 # Wanchen
@@ -370,18 +366,13 @@ Xsens:
           translation: [0, 0, 0]
           rotation: [0, 0, 0]
       # Getting rid of shoulder retargeting
-      RArmLink: #might be 2 instead of 1
+      RArmLink:
         segment: "Right Upper Arm"
         stiffness: 500
         weight: 1000
         offset:
           translation: [0, 0, 0] # 5cm lower for celia model (whole arm)
           rotation: [0, 0, 0]
-      # torso2rshoulder_1:
-      #   segment: "Right Upper Arm"
-      #   offset:
-      #     translation: [0, -0.0, -0.05]
-      #     rotation: [0, 0, 0]
       RForearmLink:
         segment: "Right Forearm"
         stiffness: 500

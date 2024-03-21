@@ -3,6 +3,12 @@ scaling_heights:
     max: 0.84
     min: 0.73
     nominal: 0.78
+surfacesMaxForces:
+  hrp4:
+    LeftFoot: 500
+    RightFoot: 500
+    LeftHand: 15
+    RightHand: 15
 collision_sets:
   hrp4:
     human:

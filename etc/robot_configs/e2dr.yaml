@@ -3,6 +3,12 @@ scaling_heights:
     max: 1.0
     min: 0.85
     nominal: 0.93
+surfacesMaxForces:
+  e2dr:
+    LeftFoot: 900 # e2dr weights 87.27kg
+    RightFoot: 900
+    LeftHand: 15
+    RightHand: 15
 collision_sets:
   e2dr:
     human:

@@ -786,9 +786,10 @@ void HelpUpController::updateContactSet(
 
 void HelpUpController::updateContactSet(const std::vector<mc_rbdyn::Contact> & contacts, unsigned int robotIndex)
 {
-  auto maxForces = config_("surfacesMaxForces");
+  // auto maxForces = config_("surfacesMaxForces");
   Eigen::Vector3d acceleration;
   const auto & robot = robots().robot(robotIndex);
+  auto maxForces = config_.find("surfacesMaxForces").value_or(mc_rtc::Configuration{}).find(robot.name()).value();
 
   // XXX can we avoid allocating a new contact set every time?
   contactSet_ = std::make_shared<ContactSet>(false);
@@ -820,9 +821,6 @@ void HelpUpController::updateContactSet(const std::vector<mc_rbdyn::Contact> & c
         mc_rtc::log::warning("Surface " + surface_name + " NOT found in the config for max force");
         fmax = robot.mass() * 10;
       }
-      // std::cout << "force value on "<< surface_name <<
-      // realRobots().robot(robotIndex).forceSensor(surface_name+"ForceSensor").force(); // in hrp4 there are
-      // RightFootForceSensor LeftFootForceSensor RightHandForceSensor LeftHandForceSensor
 
       double fmin = 0; // todo set the same for min forces?
       ContactType type;
@@ -1060,16 +1058,16 @@ void HelpUpController::updateRealHumContacts()
   acceleration << 0.0, 0.0, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << 0.5, 0, -9.81;
+  acceleration << 0.6, 0, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << 0, 0.5, -9.81;
+  acceleration << 0, 0.6, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << -0.5, 0, -9.81;
+  acceleration << -0.6, 0, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 
-  acceleration << 0, -0.5, -9.81;
+  acceleration << 0, -0.6, -9.81;
   contactSetHum_->addCoMAcc(acceleration);
 }
 

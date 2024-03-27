@@ -127,7 +127,10 @@ states:
             forceHorizontalSegment: true #true
           RAnkleLink:
             forceHorizontalSegment: true #true
-    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin"
     # groundingFrames: [LeftSole, RightSole] ## REPLACE WITH YOUR FRAME NAMES
     fixBaseLink: false
     initialStiffnessInterpolationDuration: 0
@@ -153,6 +156,7 @@ states:
     - [ApproachHRP4HumanElbow, OK, AdjustHumanSurfaces, Strict]
     - [AdjustHumanSurfaces, OK, KeepPositionHRP4Human, Auto]
     - [KeepPositionHRP4Human, OK, GoBackInitFSMHRP4, Strict]
+    - [GoBackInitFSMHRP4, OK, TakePositionHRP4HumanElbow, Strict]
 
   HelpFSM_HRP4Panda:
     base: Meta
@@ -242,13 +246,20 @@ ObserverPipelines:
       velocity: control # encoderFiniteDifferences #    - Computes joint velocities by finite differences  (default)
       computeFV: true
   - type: BodySensor                     # - Use a BodySensor observer
-    update: true                        #   Do not update the real robot state
-    gui: true                           #   Do not display in the gui
+    update: true                        #   Update the real robot state
+    gui: true                           #   Display in the gui
     config:
       robot: human
       bodySensor: FloatingBase           #   In simulation, the interface will fill this sensor with ground truth values
                                          #   The observer computes the position and velocity of the floating base
                                          #   by transforming the sensor measurements to the floating base frame
+  # - type: ContactEstimation
+  #   config:
+  #     robot: human
+  #     force_sensors: [LeftFoot,RightFoot]
+  #     gainInt: 5
+  #     gainExt: 5
+  #     set_value_at_fb: true
 
 
 Plugins: [XsensReplay, XsensPlugin, ForceShoePlugin, RobotModelUpdate] #, mc_joystick_plugin] #, UDPPlugin] # RobotModelUpdate, UDPPlugin]
@@ -288,9 +299,9 @@ XsensReplay:
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin" #use this one
-  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
-  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin" #use this one
+  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin" #use this one
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/18dec2023.bin
 
   # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_alone_2023-07-03.bin
@@ -299,7 +310,7 @@ XsensReplay:
   with-outputs: false
   with-gui-inputs: false
   with-datastore-config: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/log-to-datastore.yaml"
-  # pause: false
+  pause: true
 
 measuredPerson:
   # mass: 42 # Wanchen
@@ -307,7 +318,7 @@ measuredPerson:
   hipHeight: 0.91
   mass: 77
   # withSuit: true        # 10kg
-  withSuit: false
+  withSuit: true
   withShoes: true       # 2*1.1kg
   # withShoes: false
   withLegs: false        # 2*2.3kg
@@ -335,11 +346,11 @@ handContactsForBalance: false
 filteredDerivation: true
 
 ForceShoes:
-  liveMode: false #add function to wait for xsens and force shoes sync in replays
+  liveMode: true #add function to wait for xsens and force shoes sync in replays
 
 # configuration for XsensHuman state
 Xsens:
-  liveMode: false
+  liveMode: true
   human:
     bodies:
       HipsLink:

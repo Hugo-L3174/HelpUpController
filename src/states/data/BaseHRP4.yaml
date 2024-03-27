@@ -47,7 +47,7 @@ TakePositionHRP4Human:
     targetFrame:
       robot: human
       frame:  RightShoulder
-      translation: [0.0, 0.05, 0.08]
+      translation: [0.0, 0.0, 0.08] # removing the 5cm offset (+y is z down in world frame)
       controlPoints:
         - [-0.2, 0.0, 0.2]
       oriWaypoints:
@@ -113,7 +113,7 @@ ApproachHRP4Human:
         robot: human
         frame: RightShoulder
         offset:
-          translation: [0.0, 0.05, 0.0]
+          translation: [0.0, 0.0, 0.0] # offset for admittance is not taken into account?
       wrench:
         couple: [0.0, 0.0, 0.0]
         force: [0.0, 0.0, 5.0]
@@ -358,59 +358,20 @@ KeepPositionHRP4Panda:
 
 
 RemoveHandsHRP4:
-  base: MetaTasks
-  # make bsplines to get away from human
+  base: ApproachHRP4Human
   tasks:
-    RHandTrajectory:
-      type: bspline_trajectory
-      frame: RightHand
-      weight: 500.0
-      stiffness: 150
-      duration: 2.0
-      targetFrame:
-        robot: human
-        frame: RightShoulder
-        translation: [0, 0.2, 0]
-        rotation : [0, 0, -0.77]
-        # controlPoints:
-        #   - [0.15, 0.35, 0.2]
-      # targetFrame:
-      #   robot: hrp4
-      #   frame: Buttock
-      #   translation: [0.11, -0.22, 0.2]
-      #   rotation : [0.68, -0.65, -0.32]
-      #   controlPoints:
-      #     - [0.3, -0.35, 0.3]
+    RHAdmi:
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, -7.0]
       completion:
-        timeElapsed: true
-    LHandTrajectory:
-      type: bspline_trajectory
-      frame: LeftHand
-      weight: 500.0
-      stiffness: 150
-      duration: 2.0
-      targetFrame:
-        robot: human
-        frame: Back
-        translation: [-0.2, 0, 0.3]
-        rotation : [0, 0, 0.77]
-        # controlPoints:
-        #   - [-0.2, -0.15, 0.35]
-      # targetFrame:
-      #   robot: hrp4
-      #   frame: Buttock
-      #   translation: [0.11, 0.22, 0.2]
-      #   rotation : [-0.68, -0.65, -0.32]
-      #   controlPoints:
-      #     - [0.3, 0.35, 0.3]
+        timeout: 3
+    LHAdmi:
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, -7.0]
       completion:
-        timeElapsed: true
-    TorsoTask:
-      type: posture
-      weight: 1000.0
-      stiffness: 10.0
-      target:
-        CHEST_P: [0]
+        timeout: 3
 
 
 HRP4pos:

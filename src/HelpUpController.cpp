@@ -447,7 +447,6 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       {
         double min = heightScalingValues("min");
         double max = heightScalingValues("max");
-        // minimum com height 0.73cm, max will be 0.84cm, scaled to human com height (nominal hrp4 is 0.78)
         filteredObjective.z() = std::clamp(robot("human").com().z(), min, max);
       }
       else
@@ -495,10 +494,10 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       }
       // we do not authorize objective to go down while person is not standing
       // standing com typically about 10cm top of hips, we keep a 5cm margin
-      if(objective.z() < prevObjective.z() && objective.z() < hipHeight_ + 0.05)
-      {
-        objective.z() = prevObjective.z();
-      }
+      // if(objective.z() < prevObjective.z() && objective.z() < hipHeight_ + 0.05)
+      // {
+      //   objective.z() = prevObjective.z();
+      // }
 
       break;
     }

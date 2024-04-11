@@ -123,6 +123,10 @@ void DCM_VRPtracker::computeCombinedVRP()
     // VRPestimator_.update(measuredForcesVRP_, modelVRP_);
     combinedVRP_ = VRPestimator_.eval();
   }
+  else
+  {
+    combinedVRP_ = modelVRP_;
+  }
 }
 
 void DCM_VRPtracker::computeCommandVRP(double P, double I)

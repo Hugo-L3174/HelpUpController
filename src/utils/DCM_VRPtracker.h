@@ -142,6 +142,10 @@ protected:
    */
   void computeForcesVRP();
 
+  /* \brief Compute the combined VRP: if there are other contacts than the chair, the VRP is the acceleration model,
+    if only the feet contacts, the VRP is computed from the complementarity filter.
+   *
+   */
   void computeCombinedVRP();
 
   /* \brief Compute the VRP command necessary to achieve the desired DCM

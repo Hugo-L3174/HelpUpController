@@ -21,21 +21,23 @@ ResetStateE2DR:
 
 RightFootLiftE2DR:
   base: RightFootLift
-  LiftRightFoot:
-    moveWorld:
-      translation: [0,0,0.1]
+  tasks:
+    LiftRightFoot:
+      moveWorld:
+        translation: [0,0,0.1]
 
 
 RightFootExtendE2DR:
   base: RightFootExtend
-  ExtendFootTask:
-    # We target the left foot translated 40cm right
-    targetFrame:
-      frame: LeftFoot
-      translation: [0.0, -0.4, 0]
-      rotation: [0.0, 0.0, 0.0]
-    controlPoints:
-      - [0.0, -0.2, 0.1]
+  tasks:
+    ExtendFootTask:
+      # We target the left foot translated 40cm right
+      targetFrame:
+        frame: LeftFoot
+        translation: [0.0, -0.35, -0.02]
+        rotation: [0.0, 0.0, 0.0]
+      # controlPoints:
+      #   - [0.0, -0.2, 0.1]
 
 
 TakePositionE2DRHuman:
@@ -44,20 +46,24 @@ TakePositionE2DRHuman:
     targetFrame:
       robot: human
       frame:  RightShoulder
-      translation: [0.0, 0.05, 0.08]
+      translation: [0.0, 0.0, 0.08]
+      rotation: [0.0, 0.0, -3.14]
       controlPoints:
         - [-0.2, 0.0, 0.2]
       oriWaypoints:
-        - [4.0, [0.0, 0.0, 0.0]]
+        - [4.0, [0.0, 0.0, -3.14]]
   LHandTrajectory:
     targetFrame:
       robot: human
       frame: Back
       translation: [0.0, -0.05, 0.05]
+      rotation: [0.0, 0.0, 1.57]
       controlPoints: # in target frame !
         - [-0.1, -0.2, 0.1]
       oriWaypoints:
-        - [4.0, [0.0, 0.0, 0.0]]
+        - [4.0, [0.0, 0.0, 1.57]]
+  scaleCoMHeightBefore: false
+  scaleCoMLateralBefore: false
 
 
 ApproachE2DRHuman:
@@ -68,7 +74,7 @@ ApproachE2DRHuman:
         robot: human
         frame: RightShoulder
         offset:
-          translation: [0.0, 0.05, 0.0]
+          translation: [0.0, 0.0, 0.0]
       wrench:
         couple: [0.0, 0.0, 0.0]
         force: [0.0, 0.0, 5.0]
@@ -91,6 +97,8 @@ ApproachE2DRHuman:
 KeepPositionE2DRHuman:
   base: KeepPositionHRP4Human
   RightHandImped:
+    weight: 10000.0
+    stiffness: 50
     wrench:
       couple: [0.0, 0.0, 0.0]
       force: [0.0, 0.0, 5.0]
@@ -108,6 +116,8 @@ KeepPositionE2DRHuman:
         angular: [0.0, 0.0, 0.0]
         linear: [1.0, 1.0, 1.0]
   LeftHandImped:
+    weight: 10000.0
+    stiffness: 50
     wrench:
       couple: [0.0, 0.0, 0.0]
       force: [0.0, 0.0, 5.0]
@@ -124,6 +134,8 @@ KeepPositionE2DRHuman:
       wrench:
         angular: [0.0, 0.0, 0.0]
         linear: [1.0, 1.0, 1.0]
+  scaleCoMHeightBefore: false
+  scaleCoMLateralBefore: false
 
 RemoveHandsE2DR:
   base: RemoveHandsHRP4
@@ -187,9 +199,9 @@ RobotStabilizer::MakeRightLiftE2DR:
 RightStepFSME2DR:
   base: Meta
   transitions:
-  - [RobotStabilizer::GoLeft, OK, RobotStabilizer::MakeRightLiftE2DR, Strict]
-  - [RobotStabilizer::MakeRightLiftE2DR, OK, RobotStabilizer::MakeRightStepE2DR, Strict]
-  - [RobotStabilizer::MakeRightStepE2DR, OK, RobotStabilizer::GoCenter, Strict]
+  - [RobotStabilizer::GoLeft, OK, RobotStabilizer::MakeRightLiftE2DR, Auto]
+  - [RobotStabilizer::MakeRightLiftE2DR, OK, RobotStabilizer::MakeRightStepE2DR, Auto]
+  - [RobotStabilizer::MakeRightStepE2DR, OK, RobotStabilizer::GoCenter, Auto]
 
 
 GoBackInitFSME2DR:

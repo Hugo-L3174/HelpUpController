@@ -32,6 +32,12 @@ Limits:
       lower: 0.411
     L_KNEE_P:
       lower: 0.411
+  e2dr:
+    RLeg_2Y_joint:
+      lower: 0.3
+    LLeg_2Y_joint:
+      lower: 0.3
+
 
 # Additional robots to load
 robots:
@@ -204,8 +210,8 @@ transitions:
 
 
 # Initial state
-init: ResetStateHRP4
-# init: ResetStateE2DR
+# init: ResetStateHRP4
+init: ResetStateE2DR
 
 # XXX For now load later because we control HRP4 with the UDPPlugin and sensor
 # values are not available from the start of the controller
@@ -346,11 +352,11 @@ handContactsForBalance: false
 filteredDerivation: true
 
 ForceShoes:
-  liveMode: true #add function to wait for xsens and force shoes sync in replays
+  liveMode: false #add function to wait for xsens and force shoes sync in replays
 
 # configuration for XsensHuman state
 Xsens:
-  liveMode: true
+  liveMode: false
   human:
     bodies:
       HipsLink:

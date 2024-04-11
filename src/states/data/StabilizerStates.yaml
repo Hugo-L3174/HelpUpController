@@ -32,7 +32,7 @@ GeneralRobotStabilizer:
     substractMeasuredValue: false # substract the measured values instead of the target ones for offset computation (takes gains into account)
     ext_wrench_sum_cutoff: 0.8 # instead of 0.05: low pass filter of the measured ext wrenches (we lower the low-pass)
     modifyCoMErr: true # for low frequency errors
-    com_offset_cutoff: 0.05 # cutoff for zmp strategy: 0.8 instead of 0.05, we lower the low pass
+    com_offset_cutoff: 0.8 # cutoff for zmp strategy: 0.8 instead of 0.05, we lower the low pass
     modifyZMPErr: false # for high frequency errors
     com_offset_com_cutoff: 1.0 # cutoff for com strategy
     modifyZMPErrD: false # derivative of the external force error, should be true in theory but highly affected by measurement noise

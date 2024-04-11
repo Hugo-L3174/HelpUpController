@@ -11,6 +11,7 @@
 #include "MCStabilityPolytope.h"
 #include "config.h"
 
+// allows to overwrite robot module with a controller configuration to constraint some joint limits
 static inline mc_rbdyn::RobotModulePtr patch_rm(mc_rbdyn::RobotModulePtr rm, const mc_rtc::Configuration & config)
 {
   auto limits = config("Limits", mc_rtc::Configuration{})(rm->name, mc_rtc::Configuration{})

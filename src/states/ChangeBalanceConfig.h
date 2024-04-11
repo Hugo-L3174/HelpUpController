@@ -26,7 +26,7 @@ private:
   bool hasCompletion_ = false; /**< If the latest definition of the state configuration has an empty "completion"
                                  element, no completion rule will be used */
 
-  Eigen::Vector3d dcmThreshold_ = Eigen::Vector3d{0.01, 0.01, 0.05}; /**< Completion criteria threshold */
+  Eigen::Vector3d dcmThreshold_ = Eigen::Vector3d{0.015, 0.015, 0.05}; /**< Completion criteria threshold */
 
   std::vector<ContactState> contactState_ = {ContactState::Left, ContactState::Right};
 

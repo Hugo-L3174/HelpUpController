@@ -38,6 +38,13 @@ private:
   // int RHweight_, LHweight_;
   int weight_, stiffness_;
 
+  bool scaleCoMHeightBefore_ = true;
+  bool scaleCoMLateralBefore_ = false;
+
+  bool scaleCoMHeightAfter_ = false;
+  bool scaleCoMLateralAfter_ = false;
+  bool manualModeAfter_ = true;
+
   Eigen::Vector6d RHadmittance_;
   Eigen::Vector6d RHstiffness_;
   Eigen::Vector6d RHdamping_;

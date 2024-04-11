@@ -5,14 +5,14 @@
 void RobotTakePoseObserved::configure(const mc_rtc::Configuration & config)
 {
   config_.load(config);
-  // critRH_ = config_("RHandTrajectory")("completion")("eval",0.02);
-  // critLH_ = config_("LHandTrajectory")("completion")("eval",0.02);
+  config_("scaleCoMHeightBefore", scaleCoMHeightBefore_);
+  config_("scaleCoMLateralBefore", scaleCoMLateralBefore_);
 }
 
 void RobotTakePoseObserved::start(mc_control::fsm::Controller & ctl)
 {
-  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMZ") = true;
-  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMLateral") = true;
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMZ") = scaleCoMHeightBefore_;
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMLateral") = scaleCoMLateralBefore_;
   if(config_.has("RHandTrajectory"))
   {
     RHandTrajectoryTask_ =

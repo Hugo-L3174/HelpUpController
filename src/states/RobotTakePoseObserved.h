@@ -17,6 +17,10 @@ struct RobotTakePoseObserved : mc_control::fsm::State
 
 private:
   mc_rtc::Configuration config_;
+
+  bool scaleCoMHeightBefore_ = true;
+  bool scaleCoMLateralBefore_ = true;
+
   sva::PTransformd RHobjectiveOffset_ = sva::PTransformd::Identity();
   sva::PTransformd LHobjectiveOffset_ = sva::PTransformd::Identity();
 

@@ -7,12 +7,17 @@
 void RobotHolding::configure(const mc_rtc::Configuration & config)
 {
   config_.load(config);
+  config_("scaleCoMHeightBefore", scaleCoMHeightBefore_);
+  config_("scaleCoMLateralBefore", scaleCoMLateralBefore_);
+  config_("scaleCoMHeightAfter", scaleCoMHeightAfter_);
+  config_("scaleCoMLateralAfter", scaleCoMLateralAfter_);
+  config_("manualModeAfter", manualModeAfter_);
 }
 
 void RobotHolding::start(mc_control::fsm::Controller & ctl)
 {
-
-  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMLateral") = false;
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMZ") = scaleCoMHeightBefore_;
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMLateral") = scaleCoMLateralBefore_;
 
   if(config_.has("RightHandAdmi"))
   {
@@ -626,9 +631,9 @@ void RobotHolding::teardown(mc_control::fsm::Controller & ctl)
   // ctl.datastore().call(
   // "RobotStabilizer::setExternalWrenchConfiguration",
   // config_("StabilizerConfig"));
-  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMZ") = false;
-  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMLateral") = false;
-  ctl.datastore().get<bool>("RobotStabilizer::ManualMode") = true;
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMZ") = scaleCoMHeightAfter_;
+  ctl.datastore().get<bool>("HelpUp::scaleRobotCoMLateral") = scaleCoMLateralAfter_;
+  ctl.datastore().get<bool>("RobotStabilizer::ManualMode") = manualModeAfter_;
 
   if(config_.has("LeftHandDamping"))
   {

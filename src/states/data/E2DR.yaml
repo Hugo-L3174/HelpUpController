@@ -138,41 +138,67 @@ KeepPositionE2DRHuman:
   scaleCoMLateralBefore: false
 
 RemoveHandsE2DR:
-  base: RemoveHandsHRP4
+  base: ApproachE2DRHuman
   tasks:
-    TorsoTask:
+    RHAdmi:
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, -7.0]
+      completion:
+        timeout: 3
+    LHAdmi:
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, -7.0]
+      completion:
+        timeout: 3
+
+
+KeepElbowE2DR:
+  base: MetaTasks
+  tasks:
+    CorrectElbows:
+      type: posture
+      weight: 500.0
+      stiffness: 2.0
       target:
-        CHEST_P: [0]
+        LArm_SHY_joint: [0.0]
+        LArm_SHX_joint: [1.57]
+        LArm_WRX_joint: [-3.14]
+        RArm_SHY_joint: [0.0]
+        RArm_SHX_joint: [-1.57]
+        RArm_WRX_joint: [3.14]
+
 
 E2DRpos:
-  base: HRP4pos
+  base: MetaTasks
   tasks:
     HalfSit:
+      type: posture
+      completion:
+        eval: 0.01
+      stiffness: 3
+      weight: 1000
       target:
-        R_HIP_Y: [0.0]
-        R_HIP_R: [-0.02]
-        R_ANKLE_R: [0.02]
-        L_HIP_Y: [0.0]
-        L_HIP_R: [0.02]
-        L_ANKLE_R: [-0.02]
-        CHEST_P: [0.0]
-        CHEST_Y: [0.0]
-        NECK_Y: [0.0]
-        NECK_P: [0.0]
-        R_SHOULDER_P: [-0.052]
-        R_SHOULDER_R: [-0.175]
-        R_SHOULDER_Y: [0.0]
-        R_ELBOW_P: [-0.524]
-        R_WRIST_Y: [0.0]
-        R_WRIST_P: [0.0]
-        R_WRIST_R: [0.0]
-        L_SHOULDER_P: [-0.052]
-        L_SHOULDER_R: [0.175]
-        L_SHOULDER_Y: [0.0]
-        L_ELBOW_P: [-0.524]
-        L_WRIST_Y: [0.0]
-        L_WRIST_P: [0.0]
-        L_WRIST_R: [0.0]
+        BZ_joint: [0.0]
+        BY_joint: [0.0]
+        HY_joint: [0.0]
+        RArm_SHBZ_joint: [0.0]
+        RArm_SHY_joint: [1.57]
+        RArm_SHZ_joint: [-0.1]
+        RArm_SHX_joint: [0.0]
+        RArm_EL_joint: [-0.18]
+        RArm_WRX_joint: [0.0]
+        RArm_WRZ_joint: [0.1]
+        RArm_WRY_joint: [-0.052]
+        LArm_SHBZ_joint: [0.0]
+        LArm_SHY_joint: [1.57]
+        LArm_SHZ_joint: [0.1]
+        LArm_SHX_joint: [0.0]
+        LArm_EL_joint: [-0.18]
+        LArm_WRX_joint: [0.0]
+        LArm_WRZ_joint: [-0.1]
+        LArm_WRY_joint: [0.0]
 
 
 # This state makes the step to the right while keeping the CoM above the left contact
@@ -208,7 +234,12 @@ GoBackInitFSME2DR:
   base: Meta
   transitions:
   - [RemoveHandsE2DR, OK, RobotStabilizer::GoCenter, Auto]
-  - [RobotStabilizer::GoCenter, OK, HRP4pos, Auto]
+  - [RobotStabilizer::GoCenter, OK, E2DRpos, Auto]
+
+
+TakePositionE2DRHumanElbow:
+  base: Parallel
+  states: [TakePositionE2DRHuman, KeepElbowE2DR]
 
 
 HelpFSM_E2DRHuman:
@@ -217,8 +248,8 @@ HelpFSM_E2DRHuman:
   transitions:
   - [Pause_2s, OK, RightStepFSME2DR, Strict]
   - [RightStepFSME2DR, OK, AddHumanCollisions, Auto]
-  - [AddHumanCollisions, OK, TakePositionE2DRHuman, Strict]
-  - [TakePositionE2DRHuman, OK, ApproachE2DRHuman, Strict]
+  - [AddHumanCollisions, OK, TakePositionE2DRHumanElbow, Strict]
+  - [TakePositionE2DRHumanElbow, OK, ApproachE2DRHuman, Strict]
   - [ApproachE2DRHuman, OK, AdjustHumanSurfaces, Strict]
   - [AdjustHumanSurfaces, OK, KeepPositionE2DRHuman, Auto]
   - [KeepPositionE2DRHuman, OK, GoBackInitFSME2DR, Strict]

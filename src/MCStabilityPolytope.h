@@ -209,9 +209,14 @@ protected:
   //{ Configuration
   // TODO load from config
   double precision_ = 0.1;
-  mc_rtc::gui::PolyhedronConfig guiConfig_;
+  mc_rtc::gui::PolyhedronConfig polyOKConfig_;
+  mc_rtc::gui::PolyhedronConfig polyNOKConfig_;
   //}
 
   mc_rtc::duration_ms dt_project_in_polytope_;
-  bool objectiveInPolytope_ = false;
+  bool objectiveInPolytope_ = true;
+
+public:
+  // This bool is just to check if the objective changed from in to out or reverse (to change visual config)
+  bool configToChange_ = false;
 };

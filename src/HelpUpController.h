@@ -209,6 +209,11 @@ private:
 
   Eigen::Vector3d robMeasuredDCM_;
 
+  sva::ForceVecd LHForceLog_ = sva::ForceVecd::Zero();
+  sva::ForceVecd RHForceLog_ = sva::ForceVecd::Zero();
+  sva::ForceVecd LHtargetForceLog_ = sva::ForceVecd::Zero();
+  sva::ForceVecd RHtargetForceLog_ = sva::ForceVecd::Zero();
+
   // Missing forces to apply at CoM human to achieve dynamic balance
   // Eigen::Vector3d missingForces_ = Eigen::Vector3d::Zero();
 

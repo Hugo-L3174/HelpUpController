@@ -150,6 +150,13 @@ bool HelpUpController::run()
   RFShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRFForce");
   RBShoe_ = datastore().call<sva::ForceVecd>("ForceShoePlugin::GetRBForce");
 
+  // XXX datastore log entries to display force target and measured at contact
+  // CAREFUL here should add offset if any because not replay of real hands positions
+  LHForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::LHWrench");
+  RHForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::RHWrench");
+  LHtargetForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::TargetLH");
+  RHtargetForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::TargetRH");
+
   if(LFShoe_.vector().array().isNaN().any())
   {
     mc_rtc::log::error("[ForceShoes] Left front forces are NaN, using zeros instead");
@@ -488,6 +495,12 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       Eigen::Vector3d prevObjective = objective;
       // writing objective by reference in DCMobjective_ var used in VRP control law
       objective = polytope_.objectiveInPolytope(currentPos);
+      if(polytope_.configToChange_)
+      {
+        // XXX needed only if using uncolored polyhedron implementation
+        // polytope_.removeFromGUI(*gui());
+        // polytope_.addToGUI(*gui());
+      }
       // prevent polytope projection to lower objective (from polytope form, closest point might be lower)
       if(objective.z() < currentPos.z())
       {
@@ -590,9 +603,9 @@ void HelpUpController::addGuiElements()
   constexpr double DCM_POINT_SIZE = 0.015;
   constexpr double COM_POINT_SIZE = 0.02;
   constexpr double ARROW_HEAD_DIAM = 0.015;
-  constexpr double ARROW_HEAD_LEN = 0.05;
+  constexpr double ARROW_HEAD_LEN = 0.01;
   constexpr double ARROW_SHAFT_DIAM = 0.01;
-  constexpr double FORCE_SCALE = 0.0015;
+  constexpr double FORCE_SCALE = 0.002;
 
   const std::map<char, mc_rtc::gui::Color> COLORS = {
       {'r', mc_rtc::gui::Color{1.0, 0.0, 0.0}}, {'g', mc_rtc::gui::Color{0.0, 1.0, 0.0}},
@@ -604,7 +617,7 @@ void HelpUpController::addGuiElements()
   forceArrowConfig.head_diam = 1 * ARROW_HEAD_DIAM;
   forceArrowConfig.head_len = 1 * ARROW_HEAD_LEN;
   forceArrowConfig.scale = 1.;
-  forceArrowConfig.start_point_scale = 0.02;
+  forceArrowConfig.start_point_scale = 0.01;
   forceArrowConfig.end_point_scale = 0.;
 
   mc_rtc::gui::ArrowConfig VRPforceArrowConfig = forceArrowConfig;
@@ -615,6 +628,11 @@ void HelpUpController::addGuiElements()
 
   mc_rtc::gui::ArrowConfig ShoesforceArrowConfig = forceArrowConfig;
   ShoesforceArrowConfig.color = COLORS.at('y');
+
+  mc_rtc::gui::ArrowConfig TargetforceArrowConfig = forceArrowConfig;
+  TargetforceArrowConfig.color = COLORS.at('b');
+  TargetforceArrowConfig.start_point_scale = 0;
+  TargetforceArrowConfig.color.a = 0.3;
 
   mc_rtc::gui::ArrowConfig MissingforceArrowConfig = forceArrowConfig;
   MissingforceArrowConfig.color = COLORS.at('g');
@@ -670,50 +688,95 @@ void HelpUpController::addGuiElements()
                                           datastore().get<bool>("HelpUp::ChangeMode") = true;
                                         }));
 
-  gui()->addElement({{}, "Points", "CoM"},
-                    mc_rtc::gui::Point3D("mainCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE),
-                                         [this]() { return robot().com(); }),
-                    mc_rtc::gui::Point3D("mainCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE),
-                                         [this]() {
-                                           return realRobot().com();
-                                         }), // Note that this is the control robot com and not the real robot com
-                    mc_rtc::gui::Point3D("humanCoM", mc_rtc::gui::PointConfig(COLORS.at('y'), COM_POINT_SIZE),
-                                         [this]() { return robot("human").com(); }),
-                    mc_rtc::gui::Point3D("humanCoMreal", mc_rtc::gui::PointConfig(COLORS.at('m'), COM_POINT_SIZE),
-                                         [this]() { return realRobot("human").com(); }),
-                    mc_rtc::gui::Point3D("humanCoMXsens", mc_rtc::gui::PointConfig(COLORS.at('b'), COM_POINT_SIZE),
-                                         [this]() -> const Eigen::Vector3d & { return xsensCoMpos_; }),
-                    mc_rtc::gui::Point3D("humanDCMobjective", mc_rtc::gui::PointConfig(COLORS.at('g'), DCM_POINT_SIZE),
-                                         [this]() -> const Eigen::Vector3d & { return DCMobjective_; })
-
-  );
+  gui()->addElement({"Plugin", "ForceShoes", "Values"},
+                    mc_rtc::gui::Arrow(
+                        "LFShoe", ShoesforceArrowConfig,
+                        [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LFsensor").translation(); },
+                        [this, FORCE_SCALE]() -> Eigen::Vector3d
+                        {
+                          sva::PTransformd X_LFsensor_0 = robot("human").surfacePose("LFsensor").inv();
+                          Eigen::Vector3d F_LFsensor_world = X_LFsensor_0.forceDualMul(LFShoe_);
+                          return robot("human").surfacePose("LFsensor").translation() + FORCE_SCALE * F_LFsensor_world;
+                        }),
+                    mc_rtc::gui::Arrow(
+                        "LBShoe", ShoesforceArrowConfig,
+                        [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LBsensor").translation(); },
+                        [this, FORCE_SCALE]() -> Eigen::Vector3d
+                        {
+                          sva::PTransformd X_LBsensor_0 = robot("human").surfacePose("LBsensor").inv();
+                          Eigen::Vector3d F_LBsensor_world = X_LBsensor_0.forceDualMul(LBShoe_);
+                          return robot("human").surfacePose("LBsensor").translation() + FORCE_SCALE * F_LBsensor_world;
+                        }),
+                    mc_rtc::gui::Arrow(
+                        "RFShoe", ShoesforceArrowConfig,
+                        [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RFsensor").translation(); },
+                        [this, FORCE_SCALE]() -> Eigen::Vector3d
+                        {
+                          sva::PTransformd X_RFsensor_0 = robot("human").surfacePose("RFsensor").inv();
+                          Eigen::Vector3d F_RFsensor_world = X_RFsensor_0.forceDualMul(RFShoe_);
+                          return robot("human").surfacePose("RFsensor").translation() + FORCE_SCALE * F_RFsensor_world;
+                        }),
+                    mc_rtc::gui::Arrow(
+                        "RBShoe", ShoesforceArrowConfig,
+                        [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RBsensor").translation(); },
+                        [this, FORCE_SCALE]() -> Eigen::Vector3d
+                        {
+                          sva::PTransformd X_RBsensor_0 = robot("human").surfacePose("RBsensor").inv();
+                          Eigen::Vector3d F_RBsensor_world = X_RBsensor_0.forceDualMul(RBShoe_);
+                          return robot("human").surfacePose("RBsensor").translation() + FORCE_SCALE * F_RBsensor_world;
+                        }),
+                    mc_rtc::gui::Arrow(
+                        "CoMForce", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return xsensCoMpos_; },
+                        [this, FORCE_SCALE]() -> Eigen::Vector3d
+                        { return xsensCoMpos_ + FORCE_SCALE * humanDCMTracker_->getAppliedForcesSum().force(); }));
 
   gui()->addElement(
-      {"Plugin", "ForceShoes", "Values"},
+      {"Plugin", "Replay", "RobotPushHuman"},
       mc_rtc::gui::Arrow(
-          "LFShoe", ShoesforceArrowConfig,
-          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LFsensor").translation(); },
+          "LHand", ShoesforceArrowConfig,
+          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("Back").translation(); },
           [this, FORCE_SCALE]() -> Eigen::Vector3d
-          { return robot("human").surfacePose("LFsensor").translation() + FORCE_SCALE * LFShoe_.force(); }),
+          {
+            sva::PTransformd X_0_LHsensorReplayPose =
+                robot("hrp4").forceSensor("LeftHandForceSensor").X_0_s(robot("hrp4"))
+                * robot("hrp4").surfacePose("LeftHand").inv() * robot("human").surfacePose("Back");
+            Eigen::Vector3d F_LH_world = X_0_LHsensorReplayPose.inv().forceDualMul(LHForceLog_);
+            return robot("human").surfacePose("Back").translation() + FORCE_SCALE * F_LH_world;
+          }),
       mc_rtc::gui::Arrow(
-          "LBShoe", ShoesforceArrowConfig,
-          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LBsensor").translation(); },
+          "RHand", ShoesforceArrowConfig,
+          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RightShoulder").translation(); },
           [this, FORCE_SCALE]() -> Eigen::Vector3d
-          { return robot("human").surfacePose("LBsensor").translation() + FORCE_SCALE * LBShoe_.force(); }),
+          {
+            sva::PTransformd X_0_RHsensorReplayPose =
+                robot("hrp4").forceSensor("RightHandForceSensor").X_0_s(robot("hrp4"))
+                * robot("hrp4").surfacePose("RightHand").inv() * robot("human").surfacePose("RightShoulder");
+            Eigen::Vector3d F_RH_world = X_0_RHsensorReplayPose.inv().forceDualMul(RHForceLog_);
+            return robot("human").surfacePose("RightShoulder").translation() + FORCE_SCALE * F_RH_world;
+          }),
       mc_rtc::gui::Arrow(
-          "RFShoe", ShoesforceArrowConfig,
-          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RFsensor").translation(); },
+          "LHandObjective", TargetforceArrowConfig,
+          [this]() -> Eigen::Vector3d
+          { return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("Back").translation(); },
           [this, FORCE_SCALE]() -> Eigen::Vector3d
-          { return robot("human").surfacePose("RFsensor").translation() + FORCE_SCALE * RFShoe_.force(); }),
+          {
+            sva::PTransformd X_LHcontact_0 = robot("human").surfacePose("Back").inv();
+            Eigen::Vector3d F_LH_world = X_LHcontact_0.forceDualMul(LHtargetForceLog_);
+            return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("Back").translation()
+                   + FORCE_SCALE * F_LH_world;
+          }),
       mc_rtc::gui::Arrow(
-          "RBShoe", ShoesforceArrowConfig,
-          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RBsensor").translation(); },
+          "RHandObjective", TargetforceArrowConfig,
+          [this]() -> Eigen::Vector3d
+          { return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("RightShoulder").translation(); },
           [this, FORCE_SCALE]() -> Eigen::Vector3d
-          { return robot("human").surfacePose("RBsensor").translation() + FORCE_SCALE * RBShoe_.force(); }),
-      mc_rtc::gui::Arrow(
-          "CoMForce", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return xsensCoMpos_; },
-          [this, FORCE_SCALE]() -> Eigen::Vector3d
-          { return xsensCoMpos_ + FORCE_SCALE * humanDCMTracker_->getAppliedForcesSum().force(); }));
+          {
+            sva::PTransformd X_RHcontact_0 = robot("human").surfacePose("RightShoulder").inv();
+            Eigen::Vector3d F_RH_world = X_RHcontact_0.forceDualMul(RHtargetForceLog_);
+            return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("RightShoulder").translation()
+                   + FORCE_SCALE * F_RH_world;
+          }));
+
   if(robots().hasRobot("panda"))
   {
     gui()->addElement({"Panda"}, mc_rtc::gui::Arrow(

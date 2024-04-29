@@ -28,9 +28,17 @@ MCStabilityPolytope::~MCStabilityPolytope()
 void MCStabilityPolytope::load(const mc_rtc::Configuration & config)
 {
   config("precision", precision_);
-  if(auto gui = config.find("polyhedron"))
+  // if(auto gui = config.find("polyhedron"))
+  // {
+  //   guiConfig_.fromConfig(*gui);
+  // }
+  if(auto gui = config.find("polyhedronOK"))
   {
-    guiConfig_.fromConfig(*gui);
+    polyOKConfig_.fromConfig(*gui);
+  }
+  if(auto gui = config.find("polyhedronNOK"))
+  {
+    polyNOKConfig_.fromConfig(*gui);
   }
 }
 
@@ -51,16 +59,70 @@ void MCStabilityPolytope::addToGUI(mc_rtc::gui::StateBuilder & gui, std::vector<
 {
   auto cat = category;
   category.push_back("Polyhedrons");
-  gui.addElement(
-      this, category,
-      mc_rtc::gui::Polyhedron(fmt::format("{} balance region", name_), guiConfig_, [this]() { return triangles(); }));
 
-  auto triangle_color = guiConfig_.triangle_color;
-  triangle_color.a = 1;
-  cat.push_back("Triangles");
-  gui.addElement(
-      this, cat,
-      mc_rtc::gui::Polygon(fmt::format("{} balance region", name_), triangle_color, [this]() { return edges(); }));
+  // XXX this use of the color functions work but feels inefficient (+ uglier)
+  auto polyhedron_colors_fn = [this]()
+  {
+    std::vector<std::array<mc_rtc::gui::Color, 3>> color;
+    if(objectiveInPolytope_)
+    {
+      for(int i = 0; i < triangles().size(); i++)
+      {
+        std::array<mc_rtc::gui::Color, 3> col;
+        col[0] = polyOKConfig_.triangle_color;
+        col[1] = polyOKConfig_.triangle_color;
+        col[2] = polyOKConfig_.triangle_color;
+        color.push_back(col);
+      }
+    }
+    else
+    {
+      for(int i = 0; i < triangles().size(); i++)
+      {
+        std::array<mc_rtc::gui::Color, 3> col;
+        col[0] = polyNOKConfig_.triangle_color;
+        col[1] = polyNOKConfig_.triangle_color;
+        col[2] = polyNOKConfig_.triangle_color;
+        color.push_back(col);
+      }
+    }
+    return color;
+  };
+
+  gui.addElement(this, category,
+                 // mc_rtc::gui::Polyhedron(fmt::format("{} balance region", name_), guiConfig_, [this]() { return
+                 // triangles(); }));
+                 mc_rtc::gui::ColoredPolyhedron(
+                     fmt::format("{} balance region", name_), polyOKConfig_, [this]() { return triangles(); },
+                     polyhedron_colors_fn));
+
+  // XXX This change of config works but rviz does not update display correctly unless reset.
+  // When this bug is fixed, this implem will be better than the coloredPoly
+
+  // if (objectiveInPolytope_)
+  // {
+  //   mc_rtc::log::warning("[AddGUI] Objective in polytope, adding config");
+  //   gui.addElement(
+  //     this, category,
+  //     mc_rtc::gui::Polyhedron(fmt::format("{} balance region", name_), polyOKConfig_, [this]() { return triangles();
+  //     }));
+  // }
+  // else
+  // {
+  //   mc_rtc::log::warning("[AddGUI] Objective out of polytope, adding config");
+  //   gui.addElement(
+  //     this, category,
+  //     mc_rtc::gui::Polyhedron(fmt::format("{} balance region", name_), polyNOKConfig_, [this]() { return triangles();
+  //     }));
+  // }
+
+  // XXX Edges display for magnum and mujoco (no implementation of faces yet)
+  // auto triangle_color = guiConfig_.triangle_color;
+  // triangle_color.a = 1;
+  // cat.push_back("Triangles");
+  // gui.addElement(
+  //     this, cat,
+  //     mc_rtc::gui::Polygon(fmt::format("{} balance region", name_), triangle_color, [this]() { return edges(); }));
 }
 
 void MCStabilityPolytope::removeFromGUI(mc_rtc::gui::StateBuilder & gui)
@@ -150,6 +212,14 @@ Eigen::Vector3d MCStabilityPolytope::objectiveInPolytope(const Eigen::Vector3d &
   auto objective = Eigen::Vector3d::Zero().eval();
   if(!isVertexInPlanes(currentPos, constraintPlanes(), 0.005))
   {
+    if(objectiveInPolytope_)
+    {
+      configToChange_ = true;
+    }
+    else
+    {
+      configToChange_ = false;
+    }
     objectiveInPolytope_ = false;
     std::shared_ptr<RobustStabilityPolytope> polytope;
     {
@@ -163,6 +233,14 @@ Eigen::Vector3d MCStabilityPolytope::objectiveInPolytope(const Eigen::Vector3d &
   }
   else
   {
+    if(objectiveInPolytope_)
+    {
+      configToChange_ = false;
+    }
+    else
+    {
+      configToChange_ = true;
+    }
     objectiveInPolytope_ = true;
     objective = currentPos;
   }

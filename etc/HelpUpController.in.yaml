@@ -134,9 +134,11 @@ states:
           RAnkleLink:
             forceHorizontalSegment: true #true
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
-    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
-    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoCraneOK_processed.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits_processed.bin"
+    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits.bin"
     # groundingFrames: [LeftSole, RightSole] ## REPLACE WITH YOUR FRAME NAMES
     fixBaseLink: false
     initialStiffnessInterpolationDuration: 0
@@ -210,8 +212,8 @@ transitions:
 
 
 # Initial state
-# init: ResetStateHRP4
-init: ResetStateE2DR
+init: ResetStateHRP4
+# init: ResetStateE2DR
 
 # XXX For now load later because we control HRP4 with the UDPPlugin and sensor
 # values are not available from the start of the controller
@@ -290,28 +292,27 @@ RobotModelUpdate:
 # configuration for Replay plugin
 XsensReplay:
   preload_logs:
-    # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
     - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal2.bin"
     - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoCraneOK_processed.bin"
+    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits_processed.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal2.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin"
-  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia17nov/suit2.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin" #use this one
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
-  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin" #use this one
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/18dec2023.bin
-
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_alone_2023-07-03.bin
-  # log: @MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/celia03jul/QP_perturbed_2023-07-03.bin
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin" #use this one
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoCraneOK_processed.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits_processed.bin"
+  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits.bin"
   with-inputs: false
   with-outputs: false
   with-gui-inputs: false
@@ -324,7 +325,7 @@ measuredPerson:
   hipHeight: 0.91
   mass: 77
   # withSuit: true        # 10kg
-  withSuit: true
+  withSuit: false
   withShoes: true       # 2*1.1kg
   # withShoes: false
   withLegs: false        # 2*2.3kg
@@ -477,10 +478,10 @@ Xsens:
 
 StabilityPolytope:
   hrp4:
-    polyhedron: &polyhedron
+    polyhedronOK: &polyhedron
       triangle_color: [1.0, 0.0, 0.0, 0.3]
       show_triangle: true
-      use_triangle_color: true
+      use_triangle_color: false
       edges:
         color: [0.75, 0.75, 0.75, 1.0]
         width: 0.003
@@ -492,9 +493,19 @@ StabilityPolytope:
         scale: 0.02
       show_vertices: false
       fixed_vertices_color: true
-  human:
-    polyhedron:
+    polyhedronNOK:
       <<: *polyhedron
-      triangle_color: [0.0, 1.0, 0.0, 0.3]
+      triangle_color: [0.0, 0.0, 1.0, 0.3]
+  human:
+    polyhedronOK:
+      <<: *polyhedron
+      triangle_color: [0.0, 1.0, 0.0, 0.4]
+    polyhedronNOK:
+      <<: *polyhedron
+      triangle_color: [1.0, 0.0, 0.0, 0.4]
   e2dr:
-    polyhedron: *polyhedron
+    polyhedronOK:
+      <<: *polyhedron
+    polyhedronNOK:
+      <<: *polyhedron
+      triangle_color: [0.0, 0.0, 1.0, 0.3]

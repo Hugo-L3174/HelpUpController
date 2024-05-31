@@ -605,7 +605,8 @@ void HelpUpController::addGuiElements()
   constexpr double ARROW_HEAD_DIAM = 0.015;
   constexpr double ARROW_HEAD_LEN = 0.01;
   constexpr double ARROW_SHAFT_DIAM = 0.01;
-  constexpr double FORCE_SCALE = 0.002;
+  constexpr double FORCESHOES_SCALE = 0.002;
+  constexpr double FORCE_HANDS_SCALE = 0.005;
 
   const std::map<char, mc_rtc::gui::Color> COLORS = {
       {'r', mc_rtc::gui::Color{1.0, 0.0, 0.0}}, {'g', mc_rtc::gui::Color{0.0, 1.0, 0.0}},
@@ -688,93 +689,94 @@ void HelpUpController::addGuiElements()
                                           datastore().get<bool>("HelpUp::ChangeMode") = true;
                                         }));
 
-  gui()->addElement({"Plugin", "ForceShoes", "Values"},
-                    mc_rtc::gui::Arrow(
-                        "LFShoe", ShoesforceArrowConfig,
-                        [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LFsensor").translation(); },
-                        [this, FORCE_SCALE]() -> Eigen::Vector3d
-                        {
-                          sva::PTransformd X_LFsensor_0 = robot("human").surfacePose("LFsensor").inv();
-                          Eigen::Vector3d F_LFsensor_world = X_LFsensor_0.forceDualMul(LFShoe_);
-                          return robot("human").surfacePose("LFsensor").translation() + FORCE_SCALE * F_LFsensor_world;
-                        }),
-                    mc_rtc::gui::Arrow(
-                        "LBShoe", ShoesforceArrowConfig,
-                        [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LBsensor").translation(); },
-                        [this, FORCE_SCALE]() -> Eigen::Vector3d
-                        {
-                          sva::PTransformd X_LBsensor_0 = robot("human").surfacePose("LBsensor").inv();
-                          Eigen::Vector3d F_LBsensor_world = X_LBsensor_0.forceDualMul(LBShoe_);
-                          return robot("human").surfacePose("LBsensor").translation() + FORCE_SCALE * F_LBsensor_world;
-                        }),
-                    mc_rtc::gui::Arrow(
-                        "RFShoe", ShoesforceArrowConfig,
-                        [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RFsensor").translation(); },
-                        [this, FORCE_SCALE]() -> Eigen::Vector3d
-                        {
-                          sva::PTransformd X_RFsensor_0 = robot("human").surfacePose("RFsensor").inv();
-                          Eigen::Vector3d F_RFsensor_world = X_RFsensor_0.forceDualMul(RFShoe_);
-                          return robot("human").surfacePose("RFsensor").translation() + FORCE_SCALE * F_RFsensor_world;
-                        }),
-                    mc_rtc::gui::Arrow(
-                        "RBShoe", ShoesforceArrowConfig,
-                        [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RBsensor").translation(); },
-                        [this, FORCE_SCALE]() -> Eigen::Vector3d
-                        {
-                          sva::PTransformd X_RBsensor_0 = robot("human").surfacePose("RBsensor").inv();
-                          Eigen::Vector3d F_RBsensor_world = X_RBsensor_0.forceDualMul(RBShoe_);
-                          return robot("human").surfacePose("RBsensor").translation() + FORCE_SCALE * F_RBsensor_world;
-                        }),
-                    mc_rtc::gui::Arrow(
-                        "CoMForce", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return xsensCoMpos_; },
-                        [this, FORCE_SCALE]() -> Eigen::Vector3d
-                        { return xsensCoMpos_ + FORCE_SCALE * humanDCMTracker_->getAppliedForcesSum().force(); }));
+  gui()->addElement(
+      {"Plugin", "ForceShoes", "Values"},
+      mc_rtc::gui::Arrow(
+          "LFShoe", ShoesforceArrowConfig,
+          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LFsensor").translation(); },
+          [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
+          {
+            sva::PTransformd X_LFsensor_0 = robot("human").surfacePose("LFsensor").inv();
+            Eigen::Vector3d F_LFsensor_world = X_LFsensor_0.forceDualMul(LFShoe_);
+            return robot("human").surfacePose("LFsensor").translation() + FORCESHOES_SCALE * F_LFsensor_world;
+          }),
+      mc_rtc::gui::Arrow(
+          "LBShoe", ShoesforceArrowConfig,
+          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("LBsensor").translation(); },
+          [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
+          {
+            sva::PTransformd X_LBsensor_0 = robot("human").surfacePose("LBsensor").inv();
+            Eigen::Vector3d F_LBsensor_world = X_LBsensor_0.forceDualMul(LBShoe_);
+            return robot("human").surfacePose("LBsensor").translation() + FORCESHOES_SCALE * F_LBsensor_world;
+          }),
+      mc_rtc::gui::Arrow(
+          "RFShoe", ShoesforceArrowConfig,
+          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RFsensor").translation(); },
+          [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
+          {
+            sva::PTransformd X_RFsensor_0 = robot("human").surfacePose("RFsensor").inv();
+            Eigen::Vector3d F_RFsensor_world = X_RFsensor_0.forceDualMul(RFShoe_);
+            return robot("human").surfacePose("RFsensor").translation() + FORCESHOES_SCALE * F_RFsensor_world;
+          }),
+      mc_rtc::gui::Arrow(
+          "RBShoe", ShoesforceArrowConfig,
+          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RBsensor").translation(); },
+          [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
+          {
+            sva::PTransformd X_RBsensor_0 = robot("human").surfacePose("RBsensor").inv();
+            Eigen::Vector3d F_RBsensor_world = X_RBsensor_0.forceDualMul(RBShoe_);
+            return robot("human").surfacePose("RBsensor").translation() + FORCESHOES_SCALE * F_RBsensor_world;
+          }),
+      mc_rtc::gui::Arrow(
+          "CoMForce", ShoesforceArrowConfig, [this]() -> Eigen::Vector3d { return xsensCoMpos_; },
+          [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
+          { return xsensCoMpos_ + FORCESHOES_SCALE * humanDCMTracker_->getAppliedForcesSum().force(); }));
 
   gui()->addElement(
       {"Plugin", "Replay", "RobotPushHuman"},
       mc_rtc::gui::Arrow(
           "LHand", ShoesforceArrowConfig,
           [this]() -> Eigen::Vector3d { return robot("human").surfacePose("Back").translation(); },
-          [this, FORCE_SCALE]() -> Eigen::Vector3d
+          [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
           {
             sva::PTransformd X_0_LHsensorReplayPose =
                 robot("hrp4").forceSensor("LeftHandForceSensor").X_0_s(robot("hrp4"))
                 * robot("hrp4").surfacePose("LeftHand").inv() * robot("human").surfacePose("Back");
             Eigen::Vector3d F_LH_world = X_0_LHsensorReplayPose.inv().forceDualMul(LHForceLog_);
-            return robot("human").surfacePose("Back").translation() + FORCE_SCALE * F_LH_world;
+            return robot("human").surfacePose("Back").translation() + FORCESHOES_SCALE * F_LH_world;
           }),
       mc_rtc::gui::Arrow(
           "RHand", ShoesforceArrowConfig,
           [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RightShoulder").translation(); },
-          [this, FORCE_SCALE]() -> Eigen::Vector3d
+          [this, FORCE_HANDS_SCALE]() -> Eigen::Vector3d
           {
             sva::PTransformd X_0_RHsensorReplayPose =
                 robot("hrp4").forceSensor("RightHandForceSensor").X_0_s(robot("hrp4"))
                 * robot("hrp4").surfacePose("RightHand").inv() * robot("human").surfacePose("RightShoulder");
             Eigen::Vector3d F_RH_world = X_0_RHsensorReplayPose.inv().forceDualMul(RHForceLog_);
-            return robot("human").surfacePose("RightShoulder").translation() + FORCE_SCALE * F_RH_world;
+            return robot("human").surfacePose("RightShoulder").translation() + FORCE_HANDS_SCALE * F_RH_world;
           }),
       mc_rtc::gui::Arrow(
           "LHandObjective", TargetforceArrowConfig,
           [this]() -> Eigen::Vector3d
           { return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("Back").translation(); },
-          [this, FORCE_SCALE]() -> Eigen::Vector3d
+          [this, FORCE_HANDS_SCALE]() -> Eigen::Vector3d
           {
             sva::PTransformd X_LHcontact_0 = robot("human").surfacePose("Back").inv();
             Eigen::Vector3d F_LH_world = X_LHcontact_0.forceDualMul(LHtargetForceLog_);
             return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("Back").translation()
-                   + FORCE_SCALE * F_LH_world;
+                   + FORCE_HANDS_SCALE * F_LH_world;
           }),
       mc_rtc::gui::Arrow(
           "RHandObjective", TargetforceArrowConfig,
           [this]() -> Eigen::Vector3d
           { return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("RightShoulder").translation(); },
-          [this, FORCE_SCALE]() -> Eigen::Vector3d
+          [this, FORCE_HANDS_SCALE]() -> Eigen::Vector3d
           {
             sva::PTransformd X_RHcontact_0 = robot("human").surfacePose("RightShoulder").inv();
             Eigen::Vector3d F_RH_world = X_RHcontact_0.forceDualMul(RHtargetForceLog_);
             return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("RightShoulder").translation()
-                   + FORCE_SCALE * F_RH_world;
+                   + FORCE_HANDS_SCALE * F_RH_world;
           }));
 
   if(robots().hasRobot("panda"))
@@ -783,10 +785,10 @@ void HelpUpController::addGuiElements()
                                      "Force Sensor", ShoesforceArrowConfig,
                                      [this]() -> Eigen::Vector3d
                                      { return robot("panda").frame("panda_link8").position().translation(); },
-                                     [this, FORCE_SCALE]() -> Eigen::Vector3d
+                                     [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
                                      {
                                        return robot("panda").frame("panda_link8").position().translation()
-                                              + 3 * FORCE_SCALE
+                                              + 3 * FORCESHOES_SCALE
                                                     * robot("panda").forceSensor("LeftHandForceSensor").force();
                                      }));
   }

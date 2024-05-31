@@ -131,7 +131,9 @@ void DCM_VRPtracker::computeCombinedVRP()
 
 void DCM_VRPtracker::computeCommandVRP(double P, double I)
 {
-  // TODO fix feedforward term
+  // TODO fix feedforward term: is it coherent to give the current DCMvel as target while targeting a different DCM pos?
+  // In practice DCMvel should be current if we are in, and zero if out: we are targeting a fixed pos.
+  // if moving target (moving projection on polytope?), must prove convergence (reverse time in state of the art)
   // commandVRP_ = humanXsensDCM() - (1/(humanOmega_-(dotHumanOmega_/humanOmega_)))*(/*DCMobjectiveVel_*/ +
   // DCMpropgain_*(DCMerror_) + DCMinteggain_ * DCMaverageError_);
   Eigen::Vector3d DCMvel = Eigen::Vector3d::Zero();
@@ -181,18 +183,19 @@ void DCM_VRPtracker::addGuiElements(mc_rtc::gui::StateBuilder & gui)
   const std::map<char, mc_rtc::gui::Color> COLORS = {
       {'r', mc_rtc::gui::Color{1.0, 0.0, 0.0}}, {'g', mc_rtc::gui::Color{0.0, 1.0, 0.0}},
       {'b', mc_rtc::gui::Color{0.0, 0.0, 1.0}}, {'y', mc_rtc::gui::Color{1.0, 0.5, 0.0}},
-      {'c', mc_rtc::gui::Color{0.0, 0.5, 1.0}}, {'m', mc_rtc::gui::Color{1.0, 0.0, 0.5}}};
+      {'c', mc_rtc::gui::Color{0.0, 0.5, 1.0}}, {'m', mc_rtc::gui::Color{1.0, 0.0, 0.5}},
+      {'o', mc_rtc::gui::Color{1.0, 0.7, 0.0}}};
 
   mc_rtc::gui::ArrowConfig forceArrowConfig;
   forceArrowConfig.shaft_diam = 0.01;
   forceArrowConfig.head_diam = 0.015;
-  forceArrowConfig.head_len = 0.05;
+  forceArrowConfig.head_len = 0.01;
   forceArrowConfig.scale = 1.;
-  forceArrowConfig.start_point_scale = 0.02;
+  forceArrowConfig.start_point_scale = 0.;
   forceArrowConfig.end_point_scale = 0.;
 
   mc_rtc::gui::ArrowConfig VRPforceArrowConfig = forceArrowConfig;
-  VRPforceArrowConfig.color = COLORS.at('r');
+  VRPforceArrowConfig.color = COLORS.at('o');
 
   mc_rtc::gui::ArrowConfig DCMforceArrowConfig = forceArrowConfig;
   DCMforceArrowConfig.color = COLORS.at('c');
@@ -205,17 +208,21 @@ void DCM_VRPtracker::addGuiElements(mc_rtc::gui::StateBuilder & gui)
 
   gui.addElement(
       {"Points", "DCM dynamics"},
-      mc_rtc::gui::Point3D("DCM", mc_rtc::gui::PointConfig(COLORS.at('c'), 0.015),
+      mc_rtc::gui::Point3D("CoM", mc_rtc::gui::PointConfig(COLORS.at('b'), 0.03),
+                           [this]() -> const Eigen::Vector3d & { return posCoM_; }),
+      mc_rtc::gui::Point3D("DCM", mc_rtc::gui::PointConfig(COLORS.at('r'), 0.03),
                            [this]() -> const Eigen::Vector3d & { return DCM_; }),
-      mc_rtc::gui::Point3D("VRP acceleration model", mc_rtc::gui::PointConfig(COLORS.at('y'), 0.015),
-                           [this]() -> const Eigen::Vector3d & { return modelVRP_; }),
-      mc_rtc::gui::Point3D("VRP forces model", mc_rtc::gui::PointConfig(COLORS.at('r'), 0.015),
-                           [this]() -> const Eigen::Vector3d & { return measuredForcesVRP_; }),
+      mc_rtc::gui::Point3D("VRP", mc_rtc::gui::PointConfig(COLORS.at('g'), 0.03),
+                           [this]() -> const Eigen::Vector3d & { return combinedVRP_; }),
+      // mc_rtc::gui::Point3D("VRP acceleration model", mc_rtc::gui::PointConfig(COLORS.at('g'), 0.015),
+      //                      [this]() -> const Eigen::Vector3d & { return modelVRP_; }),
+      // mc_rtc::gui::Point3D("VRP forces model", mc_rtc::gui::PointConfig(COLORS.at('c'), 0.015),
+      //                      [this]() -> const Eigen::Vector3d & { return measuredForcesVRP_; }),
       // this is the computed vrp to achieve the desired xsensFinalpos_ (not sure)
       // mc_rtc::gui::Arrow("missingForces", MissingforceArrowConfig, [this]() -> Eigen::Vector3d { return desiredVRP();
       // }, [this]() -> Eigen::Vector3d { return xsensCoMpos_; }),
       mc_rtc::gui::Arrow(
-          "DCM-VRP", VRPforceArrowConfig, [this]() -> const Eigen::Vector3d & { return modelVRP_; },
+          "DCM-VRP", VRPforceArrowConfig, [this]() -> const Eigen::Vector3d & { return combinedVRP_; },
           [this]() -> const Eigen::Vector3d & { return DCM_; })
 
   );

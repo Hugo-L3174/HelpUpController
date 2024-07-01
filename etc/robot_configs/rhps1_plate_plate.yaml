@@ -1,0 +1,17 @@
+scaling_heights:
+  rhps1_plate_plate:
+    max: 1.0
+    min: 0.85
+    nominal: 0.93
+surfacesMaxForces:
+  rhps1_plate_plate:
+    LeftFoot: 900 # e2dr weights 87.27kg
+    RightFoot: 900
+    LeftHand: 15
+    RightHand: 15
+collision_sets:
+  rhps1_plate_plate:
+    human:
+      r1: rhps1_plate_plate
+      r2: human
+      collisions: []

@@ -1,0 +1,260 @@
+ResetStateRHPS1:
+  base: ResetPoses
+  chairOffset: # in world frame, from xsens hips position
+      translation: [0.05, 0.0, 0.0]
+      rotation: [0.0, 0.0, 0.0]
+  robotOffset: # in chair frame
+    translation: [0.1, -0.5, 0.83] #hrp4 in first working experiment: [0.1, -0.51, 0.75]
+    rotation: [0.0, 0.0, 1.57]
+  AddContactsAfter:
+    - r1: rhps1_plate_plate
+      r2: ground
+      r1Surface: LeftFoot
+      r2Surface: AllGround
+      dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+    - r1: rhps1_plate_plate
+      r2: ground
+      r1Surface: RightFoot
+      r2Surface: AllGround
+      dof: [0.0, 0.0, 1.0, 1.0, 1.0, 0.0]
+
+
+RightFootLiftRHPS1:
+  base: RightFootLift
+  tasks:
+    LiftRightFoot:
+      moveWorld:
+        translation: [0,0,0.1]
+
+
+RightFootExtendRHPS1:
+  base: RightFootExtend
+  tasks:
+    ExtendFootTask:
+      # We target the left foot translated 40cm right
+      targetFrame:
+        frame: LeftFoot
+        translation: [0.0, -0.35, -0.02]
+        rotation: [0.0, 0.0, 0.0]
+      # controlPoints:
+      #   - [0.0, -0.2, 0.1]
+
+
+TakePositionRHPS1Human:
+  base: TakePositionHRP4Human
+  RHandTrajectory:
+    targetFrame:
+      robot: human
+      frame:  RightShoulder
+      translation: [0.0, 0.0, 0.08]
+      rotation: [0.0, 0.0, -1.57]
+      controlPoints:
+        - [-0.2, 0.0, 0.2]
+      oriWaypoints:
+        - [4.0, [0.0, 0.0, -1.57]]
+  LHandTrajectory:
+    targetFrame:
+      robot: human
+      frame: Back
+      translation: [0.0, -0.05, 0.05]
+      # rotation: [0.0, 0.0, 1.57]
+      controlPoints: # in target frame !
+        - [-0.1, -0.2, 0.1]
+      # oriWaypoints:
+      #   - [4.0, [0.0, 0.0, 0.0]]
+  scaleCoMHeightBefore: true
+  scaleCoMLateralBefore: true
+
+
+ApproachRHPS1Human:
+  base: ApproachHRP4Human
+  tasks:
+    RHAdmi:
+      targetFrame:
+        robot: human
+        frame: RightShoulder
+        offset:
+          translation: [0.0, 0.0, 0.0]
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 5.0]
+      admittance:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 0.005]
+    LHAdmi:
+      targetFrame:
+        robot: human
+        frame: Back
+        offset:
+          translation: [0.0, -0.05, 0.0]
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 5.0]
+      admittance:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, 0.005]
+
+KeepPositionRHPS1Human:
+  base: KeepPositionHRP4Human
+  RightHandImped:
+    weight: 10000.0
+    stiffness: 50
+    wrench:
+      couple: [0.0, 0.0, 0.0]
+      force: [0.0, 0.0, 5.0]
+    gains:
+      mass:
+        angular: [2.0, 2.0, 2.0]
+        linear: [10.0, 10.0, 10.0]
+      damper:
+        angular: [200.0, 200.0, 200.0]
+        linear: [1500.0, 1500.0, 1500.0]
+      spring:
+        angular: [200.0, 200.0, 200.0]
+        linear: [200.0, 200.0, 200.0]
+      wrench:
+        angular: [0.0, 0.0, 0.0]
+        linear: [1.0, 1.0, 1.0]
+  LeftHandImped:
+    weight: 10000.0
+    stiffness: 50
+    wrench:
+      couple: [0.0, 0.0, 0.0]
+      force: [0.0, 0.0, 5.0]
+    gains:
+      mass:
+        angular: [2.0, 2.0, 2.0]
+        linear: [10.0, 10.0, 10.0]
+      damper:
+        angular: [200.0, 200.0, 200.0]
+        linear: [1500.0, 1500.0, 1500.0]
+      spring:
+        angular: [200.0, 200.0, 200.0]
+        linear: [200.0, 200.0, 200.0]
+      wrench:
+        angular: [0.0, 0.0, 0.0]
+        linear: [1.0, 1.0, 1.0]
+  scaleCoMHeightBefore: true
+  scaleCoMLateralBefore: true
+
+RemoveHandsRHPS1:
+  base: ApproachRHPS1Human
+  tasks:
+    RHAdmi:
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, -7.0]
+      completion:
+        timeout: 3
+    LHAdmi:
+      wrench:
+        couple: [0.0, 0.0, 0.0]
+        force: [0.0, 0.0, -7.0]
+      completion:
+        timeout: 3
+
+
+KeepElbowRHPS1:
+  base: MetaTasks
+  tasks:
+    CorrectElbows:
+      type: posture
+      weight: 500.0
+      stiffness: 2.0
+      target:
+        L_SHOULDER_R: [0.0]
+        L_ELBOW_P: [1.57]
+        LArm_WRX_joint: [-3.14]
+        RArm_SHY_joint: [0.0]
+        RArm_SHX_joint: [-1.57]
+        RArm_WRX_joint: [3.14]
+
+
+RHPS1pos:
+  base: MetaTasks
+  tasks:
+    HalfSit:
+      type: posture
+      completion:
+        eval: 0.01
+      stiffness: 3
+      weight: 1000
+      target:
+        BZ_joint: [0.0]
+        BY_joint: [0.0]
+        HY_joint: [0.0]
+        RArm_SHBZ_joint: [0.0]
+        RArm_SHY_joint: [1.57]
+        RArm_SHZ_joint: [-0.1]
+        RArm_SHX_joint: [0.0]
+        RArm_EL_joint: [-0.18]
+        RArm_WRX_joint: [0.0]
+        RArm_WRZ_joint: [0.1]
+        RArm_WRY_joint: [-0.052]
+        LArm_SHBZ_joint: [0.0]
+        LArm_SHY_joint: [1.57]
+        LArm_SHZ_joint: [0.1]
+        LArm_SHX_joint: [0.0]
+        LArm_EL_joint: [-0.18]
+        LArm_WRX_joint: [0.0]
+        LArm_WRZ_joint: [-0.1]
+        LArm_WRY_joint: [0.0]
+
+
+# This state makes the step to the right while keeping the CoM above the left contact
+RobotStabilizer::MakeRightStepRHPS1:
+  base: Parallel
+  states: [RobotStabilizer::LeftSupport, RightFootExtendRHPS1]
+  AddContactsAfter:
+    - r1: rhps1_plate_plate
+      r2: ground
+      r1Surface: RightFoot
+      r2Surface: AllGround
+      dof: [0, 0, 1, 1, 1, 0]
+
+# This state lifts up the right foot while keeping the CoM above the left contact
+RobotStabilizer::MakeRightLiftRHPS1:
+  base: Parallel
+  states: [RobotStabilizer::LeftSupport, RightFootLiftRHPS1]
+  RemoveContacts:
+    - r1: rhps1_plate_plate
+      r2: ground
+      r1Surface: RightFoot
+      r2Surface: AllGround
+
+RightStepFSMRHPS1:
+  base: Meta
+  transitions:
+  - [RobotStabilizer::GoLeft, OK, RobotStabilizer::MakeRightLiftRHPS1, Auto]
+  - [RobotStabilizer::MakeRightLiftRHPS1, OK, RobotStabilizer::MakeRightStepRHPS1, Auto]
+  - [RobotStabilizer::MakeRightStepRHPS1, OK, RobotStabilizer::GoCenter, Auto]
+
+
+GoBackInitFSMRHPS1:
+  base: Meta
+  transitions:
+  - [RemoveHandsRHPS1, OK, RobotStabilizer::GoCenter, Auto]
+  - [RobotStabilizer::GoCenter, OK, RHPS1pos, Auto]
+
+
+TakePositionRHPS1HumanElbow:
+  base: Parallel
+  states: [TakePositionRHPS1Human, KeepElbowRHPS1]
+
+
+HelpFSM_RHPS1Human:
+  base: Meta
+  ResetPostures: true
+  transitions:
+  - [Pause_2s, OK, RightStepFSMRHPS1, Strict]
+  - [RightStepFSMRHPS1, OK, AddHumanCollisions, Auto]
+  - [AddHumanCollisions, OK, TakePositionRHPS1Human, Strict]
+  - [TakePositionRHPS1Human, OK, ApproachRHPS1Human, Strict]
+  - [ApproachRHPS1Human, OK, AdjustHumanSurfaces, Strict]
+  - [AdjustHumanSurfaces, OK, KeepPositionRHPS1Human, Auto]
+  - [KeepPositionRHPS1Human, OK, GoBackInitFSMRHPS1, Strict]
+
+
+HelpDemoRHPS1:
+  base: Parallel
+  states: [XsensHumanPose, GeneralRobotStabilizer, HelpFSM_RHPS1Human]

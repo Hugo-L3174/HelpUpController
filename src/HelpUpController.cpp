@@ -152,10 +152,13 @@ bool HelpUpController::run()
 
   // XXX datastore log entries to display force target and measured at contact
   // CAREFUL here should add offset if any because not replay of real hands positions
-  LHForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::LHWrench");
-  RHForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::RHWrench");
-  LHtargetForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::TargetLH");
-  RHtargetForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::TargetRH");
+  if(datastore().has("ReplayPlugin::LHWrench") && datastore().has("ReplayPlugin::TargetLH"))
+  {
+    LHForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::LHWrench");
+    RHForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::RHWrench");
+    LHtargetForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::TargetLH");
+    RHtargetForceLog_ = datastore().get<sva::ForceVecd>("ReplayPlugin::TargetRH");
+  }
 
   if(LFShoe_.vector().array().isNaN().any())
   {
@@ -732,52 +735,55 @@ void HelpUpController::addGuiElements()
           [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
           { return xsensCoMpos_ + FORCESHOES_SCALE * humanDCMTracker_->getAppliedForcesSum().force(); }));
 
-  gui()->addElement(
-      {"Plugin", "Replay", "RobotPushHuman"},
-      mc_rtc::gui::Arrow(
-          "LHand", ShoesforceArrowConfig,
-          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("Back").translation(); },
-          [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
-          {
-            sva::PTransformd X_0_LHsensorReplayPose =
-                robot("hrp4").forceSensor("LeftHandForceSensor").X_0_s(robot("hrp4"))
-                * robot("hrp4").surfacePose("LeftHand").inv() * robot("human").surfacePose("Back");
-            Eigen::Vector3d F_LH_world = X_0_LHsensorReplayPose.inv().forceDualMul(LHForceLog_);
-            return robot("human").surfacePose("Back").translation() + FORCESHOES_SCALE * F_LH_world;
-          }),
-      mc_rtc::gui::Arrow(
-          "RHand", ShoesforceArrowConfig,
-          [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RightShoulder").translation(); },
-          [this, FORCE_HANDS_SCALE]() -> Eigen::Vector3d
-          {
-            sva::PTransformd X_0_RHsensorReplayPose =
-                robot("hrp4").forceSensor("RightHandForceSensor").X_0_s(robot("hrp4"))
-                * robot("hrp4").surfacePose("RightHand").inv() * robot("human").surfacePose("RightShoulder");
-            Eigen::Vector3d F_RH_world = X_0_RHsensorReplayPose.inv().forceDualMul(RHForceLog_);
-            return robot("human").surfacePose("RightShoulder").translation() + FORCE_HANDS_SCALE * F_RH_world;
-          }),
-      mc_rtc::gui::Arrow(
-          "LHandObjective", TargetforceArrowConfig,
-          [this]() -> Eigen::Vector3d
-          { return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("Back").translation(); },
-          [this, FORCE_HANDS_SCALE]() -> Eigen::Vector3d
-          {
-            sva::PTransformd X_LHcontact_0 = robot("human").surfacePose("Back").inv();
-            Eigen::Vector3d F_LH_world = X_LHcontact_0.forceDualMul(LHtargetForceLog_);
-            return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("Back").translation()
-                   + FORCE_HANDS_SCALE * F_LH_world;
-          }),
-      mc_rtc::gui::Arrow(
-          "RHandObjective", TargetforceArrowConfig,
-          [this]() -> Eigen::Vector3d
-          { return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("RightShoulder").translation(); },
-          [this, FORCE_HANDS_SCALE]() -> Eigen::Vector3d
-          {
-            sva::PTransformd X_RHcontact_0 = robot("human").surfacePose("RightShoulder").inv();
-            Eigen::Vector3d F_RH_world = X_RHcontact_0.forceDualMul(RHtargetForceLog_);
-            return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("RightShoulder").translation()
-                   + FORCE_HANDS_SCALE * F_RH_world;
-          }));
+  if(datastore().has("ReplayPlugin::LHWrench") && datastore().has("ReplayPlugin::TargetLH"))
+  {
+    gui()->addElement(
+        {"Plugin", "Replay", "RobotPushHuman"},
+        mc_rtc::gui::Arrow(
+            "LHand", ShoesforceArrowConfig,
+            [this]() -> Eigen::Vector3d { return robot("human").surfacePose("Back").translation(); },
+            [this, FORCESHOES_SCALE]() -> Eigen::Vector3d
+            {
+              sva::PTransformd X_0_LHsensorReplayPose =
+                  robot("hrp4").forceSensor("LeftHandForceSensor").X_0_s(robot("hrp4"))
+                  * robot("hrp4").surfacePose("LeftHand").inv() * robot("human").surfacePose("Back");
+              Eigen::Vector3d F_LH_world = X_0_LHsensorReplayPose.inv().forceDualMul(LHForceLog_);
+              return robot("human").surfacePose("Back").translation() + FORCESHOES_SCALE * F_LH_world;
+            }),
+        mc_rtc::gui::Arrow(
+            "RHand", ShoesforceArrowConfig,
+            [this]() -> Eigen::Vector3d { return robot("human").surfacePose("RightShoulder").translation(); },
+            [this, FORCE_HANDS_SCALE]() -> Eigen::Vector3d
+            {
+              sva::PTransformd X_0_RHsensorReplayPose =
+                  robot("hrp4").forceSensor("RightHandForceSensor").X_0_s(robot("hrp4"))
+                  * robot("hrp4").surfacePose("RightHand").inv() * robot("human").surfacePose("RightShoulder");
+              Eigen::Vector3d F_RH_world = X_0_RHsensorReplayPose.inv().forceDualMul(RHForceLog_);
+              return robot("human").surfacePose("RightShoulder").translation() + FORCE_HANDS_SCALE * F_RH_world;
+            }),
+        mc_rtc::gui::Arrow(
+            "LHandObjective", TargetforceArrowConfig,
+            [this]() -> Eigen::Vector3d
+            { return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("Back").translation(); },
+            [this, FORCE_HANDS_SCALE]() -> Eigen::Vector3d
+            {
+              sva::PTransformd X_LHcontact_0 = robot("human").surfacePose("Back").inv();
+              Eigen::Vector3d F_LH_world = X_LHcontact_0.forceDualMul(LHtargetForceLog_);
+              return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("Back").translation()
+                     + FORCE_HANDS_SCALE * F_LH_world;
+            }),
+        mc_rtc::gui::Arrow(
+            "RHandObjective", TargetforceArrowConfig,
+            [this]() -> Eigen::Vector3d
+            { return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("RightShoulder").translation(); },
+            [this, FORCE_HANDS_SCALE]() -> Eigen::Vector3d
+            {
+              sva::PTransformd X_RHcontact_0 = robot("human").surfacePose("RightShoulder").inv();
+              Eigen::Vector3d F_RH_world = X_RHcontact_0.forceDualMul(RHtargetForceLog_);
+              return robot(wrenchDistributionTarget_("targetRobot")).surfacePose("RightShoulder").translation()
+                     + FORCE_HANDS_SCALE * F_RH_world;
+            }));
+  }
 
   if(robots().hasRobot("panda"))
   {
@@ -854,6 +860,7 @@ void HelpUpController::updateContactSet(const std::vector<mc_rbdyn::Contact> & c
   // auto maxForces = config_("surfacesMaxForces");
   Eigen::Vector3d acceleration;
   const auto & robot = robots().robot(robotIndex);
+  // this line finds either the string in the global config or in the robot specific configuration file
   auto maxForces = config_.find("surfacesMaxForces").value_or(mc_rtc::Configuration{}).find(robot.name()).value();
 
   // XXX can we avoid allocating a new contact set every time?

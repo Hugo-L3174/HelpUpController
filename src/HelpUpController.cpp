@@ -192,6 +192,15 @@ bool HelpUpController::run()
   RFShoe_ = lowPassRF_.eval();
   RBShoe_ = lowPassRB_.eval();
 
+  // Sensors are left handed ? Y axis is inverted so we correct it here
+  Eigen::Matrix3d Rr;
+  Rr << 1, 0, 0, 0, -1, 0, 0, 0, 1;
+  sva::PTransformd sensorFrame(Rr, Eigen::Vector3d::Zero());
+  LFShoe_ = sensorFrame.dualMul(LFShoe_);
+  LBShoe_ = sensorFrame.dualMul(LBShoe_);
+  RFShoe_ = sensorFrame.dualMul(RFShoe_);
+  RBShoe_ = sensorFrame.dualMul(RBShoe_);
+
   xsensCoMpos_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMpos");
   xsensCoMvel_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMvel");
   // xsensCoMacc_ = datastore().call<Eigen::Vector3d>("XsensPlugin::GetCoMacc");

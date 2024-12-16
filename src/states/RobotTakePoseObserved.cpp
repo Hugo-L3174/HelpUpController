@@ -51,6 +51,15 @@ void RobotTakePoseObserved::start(mc_control::fsm::Controller & ctl)
   }
   // ctl.logger().addLogEntry("bspline_trajectory_hrp4_RightHand_eval", [this]() -> const double { return errorRH_;});
   // ctl.logger().addLogEntry("bspline_trajectory_hrp4_LeftHand_eval", [this]() -> const double { return errorLH_;});
+  // TODO note steps in book: run shoes once first; remember to set suit or not etc
+  ctl.gui()->addElement(
+      {"Offsets"},
+      mc_rtc::gui::ArrayInput(
+          "RH target offset", [this]() -> const Eigen::Vector3d & { return RHobjectiveOffset_.translation(); },
+          [this](const Eigen::Vector3d & offset) { RHobjectiveOffset_.translation() = offset; }),
+      mc_rtc::gui::ArrayInput(
+          "LH target offset", [this]() -> const Eigen::Vector3d & { return LHobjectiveOffset_.translation(); },
+          [this](const Eigen::Vector3d & offset) { LHobjectiveOffset_.translation() = offset; }));
 }
 
 bool RobotTakePoseObserved::run(mc_control::fsm::Controller & ctl)
@@ -96,6 +105,7 @@ void RobotTakePoseObserved::teardown(mc_control::fsm::Controller & ctl)
 {
   ctl.solver().removeTask(RHandTrajectoryTask_);
   ctl.solver().removeTask(LHandTrajectoryTask_);
+  ctl.gui()->removeElements({"Offsets"}, this);
 }
 
 EXPORT_SINGLE_STATE("RobotTakePoseObserved", RobotTakePoseObserved)

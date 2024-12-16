@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Usage: keys are preset, only need to input the raw log and it will output the processed one in the same place
+
 # check arguments
 if [ "$#" -lt 1 ]; then
     echo "Usage: $0 <input_log1> [<input_log2> ...]"

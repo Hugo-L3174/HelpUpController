@@ -4,7 +4,7 @@ ResetStateRHPS1:
       translation: [0.05, 0.0, 0.0]
       rotation: [0.0, 0.0, 0.0]
   robotOffset: # in chair frame
-    translation: [0.1, -0.5, 0.83] #hrp4 in first working experiment: [0.1, -0.51, 0.75]
+    translation: [0.15, -0.47, 0.83] #hrp4 in first working experiment: [0.1, -0.51, 0.75]
     rotation: [0.0, 0.0, 1.57]
   AddContactsAfter:
     - r1: rhps1_plate_plate

@@ -118,7 +118,7 @@ ForceShoes_RBShoeMeasure: ReplayPlugin::RBForce
 ForceShoes_RFShoeMeasure: ReplayPlugin::RFForce
 
 # forces applied
-RightHandForceSensor: ReplayPlugin::RHWrench
-HelpUp_ComputedRHwrench: ReplayPlugin::TargetRH
-LeftHandForceSensor: ReplayPlugin::LHWrench
-HelpUp_ComputedLHwrench: ReplayPlugin::TargetLH
+# RightHandForceSensor: ReplayPlugin::RHWrench
+# HelpUp_ComputedRHwrench: ReplayPlugin::TargetRH
+# LeftHandForceSensor: ReplayPlugin::LHWrench
+# HelpUp_ComputedLHwrench: ReplayPlugin::TargetLH

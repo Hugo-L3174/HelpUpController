@@ -134,11 +134,13 @@ states:
           RAnkleLink:
             forceHorizontalSegment: true #true
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
-    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/Wanchen_processed.bin"
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin"
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoCraneOK_processed.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoCraneOK.bin"
     # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits_processed.bin"
-    log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits.bin"
+    # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits.bin"
     # groundingFrames: [LeftSole, RightSole] ## REPLACE WITH YOUR FRAME NAMES
     fixBaseLink: false
     initialStiffnessInterpolationDuration: 0
@@ -209,11 +211,16 @@ transitions:
 - [ResetStateE2DR, OK, HelpDemoE2DR, Auto]
 - [HelpDemoE2DR, OK, HelpDemoE2DR, Strict]
 
+# Friends version
+- [ResetStateRHPS1, OK, HelpDemoRHPS1, Auto]
+- [HelpDemoRHPS1, OK, HelpDemoRHPS1, Strict]
+
 
 
 # Initial state
 init: ResetStateHRP4
 # init: ResetStateE2DR
+# init: ResetStateRHPS1
 
 # XXX For now load later because we control HRP4 with the UDPPlugin and sensor
 # values are not available from the start of the controller
@@ -293,12 +300,13 @@ RobotModelUpdate:
 XsensReplay:
   preload_logs:
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
-    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
+    # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal2.bin"
     - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin"
-    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoCraneOK_processed.bin"
-    - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits_processed.bin"
+    # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoCraneOK_processed.bin"
+    # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits_processed.bin"
+    # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/Wanchen_processed.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal2.bin"
     # - "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
@@ -306,13 +314,15 @@ XsensReplay:
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpFront.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitHelpBack.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/SuitNormal1.bin"
-  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin" #use this one
+  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitNormal1.bin" #use this one
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/WithForcesOK.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpFront.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoSuitHelpBack.bin" #use this one
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoCraneOK_processed.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/NoCraneOK.bin"
   # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits_processed.bin"
-  log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/hugo/ForcesLimits.bin"
+  # log: "@MC_CONTROLLER_RUNTIME_INSTALL_PREFIX@/etc/trajectories/Wanchen_processed.bin"
   with-inputs: false
   with-outputs: false
   with-gui-inputs: false
@@ -320,14 +330,15 @@ XsensReplay:
   pause: true
 
 measuredPerson:
-  # mass: 42 # Wanchen
+  mass: 42 # Wanchen
   # mass: 55 # Celia
+  # mass: 64 # Louise
   hipHeight: 0.91
-  mass: 77
-  # withSuit: true        # 10kg
-  withSuit: false
-  withShoes: true       # 2*1.1kg
-  # withShoes: false
+  # mass: 77 # Hugo
+  withSuit: true        # 10kg
+  # withSuit: false
+  # withShoes: true       # 2*1.1kg
+  withShoes: false       # removing shoes weight because it is zeroed in measures ?
   withLegs: false        # 2*2.3kg
   # withLegs: false
   withWrists: false      # 2*1.5kg
@@ -504,6 +515,12 @@ StabilityPolytope:
       <<: *polyhedron
       triangle_color: [1.0, 0.0, 0.0, 0.4]
   e2dr:
+    polyhedronOK:
+      <<: *polyhedron
+    polyhedronNOK:
+      <<: *polyhedron
+      triangle_color: [0.0, 0.0, 1.0, 0.3]
+  rhps1_plate_plate:
     polyhedronOK:
       <<: *polyhedron
     polyhedronNOK:

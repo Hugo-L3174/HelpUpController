@@ -41,3 +41,9 @@ install(FILES etc/force_shoes/hugo/NoSuitHelpBack.bin etc/force_shoes/hugo/NoSui
               etc/force_shoes/hugo/SuitHelpBack.bin etc/force_shoes/hugo/SuitHelpFront.bin etc/force_shoes/hugo/SuitNormal1.bin etc/force_shoes/hugo/SuitNormal2.bin
         DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/hugo/")
 install(FILES etc/force_shoes/hugo/WithForcesOK.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/hugo/")
+install(FILES etc/force_shoes/hugo/NoCraneOK_processed.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/hugo/")
+install(FILES etc/force_shoes/hugo/raws/NoCraneOK.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/hugo/")
+install(FILES etc/force_shoes/hugo/ForcesLimits_processed.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/hugo/")
+install(FILES etc/force_shoes/hugo/raws/ForcesLimits.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/hugo/")
+
+install(FILES etc/trajectories/Wanchen_processed.bin DESTINATION "${MC_CONTROLLER_RUNTIME_INSTALL_PREFIX}/etc/trajectories/")

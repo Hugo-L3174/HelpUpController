@@ -206,6 +206,7 @@ private:
 
   Eigen::Vector3d DCMobjective_; // formerly constant xsensFinalpos_
   Eigen::Vector3d robDCMobjective_;
+  sva::PTransformd robDCMTarget_;
 
   Eigen::Vector3d robMeasuredDCM_;
 

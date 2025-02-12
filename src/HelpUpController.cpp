@@ -76,6 +76,7 @@ HelpUpController::HelpUpController(mc_rbdyn::RobotModulePtr rm, double dt, const
   // init DCM objective
   DCMobjective_ = robot("human").com();
   robDCMobjective_ = robot().com();
+  robDCMTarget_ = robot().com();
   robMeasuredDCM_ = robot().com();
 
   comDesired_ = robot().com();
@@ -458,6 +459,7 @@ void HelpUpController::updateObjective(MCStabilityPolytope & polytope_,
       lowPassPolyCenter_.update(bary);
       bary = lowPassPolyCenter_.eval();
       Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * bary;
+      // filteredObjective = robDCMTarget_.translation();
       // lowPassPolyCenter_.update(chebichev);
       // chebichev = lowPassPolyCenter_.eval();
       // Eigen::Vector3d filteredObjective = (1 - chebichevCoef_) * currentPos + chebichevCoef_ * chebichev;
@@ -807,6 +809,12 @@ void HelpUpController::addGuiElements()
                                                     * robot("panda").forceSensor("LeftHandForceSensor").force();
                                      }));
   }
+
+  gui()->addElement({"Target"}, mc_rtc::gui::Transform(
+                                    "DCMobjective", [this]() -> const sva::PTransformd & { return robDCMTarget_; },
+                                    [this](const sva::PTransformd & p) { robDCMTarget_ = p; })
+
+  );
 
   // gui()->addElement({"AccPoly"},
   //     mc_rtc::gui::Polygon("HRP4accBalanceRegion", mc_rtc::gui::Color{0.8, 0., 0.}, [this]() { return accelerations_;
